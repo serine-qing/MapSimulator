@@ -75,27 +75,28 @@ class EnemyManager{
           
           const pathMap = checkPoint.wayFindMap.map;
           const currentPosition = actionEnemy.position;
-          
+          console.log(pathMap)
+          console.log(currentPosition)
           if(actionEnemy.targetNode === null){
             //第一次执行move 添加targetNode
-            actionEnemy.setTargetNode(pathMap[currentPosition[1]][currentPosition[0]].nextNode)
+            actionEnemy.setTargetNode(pathMap[currentPosition.y][currentPosition.x].nextNode)
           }
 
           //单位向量
           const unitVector = new THREE.Vector2(
-            actionEnemy.targetNode.position[0] - actionEnemy.position[0],
-            actionEnemy.targetNode.position[1] - actionEnemy.position[1]
+            actionEnemy.targetNode.position.x - currentPosition.x,
+            actionEnemy.targetNode.position.y - currentPosition.y
           ).normalize(); 
 
           //TODO 倍速移动常量需要设置
           const moveDistancePerFrame = actionEnemy.moveSpeed * 1/30;
 
           actionEnemy.setPosition(
-            currentPosition[0] + unitVector.x * moveDistancePerFrame,
-            currentPosition[1] + unitVector.y * moveDistancePerFrame
+            currentPosition.x + unitVector.x * moveDistancePerFrame,
+            currentPosition.y + unitVector.y * moveDistancePerFrame
           );
 
-          console.log(actionEnemy.position)
+          
         }
         break;
     }

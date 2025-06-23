@@ -19,7 +19,7 @@ class Enemy{
   magicResistance: number;
   maxHp: number;
 
-  position: number[] = [0, 0];
+  position: Vec2;
 
   route: EnemyRoute;
   checkpoints: CheckPoint[];
@@ -63,8 +63,8 @@ class Enemy{
   }
 
   public setPosition(x:number, y: number){
-    this.position[0] = x;
-    this.position[1] = y;
+    this.position.x = x;
+    this.position.y = y;
   }
 
   public changeCheckPoint(index: number){

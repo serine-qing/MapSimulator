@@ -1,14 +1,6 @@
 import enemyDatas from "@/assets/gamedata/test_enemy_database.json"
 import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities.ts"
 import MapTiles from "./MapTiles.ts"
-import {
-  EnemyWave, 
-  EnemyData, 
-  CheckPoint, 
-  EnemyRoute, 
-  WayFindNode, 
-  WayFindMap} from "@/components/utilities/Interface.ts"
-
 
 //对地图json进行数据处理
 class MapModel{
@@ -188,12 +180,14 @@ class MapModel{
    * @return {*} mapping
    * @memberof mapParser
    */
-  private generatewayFindMapsByVec(x: number, y: number, motionMode: string): WayFindNode[][]{
+  private generatewayFindMapsByVec(target: Vec2, motionMode: string): WayFindNode[][]{
     
     const mapping: WayFindNode[][] = this.generateTileMapping();
+    const x: number = target.x;
+    const y: number = target.y;
 
     mapping[y][x] = {
-      position: [x, y],
+      position: {x, y},
       distance: 0,
       nextNode: null
     };
@@ -207,10 +201,10 @@ class MapModel{
       //按上右下左的顺序扫描这个地块周围4个地块
       let nowPostion = nowTile.position;
       let scanList = [
-        [nowPostion[0],nowPostion[1] + 1],
-        [nowPostion[0] + 1,nowPostion[1]],
-        [nowPostion[0],nowPostion[1] - 1],
-        [nowPostion[0] - 1,nowPostion[1]]
+        [nowPostion.x,nowPostion.y + 1],
+        [nowPostion.x + 1,nowPostion.y],
+        [nowPostion.x,nowPostion.y - 1],
+        [nowPostion.x - 1,nowPostion.y]
       ]
 
       for(let i=0;i<scanList.length;i++){
@@ -225,7 +219,7 @@ class MapModel{
 
           if(mapping[_y][_x] === null){
             mapping[_y][_x] = {
-              position: [_x, _y],
+              position: {x: _x, y: _y},
               distance: -1,
               nextNode: null,
             }
@@ -261,7 +255,10 @@ class MapModel{
         route.checkpoints.forEach(point =>{
           //移动类检查点
           if(point.type === "MOVE"){
-            points.push([point.position[0], point.position[1]]);
+            points.push({
+              x: point.position.x, 
+              y: point.position.y
+            });
           }
         })
 
@@ -270,16 +267,16 @@ class MapModel{
           //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
           const find = this.wayFindMaps.find(item =>{
             return item.motionMode === motionMode && 
-              item.targetPoint[0] === point[0] && 
-              item.targetPoint[1] === point[1];
+              item.targetPoint.x === point.x && 
+              item.targetPoint.y === point.y;
           })
           
           if(find === undefined){ 
-            let findMap = this.generatewayFindMapsByVec(point[0],point[1],motionMode);
+            let findMap = this.generatewayFindMapsByVec(point,motionMode);
 
             const wayFindMap: WayFindMap = {
               motionMode: motionMode,
-              targetPoint:[point[0],point[1]],
+              targetPoint:{x: point.x, y: point.y},
               map : findMap
             }
             
@@ -352,11 +349,11 @@ class MapModel{
   }
 
   //获取某个目标的寻路地图
-  private getWayFindMap(targetPoint: number[], motionMode: string) : WayFindMap | undefined{
+  private getWayFindMap(targetPoint: Vec2, motionMode: string) : WayFindMap | undefined{
     return this.wayFindMaps.find(wayFindMap => {
       return wayFindMap.motionMode === motionMode &&
-        wayFindMap.targetPoint[0] === targetPoint[0] &&
-        wayFindMap.targetPoint[1] === targetPoint[1]
+        wayFindMap.targetPoint.x === targetPoint.x &&
+        wayFindMap.targetPoint.y === targetPoint.y
     })
   }
 

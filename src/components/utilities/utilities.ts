@@ -1,6 +1,7 @@
 
+
 //获取两点形成的矩形里面所有的point坐标
-export function getRectPoints(x0:number, y0:number, x1:number, y1:number) :Array<any>{
+export function getRectPoints(x0:number, y0:number, x1:number, y1:number) : Array<any>{
   const points = [];
   const minx = Math.min(x0, x1);
   const maxx = Math.max(x0, x1);
@@ -20,7 +21,7 @@ export function getRectPoints(x0:number, y0:number, x1:number, y1:number) :Array
 
 //在行/列中较短的一项发生改变时，斜角的2个额外的地块也要被判定。
 //参考：https://www.bilibili.com/opus/900558138389823489
-export function addPoints(points:Array<any>, isXLarger:boolean):Array<any>{
+export function addPoints(points:Array<any>, isXLarger:boolean): Array<any>{
   let x = points[0][0];
   let y = points[0][1];
   let cx;
@@ -87,9 +88,9 @@ export function bresenhamLine(x0:number, y0:number, x1:number, y1:number) :Array
 }
 
 //将row col形式的坐标转化成x,y，方便使用
-export function RowColToVec2(param):Array<number>{
+export function RowColToVec2(param): Vec2{
   if(param.row !== undefined && param.col !== undefined){
-    return [param.col, param.row];
+    return {x: param.col, y: param.row};
   }else{
     return param;
   }
