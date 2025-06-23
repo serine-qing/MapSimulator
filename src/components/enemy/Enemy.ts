@@ -19,16 +19,16 @@ class Enemy{
   magicResistance: number;
   maxHp: number;
 
-  position: Vec2;
+  position: THREE.Vector2;
 
   route: EnemyRoute;
   checkpoints: CheckPoint[];
+  checkPointIndex: number = 0;   //目前处于哪个检查点
 
   wayFindMap: WayFindMap;  //当前使用的寻路地图  
-  checkPointIndex: number = 0;   //目前处于哪个检查点
-  waitingConuts: number = 0;    //等待时间计时器
-
   targetNode: WayFindNode;  //寻路目标点
+
+  waitingConuts: number = 0;    //等待时间计时器
 
   exit: boolean = false;
   constructor(wave: EnemyWave){
@@ -51,7 +51,10 @@ class Enemy{
   }
 
   public reset(){
-    this.position = this.route.startPosition;
+    this.position = new THREE.Vector2(
+      this.route.startPosition.x,
+      this.route.startPosition.y
+    );
     this.waitingConuts = 0;
     this.targetNode = null;
     this.changeCheckPoint(0)
@@ -63,8 +66,7 @@ class Enemy{
   }
 
   public setPosition(x:number, y: number){
-    this.position.x = x;
-    this.position.y = y;
+    this.position.set(x, y)
   }
 
   public changeCheckPoint(index: number){
@@ -73,6 +75,14 @@ class Enemy{
 
   public nextCheckPoint(){
     this.changeCheckPoint(this.checkPointIndex + 1);
+  }
+
+  public currentCheckPoint(): CheckPoint{
+    return this.checkpoints[this.checkPointIndex];
+  }
+
+  public exitMap(){
+    this.exit = true;
   }
 
   public updateWaitingCounts(){

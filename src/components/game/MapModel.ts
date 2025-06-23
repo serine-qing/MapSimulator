@@ -25,6 +25,8 @@ class MapModel{
     this.flatteningFindMaps();
 
     this.bindWayFindToCheckPoints();
+
+    // console.log(this.enemyRoutes)
   }
   /**
    * 初始化敌人数据
@@ -324,7 +326,7 @@ class MapModel{
     while(stack.length > 1){
       endPoint = stack.pop();
       p2 = endPoint.position;
-      points = bresenhamLine(p1[0],p1[1],p2[0],p2[1]);
+      points = bresenhamLine(p1.x,p1.y,p2.x,p2.y);
 
       //todo 这块代码用于调试bug
       // if(p1[0] === 1 && p1[1] === 5  && p2[0] === 6  && p2[1] === 1){
@@ -340,7 +342,6 @@ class MapModel{
           return !this.mapTiles.isTilePassable(p3[0],p3[1]);
         }
       })
-
       if(!blocked){
         point.nextNode = endPoint;
         break;

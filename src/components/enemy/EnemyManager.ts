@@ -2,14 +2,6 @@ import Enemy from "./Enemy.ts"
 import * as THREE from "three";
 let test = 0;
 
-import {
-  EnemyWave, 
-  EnemyData, 
-  CheckPoint, 
-  EnemyRoute, 
-  WayFindNode, 
-  WayFindMap} from "@/components/utilities/Interface.ts"
-
 //敌人状态管理
 class EnemyManager{
   private enemyWaves: EnemyWave[];
@@ -68,15 +60,14 @@ class EnemyManager{
   }
 
   private singleEnemyAction(actionEnemy: Enemy){
-    const checkPoint: CheckPoint = actionEnemy.route.checkpoints[actionEnemy.checkPointIndex];
+    const checkPoint: CheckPoint = actionEnemy.currentCheckPoint();
     switch (checkPoint.type) {
       case "MOVE":
         if(test++ < 10){
           
           const pathMap = checkPoint.wayFindMap.map;
           const currentPosition = actionEnemy.position;
-          console.log(pathMap)
-          console.log(currentPosition)
+          
           if(actionEnemy.targetNode === null){
             //第一次执行move 添加targetNode
             actionEnemy.setTargetNode(pathMap[currentPosition.y][currentPosition.x].nextNode)
@@ -96,7 +87,23 @@ class EnemyManager{
             currentPosition.y + unitVector.y * moveDistancePerFrame
           );
 
-          
+          const distanceToTarget = currentPosition.distanceTo(
+            (actionEnemy.targetNode.position) as THREE.Vector2
+          )
+
+          //抵达检查点
+          if( distanceToTarget <= 0.05 ){
+            actionEnemy.targetNode = actionEnemy.targetNode.nextNode;
+            //抵达最后一个node
+            if( actionEnemy.targetNode === null ){
+              actionEnemy.nextCheckPoint();
+              //抵达终点
+              if( !actionEnemy.currentCheckPoint ){
+                actionEnemy.exitMap();
+              }
+            }
+
+          }
         }
         break;
     }

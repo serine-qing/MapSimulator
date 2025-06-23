@@ -1,6 +1,3 @@
-
-import {TileData} from "@/components/utilities/Interface.ts"
-
 class MapTiles{
   private matrix: TileData[][]
 
