@@ -6,8 +6,8 @@ let test = 0;
 class EnemyManager{
   private enemyWaves: EnemyWave[];
   // private wayFindMaps: WayFindMap[];
-  private enemys: Enemy[] = []; //敌人对象数组
-  private enemysInMap: Enemy[] = []; //需要在地图上渲染的enemys
+  public enemies: Enemy[] = []; //敌人对象数组
+  public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
 
   private currentSecond = -1; //当前游戏时间（-1为未开始默认值）
   constructor(enemyWaves, wayFindMaps){
@@ -16,44 +16,59 @@ class EnemyManager{
 
     this.initEnemies();
 
-    // console.log(this.enemyWaves)
+    // console.log(this.enemies)
     // console.log(this.wayFindMaps)
-    console.log(this.enemys)
   }
 
   private initEnemies(){
     this.enemyWaves.forEach(wave =>{
       const enemy = new Enemy(wave);
-      this.enemys.push(enemy);
+      this.enemies.push(enemy);
     })
     
   }
 
-  private removeEnemys(){
-
+  private removeEnemies(){
+    for(let i = 0; i<this.enemiesInMap.length; i++){
+      if(this.enemiesInMap[i].exit){
+        this.enemiesInMap.splice(i, 1);
+      }
+    }
   }
 
   private updateEnemyWaitingCounts(){
-    this.enemys.forEach(enemy => {
-      enemy.updateWaitingCounts();
+    this.enemies.forEach(enemy => {
+      
+      if(enemy.waitingConuts > 0){
+
+        enemy.setWaitingCounts(enemy.waitingConuts - 1);
+        
+        if(enemy.waitingConuts === 0){
+          enemy.nextCheckPoint()
+        }
+        // console.log(enemy.waitingConuts)
+      }
     })
   }
 
   private spawnEnemy(){
     for (let i=0; i<this.enemyWaves.length; i++){ 
       if(this.currentSecond === this.enemyWaves[i].startTime){
-        //重置
-        this.enemys[i].reset();
-        this.enemysInMap.push(this.enemys[i]);
 
+        if(test++  <= 100){
+        //重置
+        this.enemies[i].reset();
+        this.enemiesInMap.push(this.enemies[i]);
+        }
+        
       }
     }
-    // console.log(this.enemysInMap)
+    // console.log(this.enemiesInMap)
   }
 
   private action(){
-    for(let i=0; i<this.enemysInMap.length; i++){
-      let actionEnemy = this.enemysInMap[i];
+    for(let i=0; i<this.enemiesInMap.length; i++){
+      let actionEnemy = this.enemiesInMap[i];
       this.singleEnemyAction(actionEnemy);
     }
     
@@ -62,18 +77,21 @@ class EnemyManager{
   private singleEnemyAction(actionEnemy: Enemy){
     const checkPoint: CheckPoint = actionEnemy.currentCheckPoint();
     switch (checkPoint.type) {
-      case "MOVE":
-        if(test++ < 10){
-          
-          const pathMap = checkPoint.wayFindMap.map;
-          const currentPosition = actionEnemy.position;
-          
-          if(actionEnemy.targetNode === null){
-            //第一次执行move 添加targetNode
-            actionEnemy.setTargetNode(pathMap[currentPosition.y][currentPosition.x].nextNode)
-          }
+      case "MOVE":  
+        const pathMap = checkPoint.wayFindMap.map;
+        const currentPosition = actionEnemy.position;
+        
+        if(actionEnemy.targetNode === null){
+          //第一次执行move 添加targetNode
+          const intX = Math.floor(currentPosition.x + 0.5);
+          const intY = Math.floor(currentPosition.y + 0.5);
 
-          //单位向量
+          actionEnemy.setTargetNode(pathMap[intY][intX].nextNode)
+        }
+
+        //防止重复检查点导致targetNode为null
+        if(actionEnemy.targetNode){
+          //移动单位向量
           const unitVector = new THREE.Vector2(
             actionEnemy.targetNode.position.x - currentPosition.x,
             actionEnemy.targetNode.position.y - currentPosition.y
@@ -81,6 +99,8 @@ class EnemyManager{
 
           //TODO 倍速移动常量需要设置
           const moveDistancePerFrame = actionEnemy.moveSpeed * 1/30;
+
+          actionEnemy.setDirection(unitVector);
 
           actionEnemy.setPosition(
             currentPosition.x + unitVector.x * moveDistancePerFrame,
@@ -93,17 +113,23 @@ class EnemyManager{
 
           //抵达检查点
           if( distanceToTarget <= 0.05 ){
-            actionEnemy.targetNode = actionEnemy.targetNode.nextNode;
+            actionEnemy.targetNode = actionEnemy.targetNode?.nextNode;
             //抵达最后一个node
-            if( actionEnemy.targetNode === null ){
+            if( actionEnemy.targetNode === null || undefined ){
               actionEnemy.nextCheckPoint();
-              //抵达终点
-              if( !actionEnemy.currentCheckPoint ){
-                actionEnemy.exitMap();
-              }
             }
-
           }
+
+        } else {
+          actionEnemy.nextCheckPoint();
+        }
+
+        // console.log(actionEnemy.position)
+        break;
+
+      case "WAIT_FOR_SECONDS":
+        if(!actionEnemy.isWaiting()){
+          actionEnemy.setWaitingCounts(checkPoint.time);
         }
         break;
     }
@@ -111,7 +137,7 @@ class EnemyManager{
 
 
   public update(currentSecond: number){
-    this.removeEnemys();
+    this.removeEnemies();
     this.action();
 
     //游戏整数时间发生变动

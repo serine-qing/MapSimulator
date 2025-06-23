@@ -1,6 +1,7 @@
 import * as THREE from "three"
 import MapTiles from "./MapTiles.ts"
 import tileKeyMapping from "./tileKeyMapping.js"
+import Enemy from "../enemy/Enemy.ts"
 import GameConfig from "@/components/utilities/GameConfig.ts"
 // import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 import spinesAssets from "@/components/assetManager/spinesAssets.js"
@@ -14,7 +15,9 @@ class GameView{
   private mapTiles: MapTiles;
 
   //TODO 需要重做enemy类
-  enemyObjs: any;
+  public enemies: Enemy[];
+  public enemiesInMap: Enemy[];
+
   constructor(el, mapTiles){
     this.el = el;
     this.mapTiles = mapTiles;
@@ -79,27 +82,31 @@ class GameView{
     this.scene.add(this.mapContainer);
   }
 
-  public render(delta){
-    // this.enemyManager.render();
-    this.renderer.render(this.scene,this.camera);
-    // for(let i = 0; i< this.enemyObjs.length; i++){
-    //   for(let j = 0; j< this.enemyObjs[i].length; j++){
-    //     this.enemyObjs[i][j].skeletonMesh.update(delta);
-    //   }
-    // }
+  public setupEnemies(enemies: Enemy[], enemiesInMap: Enemy[]){
+    this.enemies = enemies;
+    this.enemiesInMap = enemiesInMap;
+    this.setupEnemiesSpines(enemies);
   }
 
   //设置敌人spine
-  private setupEnemies(enemyObjs){
-    this.enemyObjs = enemyObjs;
+  private setupEnemiesSpines(enemies: Enemy[]){
     spinesAssets.loadCompleted.then(()=>{
-      enemyObjs.forEach(arr => {
-        arr.forEach(obj =>{
-          this.mapContainer.add(obj.skeletonMesh);
-        })
+      enemies.forEach(enemy => {
+        enemy.initSpine();
+        this.mapContainer.add(enemy.skeletonMesh);
+        enemy.skeletonMesh.position.x = 7;
+        enemy.skeletonMesh.position.y = 7;
+        enemy.skeletonMesh.visible = true;
       })
 
     })
+  }
+
+  public render(delta: number){
+    this.renderer.render(this.scene,this.camera);
+    for(let i = 0; i< this.enemiesInMap.length; i++){
+      this.enemiesInMap[i].skeletonMesh.update(delta);
+    }
   }
 }
 

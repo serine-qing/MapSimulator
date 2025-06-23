@@ -30,7 +30,10 @@ class GameManager{
       this.mapModel.enemyWaves,
       this.mapModel.wayFindMaps
     );
-
+    this.gameView.setupEnemies(
+      this.enemyManager.enemies,
+      this.enemyManager.enemiesInMap,
+    );
     this.animate();
   }
 
