@@ -1,0 +1,15 @@
+tiles/tileKey: tile_forbidden不可用 tile_start红门 tile_end蓝门 tile_wall高台 tile_road地面 tile_floor不可部署地面 
+tile_rcm_crate推荐障碍放置点
+
+
+tiles/heightType：HIGHLAND高地 LOWLAND低地
+buildableType：NONE不可部署 RANGED高台干员 MELEE近战干员
+passableMask：FLY_ONLY仅飞行敌人 ALL所有敌人
+playerSideMask：
+blackboard
+effects
+
+
+
+
+routes/motionMode：WALK地面 FLY飞行

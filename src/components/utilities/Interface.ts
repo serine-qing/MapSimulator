@@ -1,0 +1,66 @@
+
+//地图tile的数据模式
+interface TileData{
+  tileKey: string,             //tile的类型
+  passableMask: string,        //通行模式："ALL"：都可通行 "FLY_ONLY"：仅飞行
+  playerSideMask?: string,
+  blackboard?: any,
+  buildableType?: string,
+  effects?: any,
+  heightType?: string
+}
+
+interface EnemyData{
+  key: string,            //敌人id
+  attributes: any,        //敌人属性
+  description: string,    //
+  levelType: string,      //敌人级别 普通/精英/领袖
+  name: string,
+  rangeRadius: number,     //攻击范围
+  motion: string,         //移动motion
+}
+
+//敌人路径检查点
+interface CheckPoint{
+  type: string,
+  position: Array<number>,
+  time: number,
+  reachOffset: any,
+  randomizeReachOffset: boolean,
+  wayFindMap?: WayFindMap
+}
+
+interface EnemyRoute{
+  allowDiagonalMove: boolean,  //是否允许斜角路径
+  checkpoints: Array<CheckPoint>,
+  startPosition: Array<number>,
+  motionMode: string,
+  spawnOffset: any,
+  spawnRandomRange: any,
+}
+
+interface EnemyWave{
+  actionType: string,      //敌人生成模式
+  key: string,             //敌人id
+  routeIndex: number,
+  route: EnemyRoute,  
+  enemyData: EnemyData,
+  startTime: number,        //该波次开始时间
+  waveIndex: number         //第几个大波次
+}
+
+//寻路地图中的单个Node
+interface WayFindNode{
+  position: Array<number>,
+  distance: number,
+  nextNode: WayFindNode
+}
+
+//寻路地图
+interface WayFindMap{
+  map: WayFindNode[][],
+  motionMode: string, 
+  targetPoint: Array<number>
+}
+
+export {TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, WayFindNode, WayFindMap}

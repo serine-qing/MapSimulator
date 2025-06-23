@@ -1,0 +1,55 @@
+ //创建场景
+    const scene = new THREE.Scene();
+
+    //创建相机
+    const camera = new THREE.PerspectiveCamera(
+      45, //视角
+      window.innerWidth / window.innerHeight, //宽高比
+      0.1, //近平面
+      1000 //远平面
+    )
+    
+    //创建渲染器
+    const renderer = new THREE.WebGLRenderer({antialias: true,canvas:document.querySelector("#c")});
+    renderer.setSize(window.innerWidth,window.innerHeight); //设置宽高
+
+    const Object = [];
+    //创建球体
+    const sphereGeometry  = new THREE.SphereGeometry(1,8,8);
+
+    //创建材质
+    const sunMaterial  = new THREE.MeshPhongMaterial({ emissive: 0xffff00 });
+    const earthMaterial = new THREE.MeshPhongMaterial({
+      color: 0x2233ff,
+      emissive: 0x112244,
+    });
+    //创建网格
+    const solarSystem = new THREE.Object3D();
+    const sunMesh  = new THREE.Mesh(sphereGeometry,sunMaterial);
+    const earthMesh  = new THREE.Mesh(sphereGeometry,earthMaterial);
+    solarSystem.add(sunMesh);
+    solarSystem.add(earthMesh);
+    sunMesh.scale.set(3,3,3);
+    earthMesh.position.x = 10;
+    Object.push(sunMesh);
+    Object.push(earthMesh);
+    //将物体添加至场景
+    scene.add(solarSystem); 
+
+    camera.position.z = 5;
+    camera.lookAt(0,0,0); //相机看向原点
+
+    // 创建轨道控制器
+    const controls = new OrbitControls(camera, renderer.domElement)
+    controls.enableDamping = true; //阻尼
+
+    //渲染函数
+    function animate(){
+      controls.update(); //已经封装好的功能，让相机跟随鼠标转动
+      solarSystem.rotation.y += 0.01;
+      requestAnimationFrame(animate);
+      //渲染
+      renderer.render(scene,camera);
+    }
+
+    animate();

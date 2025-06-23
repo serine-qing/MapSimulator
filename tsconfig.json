@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "es6",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,    //允许导入json
+    "allowSyntheticDefaultImports": true,  
+    "allowImportingTsExtensions": true,          
+    "esModuleInterop": true,
+  },
+  "exclude": ["node_modules", "dist"]
+}
