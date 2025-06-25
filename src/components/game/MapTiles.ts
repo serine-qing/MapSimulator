@@ -2,9 +2,9 @@ class MapTiles{
   private matrix: TileData[][]
 
   constructor(mapData:any){
-    this.matrix = mapData.map.map((row, rowIndex)=>{
+    this.matrix = mapData.map.map((row: any)=>{
       //row是一行tile的数组,rowIndex为坐标轴中的y值
-      return row.map((item, index)=>{
+      return row.map((item: any)=>{
 
         const tile = mapData.tiles[item];
         const tileData: TileData = {
@@ -19,7 +19,7 @@ class MapTiles{
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
-  public get(x: number, y: number): TileData{
+  public get(x: number, y: number): TileData | null{
     const column = this.matrix[y];
     if(column && column[x]){
       return column[x];

@@ -1,12 +1,15 @@
 <script setup>
-import MapCanvas from "@/components/pages/canvas/canvas.vue"
+import StoryMenu from '@/components/pages/plugin/StoryMenu.vue';
+import Game from "@/components/pages/game/Game.vue"
 
 </script>
 
 <template>
-<div> 
-  <MapCanvas/>
-</div>
+<el-row>
+  <StoryMenu/>
+  <Game/>
+</el-row>
+  
 </template>
 
 <style scoped>

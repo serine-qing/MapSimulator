@@ -1,14 +1,17 @@
 {
   "compilerOptions": {
+    "strict": true,
+    //paths 仅在 TypeScript 编译时有效，而运行时，Nodejs 无法识别这些别名。
+    //在vite.config.js中配置Nodejs能识别的路径
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"]   
     },
     "target": "es6",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,    //允许导入json
-    "allowSyntheticDefaultImports": true,  
-    "allowImportingTsExtensions": true,          
+    "allowSyntheticDefaultImports": true,         
     "esModuleInterop": true,
+    "isolatedModules": true,
   },
   "exclude": ["node_modules", "dist"]
 }

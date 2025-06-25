@@ -1,6 +1,7 @@
 import enemyDatas from "@/assets/gamedata/test_enemy_database.json"
-import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities.ts"
-import MapTiles from "./MapTiles.ts"
+import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
+import MapTiles from "./MapTiles"
+import {getEnemiesData} from "@/components/api/stages"
 
 //对地图json进行数据处理
 class MapModel{
@@ -8,19 +9,19 @@ class MapModel{
   public enemyWaves: EnemyWave[] = [];
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
-  public wayFindMaps: WayFindMap[] = []; //寻路地图
+  public pathMaps: PathMap[] = []; //寻路地图
   constructor(data: any){
-    this.initEnemyData(enemyDatas, data.enemyDbRefs);
+    this.initEnemyData(enemyDatas.enemies, data.enemyDbRefs);
 
-    this.parseTiles(data.mapData)
-    
+    //解析地图
+    this.mapTiles = new MapTiles(data.mapData);
     //解析敌人路径
     this.parseEnemyRoutes(data.routes);
     //解析波次数据
     this.parseEnemyWaves(data.waves);
 
     //生成寻路地图
-    this.generatewayFindMaps();
+    this.generatepathMaps();
     //平整化寻路地图
     this.flatteningFindMaps();
 
@@ -33,13 +34,31 @@ class MapModel{
    * @param {*} enemyDatas 数据库中的敌人数据
    * @param {*} enemyDbRefs 地图JSON中的敌人引用
    */
-  private initEnemyData(enemyDatas, enemyDbRefs){
+  private initEnemyData(enemyDatas: any[], enemyDbRefs: EnemyRef[]){
 
-    enemyDbRefs.forEach(enemyRef => {
+    const enemyRefReq = enemyDbRefs.filter((enemyRef: EnemyRef) => {
+      return enemyRef.useDb;
+    })
+
+    getEnemiesData( enemyRefReq ).then((res: any) => {
+      // console.log(enemyDbRefs)
+      // console.log(res.data.EnemyDatas)
+      const enemyDatas = res.data.EnemyDatas;
+      enemyDbRefs.forEach((enemyDbRef: EnemyRef) => {
+        if(enemyDbRef.overwrittenData){
+          //TODO 这里需要重写属性
+        }
+      })
+
+      this.enemyDatas = enemyDatas;
+    })
+
+
+    enemyDbRefs.forEach((enemyRef: EnemyRef) => {
 
       //是否使用数据库内敌人数据
       if(enemyRef.useDb){
-        const find = enemyDatas.enemies.find( e =>{
+        const find = enemyDatas.find( e =>{
           return enemyRef.id === e.Key;
         })
         const sourceData = find.Value[0].enemyData;
@@ -63,28 +82,21 @@ class MapModel{
     })
   }
 
-  //解析地图tile
-  private parseTiles(mapData: any){
-    const map = mapData.map;
-    const tiles = mapData.tiles;
-    this.mapTiles = new MapTiles(mapData);
-  }
-
   //解析波次
-  private parseEnemyWaves(waves: any){ 
+  private parseEnemyWaves(waves: any[]){ 
 
     let currentTime = 0;
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
-    waves.forEach((wave, waveIndex) => {
+    waves.forEach((wave: any, waveIndex: number) => {
       currentTime += wave.preDelay;
 
-      wave.fragments.forEach(fragment => {
+      wave.fragments.forEach((fragment: any) => {
 
         currentTime += fragment.preDelay;
 
         let lastTime = currentTime;//action波次的最后一只怪出现时间
 
-        fragment.actions.forEach(action =>{
+        fragment.actions.forEach((action: any) =>{
 
           for(let i=0; i<action.count; i++){
 
@@ -96,7 +108,7 @@ class MapModel{
               key: action.key,
               routeIndex:action.routeIndex,
               route: this.enemyRoutes[action.routeIndex],
-              enemyData: this.enemyDatas.find(e => e.key === action.key),
+              enemyData: this.enemyDatas.find(e => e.key === action.key) || null,
               startTime: startTime,
               waveIndex: waveIndex
             }
@@ -118,7 +130,7 @@ class MapModel{
   }
 
   //解析敌人路径
-  private parseEnemyRoutes(sourceRoutes: any){
+  private parseEnemyRoutes(sourceRoutes: any[]){
     sourceRoutes.forEach(sourceRoute =>{
       const route: EnemyRoute = {
         allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
@@ -129,7 +141,7 @@ class MapModel{
         checkpoints: []
       }
       
-      sourceRoute.checkpoints.forEach(cp => {
+      sourceRoute.checkpoints.forEach((cp: any) => {
         const checkpoint: CheckPoint = {
           type: cp.type,
           position: RowColToVec2(cp.position),
@@ -159,7 +171,7 @@ class MapModel{
 
 
   //生成寻路地图需要用到的拷贝对象
-  private generateTileMapping(): null[][]{
+  private generateTileMapping(): PathNode[][]{
     const mapping = [];
     const y = this.mapTiles.height();
     const x = this.mapTiles.width();
@@ -182,23 +194,24 @@ class MapModel{
    * @return {*} mapping
    * @memberof mapParser
    */
-  private generatewayFindMapsByVec(target: Vec2, motionMode: string): WayFindNode[][]{
+  private generatepathMapsByVec(target: Vec2, motionMode: string): PathNode[][]{
     
-    const mapping: WayFindNode[][] = this.generateTileMapping();
+    const mapping: PathNode[][] = this.generateTileMapping();
     const x: number = target.x;
     const y: number = target.y;
 
-    mapping[y][x] = {
+    const node: PathNode = {
       position: {x, y},
       distance: 0,
       nextNode: null
     };
+    mapping[y][x] = node;
 
-    const queue = [];
+    const queue: PathNode[] = [];
     queue.push(mapping[y][x]);
 
     //nowTile是当前中心地块
-    for(let nowTile; nowTile = queue.shift();){
+    for(let nowTile: PathNode | undefined; nowTile = queue.shift();){
 
       //按上右下左的顺序扫描这个地块周围4个地块
       let nowPostion = nowTile.position;
@@ -246,9 +259,9 @@ class MapModel{
   }
 
   //生成所有routes的寻路地图
-  private generatewayFindMaps(){
+  private generatepathMaps(){
     this.enemyRoutes.forEach(route => {
-      const points = [];
+      const points: Vec2[]= [];
       const motionMode = route.motionMode;
 
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
@@ -257,32 +270,29 @@ class MapModel{
         route.checkpoints.forEach(point =>{
           //移动类检查点
           if(point.type === "MOVE"){
-            points.push({
-              x: point.position.x, 
-              y: point.position.y
-            });
+            points.push(point.position);
           }
         })
 
         points.forEach(point => {
 
           //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
-          const find = this.wayFindMaps.find(item =>{
+          const find = this.pathMaps.find(item =>{
             return item.motionMode === motionMode && 
               item.targetPoint.x === point.x && 
               item.targetPoint.y === point.y;
           })
           
           if(find === undefined){ 
-            let findMap = this.generatewayFindMapsByVec(point,motionMode);
+            let findMap = this.generatepathMapsByVec(point,motionMode);
 
-            const wayFindMap: WayFindMap = {
+            const pathMap: PathMap = {
               motionMode: motionMode,
               targetPoint:{x: point.x, y: point.y},
               map : findMap
             }
             
-            this.wayFindMaps.push(wayFindMap)
+            this.pathMaps.push(pathMap)
           }
         })
 
@@ -293,7 +303,7 @@ class MapModel{
   
   //平整化
   private flatteningFindMaps(){
-    this.wayFindMaps.forEach(findMap => {
+    this.pathMaps.forEach(findMap => {
       const map = findMap.map;
       const motionMode = findMap.motionMode;
 
@@ -310,12 +320,12 @@ class MapModel{
   }
 
   //单点平整化
-  private flatteningSinglePoint(point: WayFindNode, motionMode: string){
-    const stack: Array<WayFindNode> = [];
+  private flatteningSinglePoint(point: PathNode, motionMode: string){
+    const stack: PathNode[] = [];
     let currentNode = point.nextNode;
     let p1 = point.position;  //开始点坐标
     let p2;  //结束点坐标
-    let endPoint: WayFindNode; //结束点
+    let endPoint: PathNode | undefined; //结束点
     let points; //开始点与结束点之间经过Bresenham直线算法生成的点
 
     while(currentNode){
@@ -323,8 +333,7 @@ class MapModel{
       currentNode = currentNode.nextNode;
     }
 
-    while(stack.length > 1){
-      endPoint = stack.pop();
+    while(endPoint = stack.pop()){
       p2 = endPoint.position;
       points = bresenhamLine(p1.x,p1.y,p2.x,p2.y);
 
@@ -350,11 +359,11 @@ class MapModel{
   }
 
   //获取某个目标的寻路地图
-  private getWayFindMap(targetPoint: Vec2, motionMode: string) : WayFindMap | undefined{
-    return this.wayFindMaps.find(wayFindMap => {
-      return wayFindMap.motionMode === motionMode &&
-        wayFindMap.targetPoint.x === targetPoint.x &&
-        wayFindMap.targetPoint.y === targetPoint.y
+  private getPathMap(targetPoint: Vec2, motionMode: string) : PathMap | undefined{
+    return this.pathMaps.find(pathMap => {
+      return pathMap.motionMode === motionMode &&
+        pathMap.targetPoint.x === targetPoint.x &&
+        pathMap.targetPoint.y === targetPoint.y
     })
   }
 
@@ -366,8 +375,8 @@ class MapModel{
 
         if(checkPoint.type === "MOVE"){
 
-          const wayFindMap: WayFindMap = this.getWayFindMap(checkPoint.position, motionMode)
-          checkPoint.wayFindMap = wayFindMap;
+          const pathMap: PathMap | undefined = this.getPathMap(checkPoint.position, motionMode)
+          checkPoint.pathMap = pathMap;
         }
 
       })

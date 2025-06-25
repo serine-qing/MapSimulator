@@ -88,7 +88,7 @@ export function bresenhamLine(x0:number, y0:number, x1:number, y1:number) :Array
 }
 
 //将row col形式的坐标转化成x,y，方便使用
-export function RowColToVec2(param): Vec2{
+export function RowColToVec2(param: any): Vec2{
   if(param.row !== undefined && param.col !== undefined){
     return {x: param.col, y: param.row};
   }else{

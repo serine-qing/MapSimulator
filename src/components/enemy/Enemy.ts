@@ -2,8 +2,8 @@ import * as THREE from "three";
 import spine from "@/assets/script/spine-threejs.js";
 import spinesAssets from "@/components/assetManager/spinesAssets.js"
 
-import {EnemyWave, CheckPoint, WayFindMap, EnemyRoute, WayFindNode} from "@/components/utilities/Interface.ts"
-import GameConfig from "@/components/utilities/GameConfig.ts"
+import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components/utilities/Interface"
+import GameConfig from "@/components/utilities/GameConfig"
 
 //TODO  敌人需要图像和数据分离
 class Enemy{
@@ -26,8 +26,7 @@ class Enemy{
   checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
 
-  wayFindMap: WayFindMap;  //当前使用的寻路地图  
-  targetNode: WayFindNode;  //寻路目标点
+  targetNode: PathNode | null;  //寻路目标点
 
   waitingConuts: number = 0;    //等待时间计时器
   exit: boolean = false;
@@ -50,10 +49,12 @@ class Enemy{
 
     this.route = wave.route;
     this.checkpoints = this.route.checkpoints;
+
+    this.position = new THREE.Vector2();
+    this.targetNode = null;
   }
 
   public reset(){
-    this.position = new THREE.Vector2();
     this.setPosition(
       this.route.startPosition.x,
       this.route.startPosition.y
@@ -64,7 +65,7 @@ class Enemy{
     // this.action();
   }
 
-  public setTargetNode(targetNode: WayFindNode){
+  public setTargetNode(targetNode: PathNode){
     this.targetNode = targetNode;
   }
 
@@ -114,7 +115,7 @@ class Enemy{
   }
 
   //单元格按一定比例转化为实际长宽
-  cellChangetoNum (num){
+  cellChangetoNum (num: number) : number{
     return num * 7;
   }
 
@@ -138,7 +139,7 @@ class Enemy{
     );
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(skeletonData);
-    let moveAnimation = skeletonData.animations.find(animation => {
+    let moveAnimation = skeletonData.animations.find( (animation: any ) => {
       return animation.name.includes("Move");
     })
     this.skeletonMesh.state.setAnimation(

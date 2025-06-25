@@ -1,10 +1,10 @@
 import * as THREE from "three"
 
-import GameConfig from "@/components/utilities/GameConfig.ts"
-import GameView from "./GameView.ts"
+import GameConfig from "@/components/utilities/GameConfig"
+import GameView from "./GameView"
 
-import MapModel from "./MapModel.ts"
-import EnemyManager from "@/components/enemy/EnemyManager.ts";
+import MapModel from "./MapModel"
+import EnemyManager from "@/components/enemy/EnemyManager";
 import map1 from "@/assets/gamedata/maps/AD-EX-8.json"
 
 
@@ -22,13 +22,12 @@ class GameManager{
   private timeStamp: number = 0;
   
   private delta: number = 0; //两次渲染之间的间隔时间
-  constructor(el){
+  constructor(el: any){
     this.mapModel = new MapModel(map1);
     this.gameView = new GameView(el, this.mapModel.mapTiles);
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
-      this.mapModel.enemyWaves,
-      this.mapModel.wayFindMaps
+      this.mapModel.enemyWaves
     );
     this.gameView.setupEnemies(
       this.enemyManager.enemies,

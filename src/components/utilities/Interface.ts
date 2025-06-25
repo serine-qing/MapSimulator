@@ -31,7 +31,7 @@ declare global {
     time: number,
     reachOffset: any,
     randomizeReachOffset: boolean,
-    wayFindMap?: WayFindMap
+    pathMap?: PathMap
   }
 
   interface EnemyRoute{
@@ -48,26 +48,33 @@ declare global {
     key: string,             //敌人id
     routeIndex: number,
     route: EnemyRoute,  
-    enemyData: EnemyData,
+    enemyData: EnemyData | null,
     startTime: number,        //该波次开始时间
     waveIndex: number         //第几个大波次
   }
 
   //寻路地图中的单个Node
-  interface WayFindNode{
+  interface PathNode{
     position: Vec2,
     distance: number,
-    nextNode: WayFindNode
+    nextNode: PathNode | null
   }
 
   //寻路地图
-  interface WayFindMap{
-    map: WayFindNode[][],
+  interface PathMap{
+    map: PathNode[][],
     motionMode: string, 
     targetPoint: Vec2
+  }
+
+  interface EnemyRef{
+    id: string,
+    level: number,
+    overwrittenData: any,
+    useDb: boolean
   }
 }
 
 
 
-export {Vec2, TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, WayFindNode, WayFindMap}
+export {Vec2, TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}

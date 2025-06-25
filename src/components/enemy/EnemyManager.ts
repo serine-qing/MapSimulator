@@ -1,23 +1,22 @@
-import Enemy from "./Enemy.ts"
+import Enemy from "./Enemy"
 import * as THREE from "three";
 let test = 0;
 
 //敌人状态管理
 class EnemyManager{
   private enemyWaves: EnemyWave[];
-  // private wayFindMaps: WayFindMap[];
+  // private pathMaps: PathMap[];
   public enemies: Enemy[] = []; //敌人对象数组
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
 
   private currentSecond = -1; //当前游戏时间（-1为未开始默认值）
-  constructor(enemyWaves, wayFindMaps){
+  constructor(enemyWaves: EnemyWave[]){
     this.enemyWaves = enemyWaves;
-    // this.wayFindMaps = wayFindMaps;
+    // this.pathMaps = pathMaps;
 
     this.initEnemies();
 
     // console.log(this.enemies)
-    // console.log(this.wayFindMaps)
   }
 
   private initEnemies(){
@@ -78,7 +77,7 @@ class EnemyManager{
     const checkPoint: CheckPoint = actionEnemy.currentCheckPoint();
     switch (checkPoint.type) {
       case "MOVE":  
-        const pathMap = checkPoint.wayFindMap.map;
+        const pathMap = checkPoint.pathMap?.map;
         const currentPosition = actionEnemy.position;
         
         if(actionEnemy.targetNode === null){
@@ -86,7 +85,14 @@ class EnemyManager{
           const intX = Math.floor(currentPosition.x + 0.5);
           const intY = Math.floor(currentPosition.y + 0.5);
 
-          actionEnemy.setTargetNode(pathMap[intY][intX].nextNode)
+          let cnode = pathMap? pathMap[intY]? pathMap[intY][intX] : null : null;
+          
+          if(cnode){
+            actionEnemy.setTargetNode(cnode.nextNode)
+          }else{
+            throw new Error("未获取到寻路Node");
+          }
+          
         }
 
         //防止重复检查点导致targetNode为null
