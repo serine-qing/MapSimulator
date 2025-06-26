@@ -35,6 +35,7 @@ declare global {
   }
 
   interface EnemyRoute{
+    index: number, 
     allowDiagonalMove: boolean,  //是否允许斜角路径
     checkpoints: Array<CheckPoint>,
     startPosition: Vec2,

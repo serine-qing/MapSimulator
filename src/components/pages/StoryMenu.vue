@@ -47,16 +47,19 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { ref, watch } from "vue";
+const emit = defineEmits<{
+  (e: 'changeStage', map: any): void
+}>()
 
 //3级关卡菜单
 import {getStorys, getStageInfo} from "@/components/api/stages"
 
-const storys= ref([]) as any;
+const storys = ref([]);
+const currentStageId = ref("");   //当前关卡id
 
 getStorys().then((res) => {
   storys.value = res.data.storys;
-
 });
 
 interface Stage{
@@ -68,14 +71,17 @@ interface Stage{
 }
 
 const handleItemClick = (stage: Stage) => {
-  const levelId = stage.levelId?.toLocaleLowerCase();
-  if( levelId ){
-    getStageInfo(levelId).then((res) => {
-        console.log(res.data)
-    });
-  }
+  currentStageId.value = stage.levelId?.toLocaleLowerCase();
 }
 
+//id改变后修改当前关卡
+watch(currentStageId, () => {
+    if( currentStageId.value ){
+    getStageInfo(currentStageId.value).then((res) => {
+        emit("changeStage", res.data)
+    });
+  }
+})
 
 </script>
 

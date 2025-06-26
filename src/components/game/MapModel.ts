@@ -1,86 +1,89 @@
-import enemyDatas from "@/assets/gamedata/test_enemy_database.json"
 import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
 import MapTiles from "./MapTiles"
 import {getEnemiesData} from "@/components/api/stages"
 
 //对地图json进行数据处理
 class MapModel{
+  private sourceData: any;
   public mapTiles: MapTiles; //地图tiles
   public enemyWaves: EnemyWave[] = [];
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
   public pathMaps: PathMap[] = []; //寻路地图
   constructor(data: any){
-    this.initEnemyData(enemyDatas.enemies, data.enemyDbRefs);
+    this.sourceData = data;
+    // console.log(this.enemyRoutes)
+  }
 
+  //异步数据，需要在实例化的时候手动调用
+  public async init(){
     //解析地图
-    this.mapTiles = new MapTiles(data.mapData);
+    this.mapTiles = new MapTiles(this.sourceData.mapData);
+
     //解析敌人路径
-    this.parseEnemyRoutes(data.routes);
+    this.parseEnemyRoutes();
+
     //解析波次数据
-    this.parseEnemyWaves(data.waves);
+    this.parseEnemyWaves(this.sourceData.waves);
+
+    await this.initEnemyData(this.sourceData.enemyDbRefs);
+
+    this.bindEnemyDataForWaves();
 
     //生成寻路地图
-    this.generatepathMaps();
+    this.generatepathMaps();  
     //平整化寻路地图
     this.flatteningFindMaps();
 
     this.bindWayFindToCheckPoints();
 
-    // console.log(this.enemyRoutes)
+    this.sourceData = null;
   }
-  /**
-   * 初始化敌人数据
-   * @param {*} enemyDatas 数据库中的敌人数据
-   * @param {*} enemyDbRefs 地图JSON中的敌人引用
-   */
-  private initEnemyData(enemyDatas: any[], enemyDbRefs: EnemyRef[]){
 
-    const enemyRefReq = enemyDbRefs.filter((enemyRef: EnemyRef) => {
-      return enemyRef.useDb;
-    })
+  //解析敌人路径
+  private parseEnemyRoutes(){
+    this.sourceData.routes.forEach( (sourceRoute: any, index: number) =>{
+      //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
+      if(sourceRoute.motionMode !== "E_NUM") {
 
-    getEnemiesData( enemyRefReq ).then((res: any) => {
-      // console.log(enemyDbRefs)
-      // console.log(res.data.EnemyDatas)
-      const enemyDatas = res.data.EnemyDatas;
-      enemyDbRefs.forEach((enemyDbRef: EnemyRef) => {
-        if(enemyDbRef.overwrittenData){
-          //TODO 这里需要重写属性
+        const route: EnemyRoute = {
+          index: index,
+          allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
+          startPosition: RowColToVec2(sourceRoute.startPosition),
+          motionMode: sourceRoute.motionMode,
+          spawnOffset: sourceRoute.spawnOffset,
+          spawnRandomRange: sourceRoute.spawnRandomRange,
+          checkpoints: []
         }
-      })
-
-      this.enemyDatas = enemyDatas;
-    })
-
-
-    enemyDbRefs.forEach((enemyRef: EnemyRef) => {
-
-      //是否使用数据库内敌人数据
-      if(enemyRef.useDb){
-        const find = enemyDatas.find( e =>{
-          return enemyRef.id === e.Key;
-        })
-        const sourceData = find.Value[0].enemyData;
-
-        const parsedData: EnemyData= {
-          key: find.Key,
-          attributes: find.Value[enemyRef.level].enemyData.attributes,  
-          description: sourceData.description.m_value,
-          levelType:sourceData.levelType.m_value,
-          name: sourceData.name.m_value,
-          rangeRadius: sourceData.rangeRadius.m_value,  
-          motion: sourceData.motion.m_value, 
-        }
-
-        Object.keys(parsedData.attributes).forEach(attrName => {
-          parsedData.attributes[attrName] = parsedData.attributes[attrName].m_value;
+        
+        sourceRoute.checkpoints.forEach((cp: any) => {
+          const checkpoint: CheckPoint = {
+            type: cp.type,
+            position: RowColToVec2(cp.position),
+            time: cp.time,
+            reachOffset: cp.reachOffset,
+            randomizeReachOffset: cp.randomizeReachOffset
+          }
+          route.checkpoints.push(checkpoint);
         })
 
-        this.enemyDatas.push(parsedData);
+        let endPosition = RowColToVec2(sourceRoute.endPosition);
+        //将结束点作为最终检查点放入检查点数组里面
+        route.checkpoints.push({
+          type: "MOVE",
+          position: endPosition,
+          time: 0,
+          reachOffset:{x:0, y:0},
+          randomizeReachOffset: false
+        })
+
+        this.enemyRoutes.push(route);
       }
+      
     })
+
   }
+
 
   //解析波次
   private parseEnemyWaves(waves: any[]){ 
@@ -98,20 +101,28 @@ class MapModel{
 
         fragment.actions.forEach((action: any) =>{
 
+          //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
+          if(action.actionType !== "SPAWN") return;
+
           for(let i=0; i<action.count; i++){
 
             let startTime = currentTime + action.preDelay + action.interval*i;
             lastTime = Math.max(lastTime, startTime);
 
+            const eRoute: EnemyRoute = this.enemyRoutes.find( route => {
+              return route.index === action.routeIndex;
+            })
+
             let eWave: EnemyWave = {
               actionType: action.actionType,
               key: action.key,
-              routeIndex:action.routeIndex,
-              route: this.enemyRoutes[action.routeIndex],
-              enemyData: this.enemyDatas.find(e => e.key === action.key) || null,
+              routeIndex: action.routeIndex,
+              route: eRoute,
+              enemyData: null,
               startTime: startTime,
               waveIndex: waveIndex
             }
+
             this.enemyWaves.push(eWave);
           }
         })
@@ -126,49 +137,52 @@ class MapModel{
     this.enemyWaves.sort((a, b)=>{
       return a.startTime - b.startTime;
     })
-
   }
 
-  //解析敌人路径
-  private parseEnemyRoutes(sourceRoutes: any[]){
-    sourceRoutes.forEach(sourceRoute =>{
-      const route: EnemyRoute = {
-        allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
-        startPosition: RowColToVec2(sourceRoute.startPosition),
-        motionMode: sourceRoute.motionMode,
-        spawnOffset: sourceRoute.spawnOffset,
-        spawnRandomRange: sourceRoute.spawnRandomRange,
-        checkpoints: []
-      }
+  /**
+   * 初始化敌人数据
+   * @param {*} enemyDatas 数据库中的敌人数据
+   * @param {*} enemyDbRefs 地图JSON中的敌人引用
+   */
+  private async initEnemyData(enemyDbRefs: EnemyRef[]){
+
+    const enemyRefReq = enemyDbRefs.filter((enemyRef: EnemyRef) => {
+
+      //排除不会在地图中出场的敌人
+      const inWave = this.enemyWaves.find( wave => {
+        return wave.key === enemyRef.id
+      }) != undefined
       
-      sourceRoute.checkpoints.forEach((cp: any) => {
-        const checkpoint: CheckPoint = {
-          type: cp.type,
-          position: RowColToVec2(cp.position),
-          time: cp.time,
-          reachOffset: cp.reachOffset,
-          randomizeReachOffset: cp.randomizeReachOffset
-        }
-        route.checkpoints.push(checkpoint);
-      })
+      return inWave && enemyRef.useDb;
+    })
+    const res: any = await getEnemiesData( enemyRefReq );
 
-      let endPosition = RowColToVec2(sourceRoute.endPosition);
-      //将结束点作为最终检查点放入检查点数组里面
-      route.checkpoints.push({
-        type: "MOVE",
-        position: endPosition,
-        time: 0,
-        reachOffset:{x:0, y:0},
-        randomizeReachOffset: false
-      })
+    // console.log(enemyDbRefs)
+    // console.log(res.data.EnemyDatas)
+    const enemyDatas = res.data.EnemyDatas;
+    enemyDbRefs.forEach((enemyDbRef: EnemyRef) => {
+      if(enemyDbRef.overwrittenData){
+        //TODO 这里需要重写属性
+      }
+    })
 
-      this.enemyRoutes.push(route);
+    this.enemyDatas = enemyDatas;
+  }
+
+
+
+  private bindEnemyDataForWaves(){
+    this.enemyWaves.forEach( wave => {
+
+      const find = this.enemyDatas.find(e => e.key === wave.key);
+
+      if(find) {
+        wave.enemyData = find;
+      }
+        
     })
 
   }
-  
-
-
 
   //生成寻路地图需要用到的拷贝对象
   private generateTileMapping(): PathNode[][]{
@@ -264,39 +278,35 @@ class MapModel{
       const points: Vec2[]= [];
       const motionMode = route.motionMode;
 
-      //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
-      if(motionMode !== "E_NUM") {
+      route.checkpoints.forEach(point =>{
+        //移动类检查点
+        if(point.type === "MOVE"){
+          points.push(point.position);
+        }
+      })
 
-        route.checkpoints.forEach(point =>{
-          //移动类检查点
-          if(point.type === "MOVE"){
-            points.push(point.position);
-          }
+      points.forEach(point => {
+
+        //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
+        const find = this.pathMaps.find(item =>{
+          return item.motionMode === motionMode && 
+            item.targetPoint.x === point.x && 
+            item.targetPoint.y === point.y;
         })
+        
+        if(find === undefined){ 
+          let findMap = this.generatepathMapsByVec(point,motionMode);
 
-        points.forEach(point => {
-
-          //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
-          const find = this.pathMaps.find(item =>{
-            return item.motionMode === motionMode && 
-              item.targetPoint.x === point.x && 
-              item.targetPoint.y === point.y;
-          })
+          const pathMap: PathMap = {
+            motionMode: motionMode,
+            targetPoint:{x: point.x, y: point.y},
+            map : findMap
+          }
           
-          if(find === undefined){ 
-            let findMap = this.generatepathMapsByVec(point,motionMode);
-
-            const pathMap: PathMap = {
-              motionMode: motionMode,
-              targetPoint:{x: point.x, y: point.y},
-              map : findMap
-            }
-            
-            this.pathMaps.push(pathMap)
-          }
-        })
-
-      }
+          this.pathMaps.push(pathMap)
+        }
+      })
+      
     })
 
   }

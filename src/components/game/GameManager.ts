@@ -5,8 +5,6 @@ import GameView from "./GameView"
 
 import MapModel from "./MapModel"
 import EnemyManager from "@/components/enemy/EnemyManager";
-import map1 from "@/assets/gamedata/maps/AD-EX-8.json"
-
 
 //游戏控制器
 class GameManager{
@@ -20,19 +18,31 @@ class GameManager{
   private clock: THREE.Clock = new THREE.Clock(); //计时器
   private singleFrameTime: number = 1 / GameConfig.FPS;
   private timeStamp: number = 0;
-  
+  private el: HTMLDivElement;
   private delta: number = 0; //两次渲染之间的间隔时间
-  constructor(el: any){
-    this.mapModel = new MapModel(map1);
-    this.gameView = new GameView(el, this.mapModel.mapTiles);
+  constructor(el: any, map: any){
+    this.el = el;
+    this.init(map);
+  }
+
+  private async init(map: any){
+    this.mapModel = new MapModel(map);
+
+    await this.mapModel.init();
+
+    this.gameView = new GameView(this.el, this.mapModel.mapTiles);
+
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
       this.mapModel.enemyWaves
     );
-    this.gameView.setupEnemies(
-      this.enemyManager.enemies,
-      this.enemyManager.enemiesInMap,
+    
+    this.gameView.setupEnemyManager(
+      this.enemyManager
     );
+
+    await this.gameView.setupEnemyDatas(this.mapModel.enemyDatas);
+
     this.animate();
   }
 

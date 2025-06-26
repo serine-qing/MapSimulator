@@ -8,14 +8,13 @@ class EnemyManager{
   // private pathMaps: PathMap[];
   public enemies: Enemy[] = []; //敌人对象数组
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
-
   private currentSecond = -1; //当前游戏时间（-1为未开始默认值）
   constructor(enemyWaves: EnemyWave[]){
     this.enemyWaves = enemyWaves;
     // this.pathMaps = pathMaps;
 
     this.initEnemies();
-
+    
     // console.log(this.enemies)
   }
 
@@ -104,14 +103,14 @@ class EnemyManager{
           ).normalize(); 
 
           //TODO 倍速移动常量需要设置
-          const moveDistancePerFrame = actionEnemy.moveSpeed * 1/30;
+          const moveDistancePerFrame = actionEnemy.moveSpeed * 1/60;
 
-          actionEnemy.setDirection(unitVector);
+          const velocity: Vec2 = {
+            x: unitVector.x * moveDistancePerFrame,
+            y: unitVector.y * moveDistancePerFrame
+          } 
 
-          actionEnemy.setPosition(
-            currentPosition.x + unitVector.x * moveDistancePerFrame,
-            currentPosition.y + unitVector.y * moveDistancePerFrame
-          );
+          actionEnemy.setVelocity(velocity);
 
           const distanceToTarget = currentPosition.distanceTo(
             (actionEnemy.targetNode.position) as THREE.Vector2
@@ -145,6 +144,10 @@ class EnemyManager{
   public update(currentSecond: number){
     this.removeEnemies();
     this.action();
+    
+    for(let i = 0; i< this.enemiesInMap.length; i++){
+      this.enemiesInMap[i].update();
+    }
 
     //游戏整数时间发生变动
     if(currentSecond > this.currentSecond){

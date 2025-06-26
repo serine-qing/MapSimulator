@@ -2,9 +2,10 @@ import * as THREE from "three"
 import MapTiles from "./MapTiles"
 import tileKeyMapping from "./tileKeyMapping"
 import Enemy from "../enemy/Enemy"
+import EnemyManager from "../enemy/EnemyManager"
 import GameConfig from "@/components/utilities/GameConfig"
 // import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
-import spinesAssets from "@/components/assetManager/spinesAssets.js"
+import AssetsManager from "@/components/assetManager/spinesAssets"
 
 class GameView{
   private wrapper: HTMLDivElement;
@@ -14,28 +15,18 @@ class GameView{
   private renderer: THREE.WebGLRenderer;
   private mapContainer: THREE.Object3D;
   private mapTiles: MapTiles;
-
-  public enemies: Enemy[] = [];
-  public enemiesInMap: Enemy[] = [];
+  private enemyManager: EnemyManager;
+  private assetsManager: AssetsManager;
+  private enemies: Enemy[] = [];
+  private enemiesInMap: Enemy[] = [];
+  private enemyDatas: EnemyData[] = [];
 
   constructor(el: HTMLDivElement, mapTiles: MapTiles){
     this.wrapper = el;
     this.canvas = this.wrapper.querySelector("#c") as HTMLCanvasElement;
     this.mapTiles = mapTiles;
-
-    //创建相机
-    this.camera = new THREE.PerspectiveCamera(
-      20, //视角
-      this.wrapper.offsetWidth / this.wrapper.offsetHeight, //宽高比
-      1, //近平面
-      1000 //远平面
-    )
-    //创建场景
-    this.scene = new THREE.Scene();
-    //创建渲染器
-    this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
-
     this.mapContainer = new THREE.Object3D();
+    this.assetsManager = new AssetsManager();
 
     this.initCamera();
     this.initRenderer();
@@ -47,7 +38,13 @@ class GameView{
     
     // this.camera = new THREE.OrthographicCamera(-5,5,-5,5,0,1000)
 
-
+    //创建相机
+    this.camera = new THREE.PerspectiveCamera(
+      20, //视角
+      this.wrapper.offsetWidth / this.wrapper.offsetHeight, //宽高比
+      1, //近平面
+      1000 //远平面
+    )
     this.camera.position.x = 0;
     this.camera.position.z = 200;
     this.camera.rotation.z = 1;
@@ -57,7 +54,11 @@ class GameView{
   //初始化渲染器和场景
   private initRenderer(){
     
-    
+    //创建场景
+    this.scene = new THREE.Scene();
+    //创建渲染器
+    this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
+
     //地图比例是否正确，关键看相机和渲染器的宽高比是否一致
     this.renderer.setSize(
       this.wrapper.offsetWidth,
@@ -94,23 +95,26 @@ class GameView{
     this.scene.add(this.mapContainer);
   }
 
-  public setupEnemies(enemies: Enemy[], enemiesInMap: Enemy[]){
-    this.enemies = enemies;
-    this.enemiesInMap = enemiesInMap;
-    this.setupEnemiesSpines(enemies);
+  public setupEnemyManager(enemyManager: EnemyManager){
+    this.enemyManager = enemyManager;
+    this.enemies = this.enemyManager.enemies;
+    this.enemiesInMap = this.enemyManager.enemiesInMap;
+
   }
 
-  //设置敌人spine
-  private setupEnemiesSpines(enemies: Enemy[]){
-    spinesAssets.loadCompleted.then(()=>{
-      enemies.forEach(enemy => {
-        enemy.initSpine();
-        this.mapContainer.add(enemy.skeletonMesh);
-        enemy.skeletonMesh.position.x = 7;
-        enemy.skeletonMesh.position.y = 7;
-        enemy.skeletonMesh.visible = true;
-      })
+  public async setupEnemyDatas(enemyDatas: EnemyData[]){
+    this.enemyDatas = enemyDatas;
+    
+    const spineNames: string[] = enemyDatas.map(e => e.key);
 
+    //设置敌人spine
+    await this.assetsManager.loadSpines(spineNames);
+    this.enemies.forEach(enemy => {
+      enemy.initSpine( this.assetsManager.spineManager );
+      this.mapContainer.add(enemy.skeletonMesh);
+      enemy.skeletonMesh.position.x = 7;
+      enemy.skeletonMesh.position.y = 7;
+      enemy.skeletonMesh.visible = true;
     })
   }
 

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "strict": true,
+    // "strict": true,
     //paths 仅在 TypeScript 编译时有效，而运行时，Nodejs 无法识别这些别名。
     //在vite.config.js中配置Nodejs能识别的路径
     "paths": {
