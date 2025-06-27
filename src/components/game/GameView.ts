@@ -85,6 +85,16 @@ class GameView{
     this.mapTiles.getMatrix().forEach((rowArray, y)=>{
       rowArray.forEach((tile, x)=>{
         let tileClass = tileKeyMapping[tile.tileKey];
+
+        //TODO 临时措施，显示效果以后再做
+        if(!tileClass){
+          if(tile.passableMask === "All"){
+            tileClass = tileKeyMapping["tile_road"];
+          }else{
+            tileClass = tileKeyMapping["tile_forbidden"];
+          }
+        }
+        
         this.mapContainer.add(new tileClass({x,y}).object);
       })
     })

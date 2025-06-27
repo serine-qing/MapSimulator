@@ -1,3 +1,5 @@
+import Enemy from "@/components/enemy/Enemy"
+
 declare global {
   interface Vec2{
     x: number,
@@ -29,7 +31,7 @@ declare global {
     type: string,
     position: Vec2,
     time: number,
-    reachOffset: any,
+    reachOffset: Vec2,
     randomizeReachOffset: boolean,
     pathMap?: PathMap
   }
@@ -51,7 +53,10 @@ declare global {
     route: EnemyRoute,  
     enemyData: EnemyData | null,
     startTime: number,        //该波次开始时间
-    waveIndex: number         //第几个大波次
+    waveIndex: number,        //第几个大波次
+    fragmentTime: number,     //分支(FRAGMENT)开始时间
+    waveTime: number,         //波次(WAVE)开始时间
+    isStarted: boolean        //是否已经出怪
   }
 
   //寻路地图中的单个Node

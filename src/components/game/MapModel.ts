@@ -25,7 +25,7 @@ class MapModel{
 
     //解析波次数据
     this.parseEnemyWaves(this.sourceData.waves);
-
+    
     await this.initEnemyData(this.sourceData.enemyDbRefs);
 
     this.bindEnemyDataForWaves();
@@ -94,20 +94,23 @@ class MapModel{
       currentTime += wave.preDelay;
 
       wave.fragments.forEach((fragment: any) => {
-
+        
         currentTime += fragment.preDelay;
-
+        let fragmentTime = currentTime;
         let lastTime = currentTime;//action波次的最后一只怪出现时间
-
+        
         fragment.actions.forEach((action: any) =>{
 
-          //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
-          if(action.actionType !== "SPAWN") return;
+          
 
           for(let i=0; i<action.count; i++){
 
             let startTime = currentTime + action.preDelay + action.interval*i;
             lastTime = Math.max(lastTime, startTime);
+            
+            //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
+            //虽然不会加入波次里面，但是该算的preDelay还是要算的
+            if(action.actionType !== "SPAWN") return;
 
             const eRoute: EnemyRoute = this.enemyRoutes.find( route => {
               return route.index === action.routeIndex;
@@ -119,14 +122,18 @@ class MapModel{
               routeIndex: action.routeIndex,
               route: eRoute,
               enemyData: null,
-              startTime: startTime,
-              waveIndex: waveIndex
+              startTime,
+              isStarted: false,
+              waveIndex,
+              fragmentTime,
+              waveTime: 0 //TODO
             }
 
             this.enemyWaves.push(eWave);
           }
         })
 
+        //TODO 这里不符合游戏实际波次情况，需要大改
         currentTime = lastTime;
 
       })
@@ -137,6 +144,7 @@ class MapModel{
     this.enemyWaves.sort((a, b)=>{
       return a.startTime - b.startTime;
     })
+
   }
 
   /**

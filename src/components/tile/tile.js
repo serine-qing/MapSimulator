@@ -33,11 +33,12 @@ class Tile{
     this.cube = new Mesh( geometry, [
       this.sideMaterial,this.sideMaterial,this.sideMaterial,this.sideMaterial,this.topMaterial,this.topMaterial
     ]); 
-    this.cube.position.x = this.cellChangetoNum(this.x);
-    this.cube.position.y = this.cellChangetoNum(this.y);
-    this.cube.position.z = this.z;
 
     this.object = new Object3D();
+    this.object.position.x = this.cellChangetoNum(this.x);
+    this.object.position.y = this.cellChangetoNum(this.y);
+    this.object.position.z = this.z;
+
     this.object.add(this.cube);
   }
   //添加边框

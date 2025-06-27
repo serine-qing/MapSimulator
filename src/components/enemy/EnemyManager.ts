@@ -1,6 +1,6 @@
+import GameManager from "../game/GameManager";
 import Enemy from "./Enemy"
 import * as THREE from "three";
-let test = 0;
 
 //敌人状态管理
 class EnemyManager{
@@ -9,18 +9,17 @@ class EnemyManager{
   public enemies: Enemy[] = []; //敌人对象数组
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
   private currentSecond = -1; //当前游戏时间（-1为未开始默认值）
+
+  public gameManager: GameManager;
   constructor(enemyWaves: EnemyWave[]){
     this.enemyWaves = enemyWaves;
-    // this.pathMaps = pathMaps;
-
-    this.initEnemies();
-    
-    // console.log(this.enemies)
+    // console.log(this.enemyWaves)
   }
 
-  private initEnemies(){
+  public initEnemies(){
     this.enemyWaves.forEach(wave =>{
       const enemy = new Enemy(wave);
+      enemy.gameManager = this.gameManager;
       this.enemies.push(enemy);
     })
     
@@ -34,128 +33,33 @@ class EnemyManager{
     }
   }
 
-  private updateEnemyWaitingCounts(){
-    this.enemies.forEach(enemy => {
-      
-      if(enemy.waitingConuts > 0){
-
-        enemy.setWaitingCounts(enemy.waitingConuts - 1);
-        
-        if(enemy.waitingConuts === 0){
-          enemy.nextCheckPoint()
-        }
-        // console.log(enemy.waitingConuts)
-      }
-    })
-  }
-
   private spawnEnemy(){
     for (let i=0; i<this.enemyWaves.length; i++){ 
-      if(this.currentSecond === this.enemyWaves[i].startTime){
 
-        if(test++  <= 100){
+      const wave = this.enemyWaves[i];
+
+      if(!wave.isStarted && wave.startTime <= this.currentSecond){
+
+        wave.isStarted = true;
         //重置
         this.enemies[i].reset();
         this.enemiesInMap.push(this.enemies[i]);
-        }
-        
+
       }
     }
-    // console.log(this.enemiesInMap)
+
   }
-
-  private action(){
-    for(let i=0; i<this.enemiesInMap.length; i++){
-      let actionEnemy = this.enemiesInMap[i];
-      this.singleEnemyAction(actionEnemy);
-    }
-    
-  }
-
-  private singleEnemyAction(actionEnemy: Enemy){
-    const checkPoint: CheckPoint = actionEnemy.currentCheckPoint();
-    switch (checkPoint.type) {
-      case "MOVE":  
-        const pathMap = checkPoint.pathMap?.map;
-        const currentPosition = actionEnemy.position;
-        
-        if(actionEnemy.targetNode === null){
-          //第一次执行move 添加targetNode
-          const intX = Math.floor(currentPosition.x + 0.5);
-          const intY = Math.floor(currentPosition.y + 0.5);
-
-          let cnode = pathMap? pathMap[intY]? pathMap[intY][intX] : null : null;
-          
-          if(cnode){
-            actionEnemy.setTargetNode(cnode.nextNode)
-          }else{
-            throw new Error("未获取到寻路Node");
-          }
-          
-        }
-
-        //防止重复检查点导致targetNode为null
-        if(actionEnemy.targetNode){
-          //移动单位向量
-          const unitVector = new THREE.Vector2(
-            actionEnemy.targetNode.position.x - currentPosition.x,
-            actionEnemy.targetNode.position.y - currentPosition.y
-          ).normalize(); 
-
-          //TODO 倍速移动常量需要设置
-          const moveDistancePerFrame = actionEnemy.moveSpeed * 1/60;
-
-          const velocity: Vec2 = {
-            x: unitVector.x * moveDistancePerFrame,
-            y: unitVector.y * moveDistancePerFrame
-          } 
-
-          actionEnemy.setVelocity(velocity);
-
-          const distanceToTarget = currentPosition.distanceTo(
-            (actionEnemy.targetNode.position) as THREE.Vector2
-          )
-
-          //抵达检查点
-          if( distanceToTarget <= 0.05 ){
-            actionEnemy.targetNode = actionEnemy.targetNode?.nextNode;
-            //抵达最后一个node
-            if( actionEnemy.targetNode === null || undefined ){
-              actionEnemy.nextCheckPoint();
-            }
-          }
-
-        } else {
-          actionEnemy.nextCheckPoint();
-        }
-
-        // console.log(actionEnemy.position)
-        break;
-
-      case "WAIT_FOR_SECONDS":
-        if(!actionEnemy.isWaiting()){
-          actionEnemy.setWaitingCounts(checkPoint.time);
-        }
-        break;
-    }
-  }
-
 
   public update(currentSecond: number){
+    this.currentSecond = currentSecond;
     this.removeEnemies();
-    this.action();
-    
+
     for(let i = 0; i< this.enemiesInMap.length; i++){
-      this.enemiesInMap[i].update();
+      this.enemiesInMap[i].update(currentSecond);
     }
 
-    //游戏整数时间发生变动
-    if(currentSecond > this.currentSecond){
-      this.currentSecond = currentSecond;
-      this.updateEnemyWaitingCounts();
-      this.spawnEnemy();
-    }
-    
+    this.spawnEnemy();
+
   }
 
 }

@@ -36,6 +36,8 @@ class GameManager{
     this.enemyManager = new EnemyManager(
       this.mapModel.enemyWaves
     );
+    this.enemyManager.gameManager = this;
+    this.enemyManager.initEnemies();
     
     this.gameView.setupEnemyManager(
       this.enemyManager
@@ -46,9 +48,16 @@ class GameManager{
     this.animate();
   }
 
+  public getCoordinate(x:number, y:number): Vec2{
+    return {
+      x: x * GameConfig.TILE_SIZE,
+      y: y * GameConfig.TILE_SIZE,
+    }
+  }
+
   //当前游戏时间(秒)
   private currentSecond(): number {
-    return Math.floor( this.frameCount / GameConfig.FPS );
+    return this.frameCount / GameConfig.FPS;
   }
 
 

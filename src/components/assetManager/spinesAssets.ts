@@ -7,15 +7,16 @@ class AssetsManager{
   public spineManager: any;
 
   constructor(){
-    // this.spineManager = new spine.threejs.AssetManager(  "/src/assets/spine/")
     this.spineManager = new spine.threejs.AssetManager( GameConfig.BASE_URL + "spine/")
   }
 
   loadSpines( spineNames: string[] ){
     //动态批量导入skel和atlas资源
     spineNames.forEach( name => {
-      const skelName = name + ".skel";
-      const atlasName = name + ".atlas";
+      const sName = name.replace("enemy_", "");
+      const skelName =sName + "/" + name + ".skel";
+      const atlasName =sName + "/" + name + ".atlas";
+      // console.log(skelName)
       this.spineManager.loadBinary(skelName);
       this.spineManager.loadTextureAtlas(atlasName);
     })
