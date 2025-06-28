@@ -50,13 +50,11 @@ declare global {
     actionType: string,      //敌人生成模式
     key: string,             //敌人id
     routeIndex: number,
-    route: EnemyRoute,  
-    enemyData: EnemyData | null,
     startTime: number,        //该波次开始时间
-    waveIndex: number,        //第几个大波次
     fragmentTime: number,     //分支(FRAGMENT)开始时间
     waveTime: number,         //波次(WAVE)开始时间
-    isStarted: boolean        //是否已经出怪
+    route?: EnemyRoute,  
+    enemyData?: EnemyData,
   }
 
   //寻路地图中的单个Node

@@ -107,7 +107,7 @@ class GameView{
 
   public setupEnemyManager(enemyManager: EnemyManager){
     this.enemyManager = enemyManager;
-    this.enemies = this.enemyManager.enemies;
+    this.enemies = this.enemyManager.flatEnemies;
     this.enemiesInMap = this.enemyManager.enemiesInMap;
 
   }

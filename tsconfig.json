@@ -6,7 +6,7 @@
     "paths": {
       "@/*": ["./src/*"]   
     },
-    "target": "es6",
+    "target": "es2019",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,    //允许导入json
     "allowSyntheticDefaultImports": true,         

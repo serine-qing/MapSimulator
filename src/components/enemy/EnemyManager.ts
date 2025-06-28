@@ -4,46 +4,88 @@ import * as THREE from "three";
 
 //敌人状态管理
 class EnemyManager{
-  private enemyWaves: EnemyWave[];
-  // private pathMaps: PathMap[];
-  public enemies: Enemy[] = []; //敌人对象数组
-  public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
-  private currentSecond = -1; //当前游戏时间（-1为未开始默认值）
-
   public gameManager: GameManager;
-  constructor(enemyWaves: EnemyWave[]){
-    this.enemyWaves = enemyWaves;
-    // console.log(this.enemyWaves)
+
+  // private pathMaps: PathMap[];
+  public enemies: Enemy[][] = []; //敌人对象数组
+  public flatEnemies: Enemy[] = []; //一维敌人对象数组，方便读取
+  public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
+
+  private waveIndex: number = 0;
+  private currentSecond: number = -1; //当前游戏时间（-1为未开始默认值）
+  private usedSecond:number = 0;     //之前波次已经使用掉的时间
+  private isGameFinished: boolean = false;
+  
+  constructor(enemyWaves: EnemyWave[][], gameManager: GameManager){
+    this.gameManager = gameManager;
+    this.initEnemies(enemyWaves);
   }
 
-  public initEnemies(){
-    this.enemyWaves.forEach(wave =>{
-      const enemy = new Enemy(wave);
-      enemy.gameManager = this.gameManager;
-      this.enemies.push(enemy);
+  public initEnemies(enemyWaves: EnemyWave[][]){
+    enemyWaves.forEach(innerWaves =>{
+
+      const innerEnemies: Enemy[] = [];
+
+      innerWaves.forEach(wave => {
+        const enemy = new Enemy(wave);
+        enemy.gameManager = this.gameManager;
+        innerEnemies.push(enemy);
+      })
+
+      this.enemies.push(innerEnemies);
     })
-    
+
+    this.flatEnemies = this.enemies.flat();
   }
 
   private removeEnemies(){
     for(let i = 0; i<this.enemiesInMap.length; i++){
-      if(this.enemiesInMap[i].exit){
+      if(this.enemiesInMap[i].isFinished){
         this.enemiesInMap.splice(i, 1);
       }
     }
+
+    //该波次最后一个怪进蓝门，就切换到下一波次
+    if(this.isWaveFinished()){
+      this.nextWave();
+    }
+  }
+
+  private currentWave(): Enemy[]{
+    return this.enemies[this.waveIndex];
+  }
+
+  private isWaveFinished(): boolean{
+    return !this.currentWave().find(wave => !wave.isFinished);
+  }
+
+  private nextWave(){
+    this.waveIndex ++;
+    this.usedSecond = this.currentSecond;
+    if(this.currentWave() === undefined){
+      this.isGameFinished = true;
+    }
+  }
+
+  //以波次计时
+  private waveSecond(){
+    return this.currentSecond - this.usedSecond;
   }
 
   private spawnEnemy(){
-    for (let i=0; i<this.enemyWaves.length; i++){ 
+    const waves = this.currentWave();
 
-      const wave = this.enemyWaves[i];
+    for (let i=0; i<waves.length; i++){ 
 
-      if(!wave.isStarted && wave.startTime <= this.currentSecond){
+      const enemy: Enemy = waves[i];
 
-        wave.isStarted = true;
+      if(!enemy.isStarted && enemy.startTime <= this.waveSecond()){
+
+        enemy.reset();
+        enemy.isStarted = true;
         //重置
-        this.enemies[i].reset();
-        this.enemiesInMap.push(this.enemies[i]);
+        
+        this.enemiesInMap.push(enemy);
 
       }
     }
@@ -51,15 +93,19 @@ class EnemyManager{
   }
 
   public update(currentSecond: number){
+    if(this.isGameFinished) return;
+
     this.currentSecond = currentSecond;
     this.removeEnemies();
 
+    if(this.isGameFinished) return;
+
     for(let i = 0; i< this.enemiesInMap.length; i++){
-      this.enemiesInMap[i].update(currentSecond);
+      this.enemiesInMap[i].update(this.waveSecond(), this.usedSecond);
     }
 
     this.spawnEnemy();
-
+    
   }
 
 }

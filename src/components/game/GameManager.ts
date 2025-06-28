@@ -19,7 +19,7 @@ class GameManager{
   private singleFrameTime: number = 1 / GameConfig.FPS;
   private timeStamp: number = 0;
   private el: HTMLDivElement;
-  private delta: number = 0; //两次渲染之间的间隔时间
+  private deltaTime: number = 0; //两次渲染之间间隔的游戏内时间
   constructor(el: any, map: any){
     this.el = el;
     this.init(map);
@@ -34,10 +34,9 @@ class GameManager{
 
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
-      this.mapModel.enemyWaves
+      this.mapModel.enemyWaves,
+      this
     );
-    this.enemyManager.gameManager = this;
-    this.enemyManager.initEnemies();
     
     this.gameView.setupEnemyManager(
       this.enemyManager
@@ -57,7 +56,7 @@ class GameManager{
 
   //当前游戏时间(秒)
   private currentSecond(): number {
-    return this.frameCount / GameConfig.FPS;
+    return this.frameCount / GameConfig.FPS * GameConfig.GAME_SPEED;
   }
 
 
@@ -77,19 +76,24 @@ class GameManager{
       this.animate();
     });
     //渲染
-    this.delta = this.clock.getDelta();
-    this.timeStamp += this.delta;
+    const _delta = this.clock.getDelta();
+    this.timeStamp += _delta;
     
     if(this.timeStamp > this.singleFrameTime){
       this.timeStamp = (this.timeStamp % this.singleFrameTime);
+
+      const t1 = this.currentSecond();
       this.frameCount++;
+      const t2 = this.currentSecond();
+      this.deltaTime = t2 - t1;
+      
       this.gameLoop();
     }
   }
 
   private render(){
     // this.currentSecond += 1 / window.FPS; 
-    this.gameView.render(this.delta);
+    this.gameView.render(this.deltaTime);
   }
 }
 

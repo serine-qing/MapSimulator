@@ -6,7 +6,7 @@ import {getEnemiesData} from "@/components/api/stages"
 class MapModel{
   private sourceData: any;
   public mapTiles: MapTiles; //地图tiles
-  public enemyWaves: EnemyWave[] = [];
+  public enemyWaves: EnemyWave[][] = [];
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
   public pathMaps: PathMap[] = []; //寻路地图
@@ -24,11 +24,18 @@ class MapModel{
     this.parseEnemyRoutes();
 
     //解析波次数据
-    this.parseEnemyWaves(this.sourceData.waves);
+    this.parseEnemyWaves(this.sourceData.waves)
     
     await this.initEnemyData(this.sourceData.enemyDbRefs);
 
-    this.bindEnemyDataForWaves();
+    //绑定route和enemydata
+    this.enemyWaves.flat().forEach( wave => {
+      const findRoute: EnemyRoute = this.enemyRoutes.find( route => route.index === wave.routeIndex );
+      const findEnemyData = this.enemyDatas.find(e => e.key === wave.key);
+
+      if(findRoute) wave.route = findRoute;
+      if(findEnemyData) wave.enemyData = findEnemyData;
+    })
 
     //生成寻路地图
     this.generatepathMaps();  
@@ -38,6 +45,59 @@ class MapModel{
     this.bindWayFindToCheckPoints();
 
     this.sourceData = null;
+  }
+
+  //解析波次
+  private parseEnemyWaves(waves: any[]){ 
+    //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
+    waves.forEach((wave: any, waveIndex: number) => {
+      let currentTime = 0;
+
+      const innerWaves: EnemyWave[] = [];
+      currentTime += wave.preDelay;
+      let waveTime = currentTime;
+      wave.fragments.forEach((fragment: any) => {
+        
+        currentTime += fragment.preDelay;
+        let fragmentTime = currentTime;
+        let lastTime = currentTime;//action波次的最后一只怪出现时间
+        
+        fragment.actions.forEach((action: any) =>{
+
+          for(let i=0; i<action.count; i++){
+
+            let startTime = currentTime + action.preDelay + action.interval*i;
+            lastTime = Math.max(lastTime, startTime);
+            
+            //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
+            //虽然不会加入波次里面，但是该算的preDelay还是要算的
+            if(action.actionType !== "SPAWN") return;
+
+            let eWave: EnemyWave = {
+              actionType: action.actionType,
+              key: action.key,
+              routeIndex: action.routeIndex,
+              startTime,
+              fragmentTime,
+              waveTime
+            }
+            innerWaves.push(eWave);
+
+          }
+        })
+
+        currentTime = lastTime;
+
+      })
+
+      innerWaves.sort((a, b)=>{
+        return a.startTime - b.startTime;
+      })
+
+      this.enemyWaves.push(innerWaves);
+      currentTime += wave.postDelay;
+    });
+
   }
 
   //解析敌人路径
@@ -85,68 +145,6 @@ class MapModel{
   }
 
 
-  //解析波次
-  private parseEnemyWaves(waves: any[]){ 
-
-    let currentTime = 0;
-    //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
-    waves.forEach((wave: any, waveIndex: number) => {
-      currentTime += wave.preDelay;
-
-      wave.fragments.forEach((fragment: any) => {
-        
-        currentTime += fragment.preDelay;
-        let fragmentTime = currentTime;
-        let lastTime = currentTime;//action波次的最后一只怪出现时间
-        
-        fragment.actions.forEach((action: any) =>{
-
-          
-
-          for(let i=0; i<action.count; i++){
-
-            let startTime = currentTime + action.preDelay + action.interval*i;
-            lastTime = Math.max(lastTime, startTime);
-            
-            //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
-            //虽然不会加入波次里面，但是该算的preDelay还是要算的
-            if(action.actionType !== "SPAWN") return;
-
-            const eRoute: EnemyRoute = this.enemyRoutes.find( route => {
-              return route.index === action.routeIndex;
-            })
-
-            let eWave: EnemyWave = {
-              actionType: action.actionType,
-              key: action.key,
-              routeIndex: action.routeIndex,
-              route: eRoute,
-              enemyData: null,
-              startTime,
-              isStarted: false,
-              waveIndex,
-              fragmentTime,
-              waveTime: 0 //TODO
-            }
-
-            this.enemyWaves.push(eWave);
-          }
-        })
-
-        //TODO 这里不符合游戏实际波次情况，需要大改
-        currentTime = lastTime;
-
-      })
-  
-      currentTime += wave.postDelay;
-    });
-
-    this.enemyWaves.sort((a, b)=>{
-      return a.startTime - b.startTime;
-    })
-
-  }
-
   /**
    * 初始化敌人数据
    * @param {*} enemyDatas 数据库中的敌人数据
@@ -154,42 +152,45 @@ class MapModel{
    */
   private async initEnemyData(enemyDbRefs: EnemyRef[]){
 
+    const waves = this.enemyWaves.flat();
     const enemyRefReq = enemyDbRefs.filter((enemyRef: EnemyRef) => {
 
       //排除不会在地图中出场的敌人
-      const inWave = this.enemyWaves.find( wave => {
-        return wave.key === enemyRef.id
-      }) != undefined
+      const inWave = waves.find(wave => wave.key === enemyRef.id) !== undefined;
       
       return inWave && enemyRef.useDb;
     })
+    
     const res: any = await getEnemiesData( enemyRefReq );
-
-    // console.log(enemyDbRefs)
-    // console.log(res.data.EnemyDatas)
     const enemyDatas = res.data.EnemyDatas;
+
     enemyDbRefs.forEach((enemyDbRef: EnemyRef) => {
-      if(enemyDbRef.overwrittenData){
-        //TODO 这里需要重写属性
+      const overwriteData = enemyDbRef.overwrittenData;
+      if(overwriteData){
+        let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
+        if(!enemyData) {
+          enemyData = {};
+          this.enemyDatas.push(enemyData);
+        }
+
+        ["description","levelType","name","rangeRadius","motion"].forEach(key =>{
+          if(overwriteData[key]?.m_defined){
+            enemyData[key] = overwriteData[key].m_value;
+          }
+        })
+
+        Object.keys(overwriteData["attributes"]).forEach(key => {
+          const attr = overwriteData["attributes"][key];
+          if(attr.m_defined){
+            enemyData["attributes"][key] = attr.m_value;
+          }
+        })
+
       }
+
     })
 
     this.enemyDatas = enemyDatas;
-  }
-
-
-
-  private bindEnemyDataForWaves(){
-    this.enemyWaves.forEach( wave => {
-
-      const find = this.enemyDatas.find(e => e.key === wave.key);
-
-      if(find) {
-        wave.enemyData = find;
-      }
-        
-    })
-
   }
 
   //生成寻路地图需要用到的拷贝对象
@@ -355,7 +356,6 @@ class MapModel{
       p2 = endPoint.position;
       points = bresenhamLine(p1.x,p1.y,p2.x,p2.y);
 
-      //todo 这块代码用于调试bug
       // if(p1[0] === 1 && p1[1] === 5  && p2[0] === 6  && p2[1] === 1){
       //   console.log(points)
       // }

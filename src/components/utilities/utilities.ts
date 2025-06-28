@@ -1,5 +1,4 @@
 
-
 //获取两点形成的矩形里面所有的point坐标
 export function getRectPoints(x0:number, y0:number, x1:number, y1:number) : Array<any>{
   const points = [];

@@ -4,15 +4,18 @@ import spine from "@/assets/script/spine-threejs.js";
 import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components/utilities/Interface"
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
-let test= 0;
-//TODO  敌人需要图像和数据分离
+
 class Enemy{
   key: string;
   levelType: string;
-  motion: string;       //
+  motion: string;       
   name: string;
   description: string;  
+  actionType: string      //敌人生成模式
+
+  startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
+  waveTime: number;      //大波次开始时间
 
   rangeRadius: number;   //攻击范围
   moveSpeed: number;
@@ -32,7 +35,9 @@ class Enemy{
   
   currentSecond: number = 0;
   targetWaitingSecond: number = 0;//等待到目标时间
-  exit: boolean = false;
+
+  isStarted: boolean = false;
+  isFinished: boolean = false;
 
   public skeletonMesh: any;
   private currentAnimate: string;//当前执行动画名
@@ -42,13 +47,17 @@ class Enemy{
   public gameManager: GameManager;
   constructor(wave: EnemyWave){
     const enemyData = wave.enemyData;
+    
+    this.actionType = wave.actionType;
+    this.startTime = wave.startTime;
+    this.fragmentTime = wave.fragmentTime;
+    this.waveTime = wave.waveTime;
+
     this.key = enemyData.key;
     this.levelType = enemyData.levelType;
     this.motion = enemyData.motion;
     this.name = enemyData.name;
     this.description = enemyData.description;
-    this.fragmentTime = wave.fragmentTime;
-
     this.rangeRadius = enemyData.rangeRadius;
     this.moveSpeed = enemyData.attributes.moveSpeed;
     this.atk = enemyData.attributes.atk;
@@ -73,10 +82,13 @@ class Enemy{
       this.route.startPosition.x,
       this.route.startPosition.y
     );
+    this.isStarted = false;
+    this.isFinished = false;
     this.targetWaitingSecond = 0;
     this.targetNode = null;
     this.changeCheckPoint(0)
-    // this.action();
+    this.currentSecond = 0;
+    this.targetWaitingSecond = 0;
   }
 
   public setPosition(x:number, y: number){
@@ -101,13 +113,13 @@ class Enemy{
     this.changeCheckPoint(this.checkPointIndex + 1);
     //抵达终点
     if( this.currentCheckPoint() === undefined){
-      this.exitMap();
+      this.isFinishedMap();
     }
   }
 
   //到达终点，退出地图
-  public exitMap(){
-    this.exit = true;
+  public isFinishedMap(){
+    this.isFinished = true;
     this.skeletonMesh.visible = false;
   }
 
@@ -157,15 +169,13 @@ class Enemy{
     this.skeletonMesh.position.z = 0;
   }
 
-  public update(currentSecond: number){
+  public update(currentSecond: number, usedSecond: number){
 
     this.currentSecond = currentSecond;
     if(this.isWaiting()) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
     const {type, time, reachOffset} = checkPoint;
-    
-    // if(test++ >50) return;
 
     switch (type) {
       case "MOVE":  
@@ -187,14 +197,6 @@ class Enemy{
           }
           
         }
-
-        // //targetNode为null时，目前为检查点终点，这时候就要考虑偏移(reachOffset)了
-        // const targetPosition: Vec2 = this.targetNode? this.targetNode.position :;
-        // if( this.targetNode === null){
-
-        // }else{
-          
-        // }
         
         // this.targetPosition.set( targetPosition.x, targetPosition.y );
         let {position, nextNode} = this.targetNode;
@@ -248,13 +250,13 @@ class Enemy{
             this.waitingTo( time + this.currentSecond );
             break;
           case "WAIT_FOR_PLAY_TIME":
-            this.waitingTo( time );
+            this.waitingTo( time + usedSecond);
             break;
           case "WAIT_CURRENT_FRAGMENT_TIME":
             this.waitingTo( time + this.fragmentTime );
             break;
           case "WAIT_CURRENT_WAVE_TIME": 
-            this.waitingTo( time + this.currentSecond );
+            this.waitingTo( time );
             break;
         }
         this.nextCheckPoint();
