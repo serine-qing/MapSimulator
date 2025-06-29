@@ -88,10 +88,11 @@ class GameView{
 
         //TODO 临时措施，显示效果以后再做
         if(!tileClass){
-          if(tile.passableMask === "All"){
-            tileClass = tileKeyMapping["tile_road"];
-          }else{
+          if(tile.passableMask === "FLY_ONLY"){
             tileClass = tileKeyMapping["tile_forbidden"];
+            
+          }else{
+            tileClass = tileKeyMapping["tile_road"];
           }
         }
         
@@ -124,7 +125,7 @@ class GameView{
       this.mapContainer.add(enemy.skeletonMesh);
       enemy.skeletonMesh.position.x = 7;
       enemy.skeletonMesh.position.y = 7;
-      enemy.skeletonMesh.visible = true;
+      enemy.show();
     })
   }
 

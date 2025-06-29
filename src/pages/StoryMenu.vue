@@ -11,8 +11,8 @@
       active-text-color="#ffd04b"
       background-color="#545c64"
       class="menu"
-      default-active="2"
       text-color="#fff"
+      :default-active = "stageId"
     >
       <el-sub-menu 
         v-for="(story, index1) in storys"
@@ -32,7 +32,7 @@
 
           <el-menu-item 
             v-for="(stage, index3) in episode.childNodes"
-            :index="stage.operation"
+            :index="stage.levelId"
             :key="index3"
             @click="handleItemClick(stage)"
           >
@@ -47,16 +47,19 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
+import {getStorys, getStageInfo} from "@/api/stages"
+import { useRoute, useRouter } from "vue-router";
+
 const emit = defineEmits<{
   (e: 'changeStage', map: any): void
 }>()
 
 //3级关卡菜单
-import {getStorys, getStageInfo} from "@/components/api/stages"
+
 
 const storys = ref([]);
-const currentStageId = ref("");   //当前关卡id
+const stageId = ref("");   //当前关卡id
 
 getStorys().then((res) => {
   storys.value = res.data.storys;
@@ -70,19 +73,29 @@ interface Stage{
   episode: string
 }
 
+const route = useRoute();
+const router = useRouter();
+
 const handleItemClick = (stage: Stage) => {
-  currentStageId.value = stage.levelId?.toLocaleLowerCase();
+  router.push("/?id=" + stage.levelId);
 }
 
 //id改变后修改当前关卡
-watch(currentStageId, () => {
-    if( currentStageId.value ){
-    getStageInfo(currentStageId.value).then((res) => {
+watch( stageId , () => {
+    if( stageId.value ){
+      getStageInfo(stageId.value.toLowerCase()).then((res) => {
         emit("changeStage", res.data)
-    });
-  }
+      });
+  } 
 })
 
+onMounted(() => {
+
+  const id = route.query.id as string;
+  if(stageId){
+    stageId.value = id;
+  }
+})
 </script>
 
 <style scoped lang="scss">

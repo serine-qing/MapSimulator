@@ -39,7 +39,8 @@ class EnemyManager{
   }
 
   private removeEnemies(){
-    for(let i = 0; i<this.enemiesInMap.length; i++){
+    
+    for(let i = this.enemiesInMap.length - 1; i >= 0; i--){
       if(this.enemiesInMap[i].isFinished){
         this.enemiesInMap.splice(i, 1);
       }
@@ -97,6 +98,7 @@ class EnemyManager{
 
     this.currentSecond = currentSecond;
     this.removeEnemies();
+    // this.removeEnemies();
 
     if(this.isGameFinished) return;
 

@@ -113,14 +113,14 @@ class Enemy{
     this.changeCheckPoint(this.checkPointIndex + 1);
     //抵达终点
     if( this.currentCheckPoint() === undefined){
-      this.isFinishedMap();
+      this.finishedMap();
     }
   }
 
   //到达终点，退出地图
-  public isFinishedMap(){
+  public finishedMap(){
     this.isFinished = true;
-    this.skeletonMesh.visible = false;
+    this.hide();
   }
 
   //初始化spine小人
@@ -144,10 +144,21 @@ class Enemy{
     );
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(skeletonData);
-
-    const moveAnimation = skeletonData.animations.find( (animation: any ) => {
-      return animation.name.includes("Move");
+    
+    //TODO 需要获取具体使用哪种动画
+    let moveAnimation = skeletonData.animations.find( (animation: any ) => {
+      return animation.name.includes("Run_Loop");
     })
+    if(!moveAnimation){
+      moveAnimation = skeletonData.animations.find( (animation: any ) => {
+        return animation.name.includes("Move_Loop");
+      })
+    }
+    if(!moveAnimation){
+      moveAnimation = skeletonData.animations.find( (animation: any ) => {
+        return animation.name.includes("Move");
+      })
+    }
     const idleAnimation = skeletonData.animations.find( (animation: any ) => {
       return animation.name.includes("Idle");
     })
@@ -159,7 +170,7 @@ class Enemy{
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
 
     //初始不可见的
-    this.skeletonMesh.visible = false;
+    this.hide();
   }
 
   public setSkelPosition(x: number, y: number){
@@ -170,7 +181,6 @@ class Enemy{
   }
 
   public update(currentSecond: number, usedSecond: number){
-
     this.currentSecond = currentSecond;
     if(this.isWaiting()) return;
 
@@ -204,17 +214,22 @@ class Enemy{
           x: position.x,
           y: position.y
         }
+
+        let arrivalDistance = 0.05; //距离下个地块中心多少距离后才会更改方向
         if(nextNode === null){
           //nextNode为null时，目前为检查点终点，这时候就要考虑偏移(reachOffset)了
           targetPos.x += reachOffset.x;
           targetPos.y += reachOffset.y;
+        }else{
+          //还未到达此地块中心0.25半径范围内时，则目标仍然为当前光标坐标所在地块中心
+          arrivalDistance = 0.25;
         }
 
         //移动单位向量
         const unitVector = new THREE.Vector2(
           targetPos.x - currentPosition.x,
           targetPos.y - currentPosition.y
-        ).normalize(); 
+        ).normalize();
 
         const moveDistancePerFrame = this.moveSpeed * GameConfig.GAME_SPEED * 1/60;
 
@@ -224,13 +239,15 @@ class Enemy{
         } 
 
         this.setVelocity(velocity);
+        this.changeToward();
+        this.move();
 
         const distanceToTarget = currentPosition.distanceTo(
           (targetPos) as THREE.Vector2
         )
 
         //完成单个寻路点
-        if( distanceToTarget <= 0.05 ){
+        if( distanceToTarget <= arrivalDistance ){
           this.targetNode = this.targetNode?.nextNode;
           //完成最后一个寻路点
           if( this.targetNode === null || undefined ){
@@ -261,12 +278,25 @@ class Enemy{
         }
         this.nextCheckPoint();
         break;
+
+      case "DISAPPEAR":
+        this.hide();
+        this.nextCheckPoint();
+        this.update(this.currentSecond, usedSecond);
+        break;
+      case "APPEAR_AT_POS":
+        this.setPosition(
+          checkPoint.position.x,
+          checkPoint.position.y
+        )
+        this.show();
+        this.nextCheckPoint();
+        break;
+
     }
 
     if(this.velocity.x === 0 && this.velocity.y === 0){
       this.idle();
-    }else{
-      this.move();
     }
 
     this.velocity.x = 0;
@@ -281,18 +311,29 @@ class Enemy{
     return this.currentSecond < this.targetWaitingSecond;
   }
 
-  private idle(){
-    this.changeAnimation(this.idleAnimate);
+  public show(){
+    this.skeletonMesh.visible = true;
   }
 
-  private move(){
-    //根据移动方向更换spine方向
+  public hide(){
+    this.skeletonMesh.visible = false;
+  }
+
+  //根据移动方向更换spine方向
+  private changeToward(){
+    
     if(this.velocity.x > 0){
       this.skeletonMesh.scale.x = 1;
     }else if(this.velocity.x < 0){
       this.skeletonMesh.scale.x = -1;
     }
+  }
 
+  private idle(){
+    this.changeAnimation(this.idleAnimate);
+  }
+
+  private move(){
     this.setPosition(
       this.position.x + this.velocity.x,
       this.position.y + this.velocity.y

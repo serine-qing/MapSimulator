@@ -1,6 +1,6 @@
 import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
 import MapTiles from "./MapTiles"
-import {getEnemiesData} from "@/components/api/stages"
+import {getEnemiesData} from "@/api/stages"
 
 //对地图json进行数据处理
 class MapModel{
