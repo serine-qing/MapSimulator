@@ -81,10 +81,8 @@ class GameView{
   }
 
   public destroy(){ 
-    
-    gameCanvas.scene.children.forEach(child => {
-      gameCanvas.scene.remove(child);
-    })
+  
+    gameCanvas.scene.remove(this.mapContainer);
 
     this.mapContainer.traverse(object => {
       if(object.type === "Mesh"){
@@ -99,12 +97,11 @@ class GameView{
             if(material && material.dispose){
               material.dispose()
             }
-
           })
         }else{
           mesh.material.dispose();
         }
-        // mesh.geometry.dispose();
+        mesh.geometry.dispose();
       }
     })
     this.mapContainer = null;

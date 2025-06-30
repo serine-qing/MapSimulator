@@ -5,7 +5,6 @@ import {setupCanvas} from '@/components/game/GameCanvas.ts';
 export default{
   data(){
     return{
-      game: null,
     }
   },
   props:["mapData"],

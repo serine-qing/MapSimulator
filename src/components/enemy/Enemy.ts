@@ -359,6 +359,8 @@ class Enemy{
 
     this.spine.remove(this.skeletonMesh);
     this.spine = null;
+
+    this.skeletonMesh.dispose();
     this.skeletonMesh = null;
   }
 }
