@@ -4,6 +4,7 @@ import spine from "@/assets/script/spine-threejs.js";
 import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components/utilities/Interface"
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
+import { getAnimation, getSkelOffset, getSpineSize } from "@/components/utilities/SpineHelper"
 
 class Enemy{
   key: string;
@@ -40,6 +41,7 @@ class Enemy{
   isFinished: boolean = false;
 
   public skeletonMesh: any;
+  public spine: THREE.Object3D;
   private currentAnimate: string;//当前执行动画名
   private moveAnimate: string;   //skel 移动的动画名
   private idleAnimate: string;   //skel 站立的动画名
@@ -47,7 +49,6 @@ class Enemy{
   public gameManager: GameManager;
   constructor(wave: EnemyWave){
     const enemyData = wave.enemyData;
-    
     this.actionType = wave.actionType;
     this.startTime = wave.startTime;
     this.fragmentTime = wave.fragmentTime;
@@ -74,6 +75,7 @@ class Enemy{
       y: 0
     }
 
+    this.spine = new THREE.Object3D();
     this.targetNode = null;
   }
 
@@ -93,7 +95,7 @@ class Enemy{
 
   public setPosition(x:number, y: number){
     this.position.set(x, y);
-    this.setSkelPosition(x, y);
+    this.setSpinePosition(x, y);
   }
 
   public setVelocity(velocity: Vec2){
@@ -144,40 +146,33 @@ class Enemy{
     );
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(skeletonData);
+    this.spine.add(this.skeletonMesh);
+
+    const offset = getSkelOffset(this);
+    const coordinateOffset = this.gameManager.getCoordinate(offset.x, offset.y)
     
-    //TODO 需要获取具体使用哪种动画
-    let moveAnimation = skeletonData.animations.find( (animation: any ) => {
-      return animation.name.includes("Run_Loop");
-    })
-    if(!moveAnimation){
-      moveAnimation = skeletonData.animations.find( (animation: any ) => {
-        return animation.name.includes("Move_Loop");
-      })
-    }
-    if(!moveAnimation){
-      moveAnimation = skeletonData.animations.find( (animation: any ) => {
-        return animation.name.includes("Move");
-      })
-    }
-    const idleAnimation = skeletonData.animations.find( (animation: any ) => {
-      return animation.name.includes("Idle");
-    })
-    this.moveAnimate = moveAnimation ? moveAnimation.name : "Move";
-    this.idleAnimate = idleAnimation ? idleAnimation.name : "Idle";
+    this.skeletonMesh.position.x = coordinateOffset.x;
+    this.skeletonMesh.position.y = coordinateOffset.y;
+
+    const spineSize = getSpineSize(this);
+    this.spine.scale.set(spineSize,spineSize,1);
+
+    this.moveAnimate = getAnimation(this.key, skeletonData.animations, "Move");
+    this.idleAnimate = getAnimation(this.key, skeletonData.animations, "Idle");
 
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-
+    this.skeletonMesh.position.z = this.motion === "WALK"? 0 : 10;
     //初始不可见的
     this.hide();
   }
 
-  public setSkelPosition(x: number, y: number){
-    const Vec2 = this.gameManager.getCoordinate(x, y-1/4);
-    this.skeletonMesh.position.x = Vec2.x;
-    this.skeletonMesh.position.y = Vec2.y;
-    this.skeletonMesh.position.z = 0;
+  public setSpinePosition(x: number, y: number){
+    const Vec2 = this.gameManager.getCoordinate(x, y);
+    
+    this.spine.position.x = Vec2.x;
+    this.spine.position.y = Vec2.y;
   }
 
   public update(currentSecond: number, usedSecond: number){
@@ -354,6 +349,17 @@ class Enemy{
       );
 
     }
+  }
+
+  public destroy(){
+    this.route = null;
+    this.checkpoints = null;
+    this.targetNode = null;
+    this.gameManager = null;
+
+    this.spine.remove(this.skeletonMesh);
+    this.spine = null;
+    this.skeletonMesh = null;
   }
 }
 

@@ -6,7 +6,6 @@ import * as THREE from "three";
 class EnemyManager{
   public gameManager: GameManager;
 
-  // private pathMaps: PathMap[];
   public enemies: Enemy[][] = []; //敌人对象数组
   public flatEnemies: Enemy[] = []; //一维敌人对象数组，方便读取
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
@@ -14,7 +13,7 @@ class EnemyManager{
   private waveIndex: number = 0;
   private currentSecond: number = -1; //当前游戏时间（-1为未开始默认值）
   private usedSecond:number = 0;     //之前波次已经使用掉的时间
-  private isGameFinished: boolean = false;
+  public allWaveFinished: boolean = false;  //全部波次已经结束
   
   constructor(enemyWaves: EnemyWave[][], gameManager: GameManager){
     this.gameManager = gameManager;
@@ -64,7 +63,8 @@ class EnemyManager{
     this.waveIndex ++;
     this.usedSecond = this.currentSecond;
     if(this.currentWave() === undefined){
-      this.isGameFinished = true;
+      this.allWaveFinished = true;
+      this.gameManager.isFinished = true;
     }
   }
 
@@ -94,13 +94,13 @@ class EnemyManager{
   }
 
   public update(currentSecond: number){
-    if(this.isGameFinished) return;
+    if(this.allWaveFinished) return;
 
     this.currentSecond = currentSecond;
     this.removeEnemies();
     // this.removeEnemies();
 
-    if(this.isGameFinished) return;
+    if(this.allWaveFinished) return;
 
     for(let i = 0; i< this.enemiesInMap.length; i++){
       this.enemiesInMap[i].update(this.waveSecond(), this.usedSecond);
@@ -110,6 +110,13 @@ class EnemyManager{
     
   }
 
+  public destroy(){
+    this.flatEnemies.forEach(e => e.destroy());
+    this.enemies = null;
+    this.flatEnemies = null; 
+    this.enemiesInMap = null;
+    this.gameManager = null;
+  }
 }
 
 export default EnemyManager;

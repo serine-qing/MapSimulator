@@ -32,7 +32,7 @@
 
           <el-menu-item 
             v-for="(stage, index3) in episode.childNodes"
-            :index="stage.levelId"
+            :index="stage.operation"
             :key="index3"
             @click="handleItemClick(stage)"
           >
@@ -47,7 +47,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from "vue";
+import { ref, watch } from "vue";
 import {getStorys, getStageInfo} from "@/api/stages"
 import { useRoute, useRouter } from "vue-router";
 
@@ -61,13 +61,21 @@ const emit = defineEmits<{
 const storys = ref([]);
 const stageId = ref("");   //当前关卡id
 
+let stageKeyMap: { [key: string]: string } = {};
 getStorys().then((res) => {
   storys.value = res.data.storys;
+  stageKeyMap = res.data.stageKeyMap
+
+  //网址带有关卡id 就进行初始化
+  const id = route.query.id as string;
+  if(stageId){
+    stageId.value = id;
+  }
+
 });
 
 interface Stage{
   operation: string,
-  levelId: string,
   cn_name: string,
   description: string,
   episode: string
@@ -77,24 +85,18 @@ const route = useRoute();
 const router = useRouter();
 
 const handleItemClick = (stage: Stage) => {
-  router.push("/?id=" + stage.levelId);
+  stageId.value = stage.operation;
+  router.push("/?id=" + stage.operation);
 }
 
 //id改变后修改当前关卡
 watch( stageId , () => {
-    if( stageId.value ){
-      getStageInfo(stageId.value.toLowerCase()).then((res) => {
+  const levelPath = stageKeyMap[stageId.value];  //关卡路径
+    if( levelPath ){
+      getStageInfo(levelPath).then((res) => {
         emit("changeStage", res.data)
       });
   } 
-})
-
-onMounted(() => {
-
-  const id = route.query.id as string;
-  if(stageId){
-    stageId.value = id;
-  }
 })
 </script>
 

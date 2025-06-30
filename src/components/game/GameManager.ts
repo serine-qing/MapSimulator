@@ -18,10 +18,11 @@ class GameManager{
   private clock: THREE.Clock = new THREE.Clock(); //计时器
   private singleFrameTime: number = 1 / GameConfig.FPS;
   private timeStamp: number = 0;
-  private el: HTMLDivElement;
   private deltaTime: number = 0; //两次渲染之间间隔的游戏内时间
-  constructor(el: any, map: any){
-    this.el = el;
+
+  public isFinished: boolean = false;
+
+  constructor(map: any){
     this.init(map);
   }
 
@@ -30,7 +31,7 @@ class GameManager{
 
     await this.mapModel.init();
 
-    this.gameView = new GameView(this.el, this.mapModel.mapTiles);
+    this.gameView = new GameView(this.mapModel.mapTiles);
 
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
@@ -72,6 +73,8 @@ class GameManager{
 
   //循环执行
   private animate(){
+    if(this.isFinished) return; //结束游戏
+
     requestAnimationFrame(()=>{
       this.animate();
     });
@@ -92,8 +95,17 @@ class GameManager{
   }
 
   private render(){
-    // this.currentSecond += 1 / window.FPS; 
     this.gameView.render(this.deltaTime);
+  }
+
+  public destroy(){
+    this.isFinished = true;
+    this.gameView.destroy();
+    this.enemyManager.destroy();
+
+    this.mapModel = null;
+    this.gameView = null;
+    this.enemyManager = null;
   }
 }
 

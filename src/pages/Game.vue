@@ -1,18 +1,26 @@
 <script lang="ts">
 import Game from '@/components/game/GameManager.ts';
+import {setupCanvas} from '@/components/game/GameCanvas.ts';
 
 export default{
   data(){
     return{
-
+      game: null,
     }
   },
   props:["mapData"],
   watch:{
     mapData(){
-      const game = new Game(this.$refs.wrapper, this.mapData)
+      if(this.game){
+        this.game.destroy();
+      }
+
+      this.game = new Game(this.mapData)
     }
-  }
+  },
+  mounted() {
+    setupCanvas(this.$refs.wrapper);
+  },
 }
 </script>
 
