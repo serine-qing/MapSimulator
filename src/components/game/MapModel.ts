@@ -1,10 +1,13 @@
 import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
+import RunesHelper from "./RunesHelper";
 import MapTiles from "./MapTiles"
 import {getEnemiesData} from "@/api/stages"
+import AliasHelper from "./AliasHelper";
 
 //对地图json进行数据处理
 class MapModel{
   private sourceData: any;
+  private runesHelper: RunesHelper;
   public mapTiles: MapTiles; //地图tiles
   public enemyWaves: EnemyWave[][] = [];
   public enemyDatas: EnemyData[] = [];
@@ -17,6 +20,7 @@ class MapModel{
 
   //异步数据，需要在实例化的时候手动调用
   public async init(){
+    this.getRunes();
     //解析地图
     this.mapTiles = new MapTiles(this.sourceData.mapData);
 
@@ -25,7 +29,9 @@ class MapModel{
 
     //解析波次数据
     this.parseEnemyWaves(this.sourceData.waves)
-    
+
+    console.log(this.enemyRoutes)
+    console.log(this.enemyWaves)
     await this.initEnemyData(this.sourceData.enemyDbRefs);
 
     //绑定route和enemydata
@@ -47,11 +53,31 @@ class MapModel{
     this.sourceData = null;
   }
 
+  private getRunes(){
+    //"difficultyMask": 1和NORMAL是普通  2和FOUR_STAR是突袭  3和ALL是全部生效
+    
+
+    const runesData = [];
+    this.sourceData.runes.forEach( rune => {
+      const difficultyMask = rune.difficultyMask;
+
+      if(
+        ( this.sourceData.challenge && ( difficultyMask ===  1 || difficultyMask === "NORMAL" ) ) ||
+        ( !this.sourceData.challenge && ( difficultyMask ===  2 || difficultyMask === "FOUR_STAR" ) ) 
+      ) return;
+      runesData.push(rune);
+    })
+    this.runesHelper = new RunesHelper(runesData);
+  }
+
+
   //解析波次
   private parseEnemyWaves(waves: any[]){ 
+
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
-    waves.forEach((wave: any, waveIndex: number) => {
+    waves.forEach((wave: any) => {
       let currentTime = 0;
+      let routeIndex = 0;
 
       const innerWaves: EnemyWave[] = [];
       currentTime += wave.preDelay;
@@ -61,35 +87,42 @@ class MapModel{
         currentTime += fragment.preDelay;
         let fragmentTime = currentTime;
         let lastTime = currentTime;//action波次的最后一只怪出现时间
-        
-        fragment.actions.forEach((action: any) =>{
 
+        fragment.actions.forEach((action: any) =>{
           for(let i=0; i<action.count; i++){
+            //检查敌人分组
+            const check = this.runesHelper.checkEnemyGroup(action.hiddenGroup);
+
+            if(!check) return;
 
             let startTime = currentTime + action.preDelay + action.interval*i;
             lastTime = Math.max(lastTime, startTime);
             
             //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
             //虽然不会加入波次里面，但是该算的preDelay还是要算的
-            if(action.actionType !== "SPAWN") return;
+            //有SPAWN和数字0两种
+            if(action.actionType !== "SPAWN" && action.actionType !== 0) return;
 
             let eWave: EnemyWave = {
               actionType: action.actionType,
-              key: action.key,
-              routeIndex: action.routeIndex,
+              key: this.runesHelper.checkEnemyChange( action.key ),
+              routeIndex,
               startTime,
               fragmentTime,
-              waveTime
+              waveTime,
+              hiddenGroup: action.hiddenGroup
             }
+
             innerWaves.push(eWave);
 
           }
+          routeIndex++;
         })
 
         currentTime = lastTime;
 
       })
-
+      
       innerWaves.sort((a, b)=>{
         return a.startTime - b.startTime;
       })
@@ -97,20 +130,25 @@ class MapModel{
       this.enemyWaves.push(innerWaves);
       currentTime += wave.postDelay;
     });
-
+    
   }
 
   //解析敌人路径
   private parseEnemyRoutes(){
-    this.sourceData.routes.forEach( (sourceRoute: any, index: number) =>{
+    let routeIndex = 0;
+    this.sourceData.routes.forEach( (sourceRoute: any) =>{
+
+      //某些敌人(例如提示)没有路径route，所以会出现null，做下兼容处理
+      if(!sourceRoute) return;
+
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
       if(sourceRoute.motionMode !== "E_NUM") {
 
         const route: EnemyRoute = {
-          index: index,
+          index: routeIndex++,
           allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
           startPosition: RowColToVec2(sourceRoute.startPosition),
-          motionMode: sourceRoute.motionMode,
+          motionMode: AliasHelper(sourceRoute.motionMode, "motionMode"),
           spawnOffset: sourceRoute.spawnOffset,
           spawnRandomRange: sourceRoute.spawnRandomRange,
           checkpoints: []
@@ -118,7 +156,7 @@ class MapModel{
         
         sourceRoute.checkpoints.forEach((cp: any) => {
           const checkpoint: CheckPoint = {
-            type: cp.type,
+            type: AliasHelper(cp.type, "checkPointType"),
             position: RowColToVec2(cp.position),
             time: cp.time,
             reachOffset: cp.reachOffset,
@@ -208,6 +246,47 @@ class MapModel{
     return mapping;
   }
 
+
+
+  //生成所有routes的寻路地图
+  private generatepathMaps(){
+    this.enemyRoutes.forEach(route => {
+      const points: Vec2[]= [];
+      const motionMode = route.motionMode;
+
+      route.checkpoints.forEach(point =>{
+        //移动类检查点
+        if(point.type === "MOVE"){
+          points.push(point.position);
+        }
+      })
+
+      points.forEach(point => {
+
+        //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
+        const find = this.pathMaps.find(item =>{
+          return item.motionMode === motionMode && 
+            item.targetPoint.x === point.x && 
+            item.targetPoint.y === point.y;
+        })
+        
+        if(find === undefined){ 
+          let findMap = this.generatepathMapsByVec(point,motionMode);
+
+          const pathMap: PathMap = {
+            motionMode: motionMode,
+            targetPoint:{x: point.x, y: point.y},
+            map : findMap
+          }
+          
+          this.pathMaps.push(pathMap)
+        }
+      })
+      
+    })
+
+  }
+
   //给定目标地块生成寻路地图
   /**
    *
@@ -218,10 +297,8 @@ class MapModel{
    * @memberof mapParser
    */
   private generatepathMapsByVec(target: Vec2, motionMode: string): PathNode[][]{
-    
     const mapping: PathNode[][] = this.generateTileMapping();
-    const x: number = target.x;
-    const y: number = target.y;
+    const {x, y}= target;
 
     const node: PathNode = {
       position: {x, y},
@@ -281,50 +358,10 @@ class MapModel{
     return mapping;
   }
 
-  //生成所有routes的寻路地图
-  private generatepathMaps(){
-    this.enemyRoutes.forEach(route => {
-      const points: Vec2[]= [];
-      const motionMode = route.motionMode;
-
-      route.checkpoints.forEach(point =>{
-        //移动类检查点
-        if(point.type === "MOVE"){
-          points.push(point.position);
-        }
-      })
-
-      points.forEach(point => {
-
-        //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
-        const find = this.pathMaps.find(item =>{
-          return item.motionMode === motionMode && 
-            item.targetPoint.x === point.x && 
-            item.targetPoint.y === point.y;
-        })
-        
-        if(find === undefined){ 
-          let findMap = this.generatepathMapsByVec(point,motionMode);
-
-          const pathMap: PathMap = {
-            motionMode: motionMode,
-            targetPoint:{x: point.x, y: point.y},
-            map : findMap
-          }
-          
-          this.pathMaps.push(pathMap)
-        }
-      })
-      
-    })
-
-  }
-  
   //平整化
   private flatteningFindMaps(){
     this.pathMaps.forEach(findMap => {
-      const map = findMap.map;
-      const motionMode = findMap.motionMode;
+      const {map, motionMode}  = findMap;
 
       map.forEach(row => {
         row.forEach(point => {

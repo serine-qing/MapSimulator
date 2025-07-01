@@ -1,3 +1,5 @@
+import AliasHelper from "./AliasHelper";
+
 class MapTiles{
   private matrix: TileData[][]
 
@@ -9,7 +11,7 @@ class MapTiles{
         const tile = mapData.tiles[item];
         const tileData: TileData = {
           tileKey: tile.tileKey,
-          passableMask: tile.passableMask
+          passableMask: AliasHelper(tile.passableMask, "passableMask")
         }
 
         //index为坐标轴中的x值

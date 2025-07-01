@@ -59,17 +59,30 @@ const emit = defineEmits<{
 
 
 const storys = ref([]);
-const stageId = ref("");   //当前关卡id
+const stageId = ref();   //当前关卡id
+const currentStage:any = ref();   //当前关卡
 
-let stageKeyMap: { [key: string]: string } = {};
 getStorys().then((res) => {
   storys.value = res.data.storys;
-  stageKeyMap = res.data.stageKeyMap
 
   //网址带有关卡id 就进行初始化
   const id = route.query.id as string;
-  if(stageId){
-    stageId.value = id;
+
+  const queue: any = [];
+  queue.push( {childNodes:storys.value} );
+  let item;
+  while(item = queue.shift()){
+    if(item.childNodes){
+      item.childNodes.forEach((j: any) => {
+        queue.push(j)
+      })
+    }else{
+      if(item.operation === id){
+        stageId.value = id;
+        currentStage.value = item;
+        return;
+      }
+    }
   }
 
 });
@@ -78,7 +91,10 @@ interface Stage{
   operation: string,
   cn_name: string,
   description: string,
-  episode: string
+  episode: string,
+  levelId: string,
+  hasChallenge: boolean,   //是否有突袭
+  challenge?: string       //突袭条件(有这个key意味着是突袭关)
 }
 
 const route = useRoute();
@@ -86,15 +102,19 @@ const router = useRouter();
 
 const handleItemClick = (stage: Stage) => {
   stageId.value = stage.operation;
+  currentStage.value = stage;
   router.push("/?id=" + stage.operation);
 }
 
-//id改变后修改当前关卡
-watch( stageId , () => {
-  const levelPath = stageKeyMap[stageId.value];  //关卡路径
+//stage改变后修改当前关卡
+watch( currentStage , () => {
+  const levelPath = currentStage.value.levelId;
     if( levelPath ){
       getStageInfo(levelPath).then((res) => {
-        emit("changeStage", res.data)
+        emit(
+          "changeStage", 
+          { ...res.data, ...currentStage.value }
+        )
       });
   } 
 })

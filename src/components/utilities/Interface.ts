@@ -1,6 +1,16 @@
 import Enemy from "@/components/enemy/Enemy"
 
 declare global {
+  interface Stage{
+    operation: string,
+    cn_name: string,
+    description: string,
+    episode: string,
+    levelId: string,
+    hasChallenge: boolean,   //是否有突袭
+    challenge?: string       //突袭条件(有这个key意味着是突袭关)
+  }
+
   interface Vec2{
     x: number,
     y: number
@@ -53,6 +63,7 @@ declare global {
     startTime: number,        //该波次开始时间
     fragmentTime: number,     //分支(FRAGMENT)开始时间
     waveTime: number,         //波次(WAVE)开始时间
+    hiddenGroup: string,      //敌人属于哪个分组
     route?: EnemyRoute,  
     enemyData?: EnemyData,
   }
@@ -81,4 +92,4 @@ declare global {
 
 
 
-export {Vec2, TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}
+export {Stage, Vec2, TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}
