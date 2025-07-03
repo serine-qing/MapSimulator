@@ -1,6 +1,6 @@
 import GameManager from "../game/GameManager";
 import Enemy from "./Enemy"
-import * as THREE from "three";
+import eventBus from "@/components/utilities/EventBus";
 
 //敌人状态管理
 class EnemyManager{
@@ -9,6 +9,7 @@ class EnemyManager{
   public enemies: Enemy[][] = []; //敌人对象数组
   public flatEnemies: Enemy[] = []; //一维敌人对象数组，方便读取
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemies
+  public enemyIndex: number = -1;     //当前出到第几个敌人
 
   private waveIndex: number = 0;
   private currentSecond: number = -1; //当前游戏时间（-1为未开始默认值）
@@ -35,6 +36,7 @@ class EnemyManager{
     })
 
     this.flatEnemies = this.enemies.flat();
+    eventBus.emit("enemies_init", this.flatEnemies);
   }
 
   private removeEnemies(){
@@ -87,7 +89,8 @@ class EnemyManager{
         //重置
         
         this.enemiesInMap.push(enemy);
-
+        this.enemyIndex ++;
+        eventBus.emit("enemy_index_change", this.enemyIndex)
       }
     }
 
@@ -111,7 +114,7 @@ class EnemyManager{
   }
 
   public destroy(){
-    this.flatEnemies.forEach(e => e.destroy());
+    this.flatEnemies.forEach(e => e?.destroy());
     this.enemies = null;
     this.flatEnemies = null; 
     this.enemiesInMap = null;

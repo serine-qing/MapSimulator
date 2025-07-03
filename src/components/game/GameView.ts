@@ -84,7 +84,7 @@ class GameView{
   
     gameCanvas.scene.remove(this.mapContainer);
 
-    this.mapContainer.traverse(object => {
+    this.mapContainer?.traverse(object => {
       if(object.type === "Mesh"){
         const mesh = object as THREE.Mesh;
         

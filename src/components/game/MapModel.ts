@@ -30,8 +30,6 @@ class MapModel{
     //解析波次数据
     this.parseEnemyWaves(this.sourceData.waves)
 
-    console.log(this.enemyRoutes)
-    console.log(this.enemyWaves)
     await this.initEnemyData(this.sourceData.enemyDbRefs);
 
     //绑定route和enemydata
@@ -58,7 +56,7 @@ class MapModel{
     
 
     const runesData = [];
-    this.sourceData.runes.forEach( rune => {
+    this.sourceData.runes?.forEach( rune => {
       const difficultyMask = rune.difficultyMask;
 
       if(
@@ -201,11 +199,15 @@ class MapModel{
     
     const res: any = await getEnemiesData( enemyRefReq );
     const enemyDatas = res.data.EnemyDatas;
-
     enemyDbRefs.forEach((enemyDbRef: EnemyRef) => {
+      
+      let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
+      if(!enemyData) return;
+
       const overwriteData = enemyDbRef.overwrittenData;
+      
       if(overwriteData){
-        let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
+        
         if(!enemyData) {
           enemyData = {};
           this.enemyDatas.push(enemyData);
@@ -223,8 +225,10 @@ class MapModel{
             enemyData["attributes"][key] = attr.m_value;
           }
         })
-
+        
       }
+      
+      this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
 
     })
 

@@ -100,8 +100,8 @@ class GameManager{
 
   public destroy(){
     this.isFinished = true;
-    this.gameView.destroy();
-    this.enemyManager.destroy();
+    this.gameView?.destroy();
+    this.enemyManager?.destroy();
 
     this.mapModel = null;
     this.gameView = null;

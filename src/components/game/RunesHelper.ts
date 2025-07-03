@@ -1,3 +1,5 @@
+import { toCamelCase } from "@/components/utilities/utilities"
+
 class RunesHelper{
   private runes: any[];
   private enemyGroupEnable: string[] = [];       //额外出现某组敌人
@@ -33,14 +35,17 @@ class RunesHelper{
         
         //敌人属性修改
         case "enemy_attribute_mul":
+        case "ebuff_attribute":
+        case "enemy_attribute_add":
           blackboard.forEach( item => {
             const { key, value } = item;
+            const camelKey = toCamelCase(key); 
 
             //如果有多次属性提升，就叠乘
-            if(this.enemyAttributeChanges[key]){
-              this.enemyAttributeChanges[key] *= value;
+            if(this.enemyAttributeChanges[camelKey]){
+              this.enemyAttributeChanges[camelKey] *= value;
             }else{
-              this.enemyAttributeChanges[key] = value;
+              this.enemyAttributeChanges[camelKey] = value;
             }
 
           })
@@ -48,8 +53,7 @@ class RunesHelper{
       }
 
     })
-
-    console.log(this.enemyAttributeChanges);
+    
   }
 
   public checkEnemyGroup(group: string): boolean{
@@ -59,6 +63,24 @@ class RunesHelper{
   public checkEnemyChange(key: string): string{
     const change = this.enemyChanges[key];
     return change? change : key;
+  }
+
+  public checkEnemyAttribute(attributes: any){
+    Object.keys(this.enemyAttributeChanges).forEach( (key) => {
+      const value:number = this.enemyAttributeChanges[key];
+
+      switch (key) {
+        case "magicResistance":
+          attributes["magicResistance"] += value;
+          break;
+
+        default:
+          attributes[key] = parseFloat((attributes[key] * value).toFixed(4)) ;   //消除乘完后会出现的很长小数
+          break;
+      }
+      
+    })
+
   }
 }
 

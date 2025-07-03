@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import StoryMenu from '@/pages/StoryMenu.vue';
+import Menu from '@/pages/Menu.vue';
 import Game from "@/pages/Game.vue"
 
 const mapData = ref();
@@ -11,14 +11,19 @@ const handleChangeStage = (map: any) => {
 </script>
 
 <template>
-<el-row>
-  <StoryMenu @changeStage = "handleChangeStage"/>
+<div class="index">
+  <Menu @changeStage = "handleChangeStage"/>
   <Game :mapData = "mapData"/>
-</el-row>
+</div>
   
 </template>
 
 <style scoped>
+.index{
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+}
 #c{
   display: block;
   position: fixed;

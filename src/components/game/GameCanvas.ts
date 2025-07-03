@@ -6,11 +6,16 @@ class GameCanvas{
   public camera: THREE.PerspectiveCamera;
   public scene: THREE.Scene;
   public renderer: THREE.WebGLRenderer;
+  
+  private width: number;
+  private height: number;
+
   constructor(el: HTMLDivElement){
     this.wrapper = el;
     this.canvas = this.wrapper.querySelector("#c") as HTMLCanvasElement;
     this.initCamera();
     this.initRenderer();
+    this.animate();
   }
 
     //初始化相机
@@ -40,24 +45,42 @@ class GameCanvas{
     this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
 
     //地图比例是否正确，关键看相机和渲染器的宽高比是否一致
-    this.renderer.setSize(
-      this.wrapper.offsetWidth,
-      this.wrapper.offsetHeight
-    ); //设置宽高
+    this.width = this.wrapper.offsetWidth;
+    this.height = this.wrapper.offsetHeight;
 
+    this.renderer.setSize(
+      this.width,
+      this.height
+    ); //设置宽高
+    
     // this.controls = new OrbitControls(this.camera, this.renderer.domElement)
 
-    window.addEventListener("resize",() => {
-      this.renderer.setSize(
-        this.wrapper.offsetWidth,
-        this.wrapper.offsetHeight
-      ); //设置宽高
+  }
+  //循环执行
+  private animate(){
+    requestAnimationFrame(()=>{
+      if( this.width !== this.wrapper.offsetWidth || this.height !== this.wrapper.offsetHeight ){
 
-      //重设相机宽高比
-      this.camera.aspect = this.wrapper.offsetWidth / this.wrapper.offsetHeight;
-      //更新相机投影矩阵
-      this.camera.updateProjectionMatrix();
-    })
+        this.width = this.wrapper.offsetWidth;
+        this.height = this.wrapper.offsetHeight;
+        this.resize();
+
+      }
+      this.animate();
+    });
+
+  }
+
+  public resize(){
+    this.renderer.setSize(
+      this.width,
+      this.height
+    ); //设置宽高
+
+    //重设相机宽高比
+    this.camera.aspect = this.width / this.height;
+    //更新相机投影矩阵
+    this.camera.updateProjectionMatrix();
   }
 
   public render() {

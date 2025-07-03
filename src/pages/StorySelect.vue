@@ -1,16 +1,9 @@
 <template>
-  <el-col 
-    :xs="10" 
-    :sm="8"
-    :md="6"
-    :lg="5"
-    :xl="4"
-    class="story-menu"
-  >
+  <div class="story-menu">
     <el-menu
       active-text-color="#ffd04b"
       background-color="#545c64"
-      class="menu"
+
       text-color="#fff"
       :default-active = "stageId"
     >
@@ -43,7 +36,8 @@
 
       </el-sub-menu>
     </el-menu>
-  </el-col>
+  </div>
+  
 </template>
 
 <script lang="ts" setup>
@@ -120,12 +114,10 @@ watch( currentStage , () => {
 })
 </script>
 
-<style scoped lang="scss">
+<style lang="scss" scoped>
 .story-menu{
-  height: 100vh;
+  flex: 1;
   overflow-y: scroll;
-  .menu{
-    min-height: 100vh;
-  }
+  overflow-x: hidden;
 }
 </style>

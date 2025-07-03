@@ -24,6 +24,7 @@ class Enemy{
   def: number;
   magicResistance: number;
   maxHp: number;
+  attackSpeed: number;
 
   position: THREE.Vector2;
   velocity: Vec2;                //当前速度矢量
@@ -54,18 +55,21 @@ class Enemy{
     this.fragmentTime = wave.fragmentTime;
     this.waveTime = wave.waveTime;
 
-    this.key = enemyData.key;
-    this.levelType = enemyData.levelType;
-    this.motion = enemyData.motion;
-    this.name = enemyData.name;
-    this.description = enemyData.description;
-    this.rangeRadius = enemyData.rangeRadius;
-    this.moveSpeed = enemyData.attributes.moveSpeed;
-    this.atk = enemyData.attributes.atk;
-    this.def = enemyData.attributes.def;
-    this.magicResistance = enemyData.attributes.magicResistance;
-    this.maxHp = enemyData.attributes.maxHp;
+    const {key, levelType, motion, name, description, rangeRadius, attributes} = enemyData;
+    this.key = key;
+    this.levelType = levelType;
+    this.motion = motion;
+    this.name = name;
+    this.description = description;
+    this.rangeRadius = rangeRadius;
+    this.moveSpeed = attributes.moveSpeed;
+    this.atk = attributes.atk;
+    this.def = attributes.def;
+    this.magicResistance = attributes.magicResistance;
+    this.maxHp = attributes.maxHp;
 
+    this.attackSpeed = attributes.baseAttackTime * 100 / attributes.attackSpeed;
+    
     this.route = wave.route;
     this.checkpoints = this.route.checkpoints;
 
@@ -357,12 +361,13 @@ class Enemy{
     this.targetNode = null;
     this.gameManager = null;
 
-    this.spine.remove(this.skeletonMesh);
+    this.spine?.remove(this.skeletonMesh);
     this.spine = null;
 
-    this.skeletonMesh.dispose();
+    this.skeletonMesh?.dispose();
     this.skeletonMesh = null;
   }
+
 }
 
 export default Enemy;
