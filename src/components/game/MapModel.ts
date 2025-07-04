@@ -3,7 +3,9 @@ import RunesHelper from "./RunesHelper";
 import MapTiles from "./MapTiles"
 import {getEnemiesData} from "@/api/stages"
 import AliasHelper from "./AliasHelper";
-
+import AssetsManager from "@/components/assetManager/spinesAssets"
+import spine from "@/assets/script/spine-threejs.js";
+import { getAnimation } from "@/components/utilities/SpineHelper"
 //对地图json进行数据处理
 class MapModel{
   private sourceData: any;
@@ -13,8 +15,11 @@ class MapModel{
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
   public pathMaps: PathMap[] = []; //寻路地图
+
+  private assetsManager: AssetsManager;   //资源一开始就加载完毕，所以放到这里处理
   constructor(data: any){
     this.sourceData = data;
+    this.assetsManager = new AssetsManager();
     // console.log(this.enemyRoutes)
   }
 
@@ -31,6 +36,7 @@ class MapModel{
     this.parseEnemyWaves(this.sourceData.waves)
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
+    await this.getEnemySpines();
 
     //绑定route和enemydata
     this.enemyWaves.flat().forEach( wave => {
@@ -49,6 +55,8 @@ class MapModel{
     this.bindWayFindToCheckPoints();
 
     this.sourceData = null;
+
+    
   }
 
   private getRunes(){
@@ -73,10 +81,10 @@ class MapModel{
   private parseEnemyWaves(waves: any[]){ 
 
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
+    let routeIndex = 0;
     waves.forEach((wave: any) => {
       let currentTime = 0;
-      let routeIndex = 0;
-
+      
       const innerWaves: EnemyWave[] = [];
       currentTime += wave.preDelay;
       let waveTime = currentTime;
@@ -233,6 +241,41 @@ class MapModel{
     })
 
     this.enemyDatas = enemyDatas;
+  }
+
+  private async getEnemySpines(){
+    const spineNames: string[] = this.enemyDatas.map(e => e.key);
+
+    //设置敌人spine
+    await this.assetsManager.loadSpines(spineNames);
+    this.enemyDatas.forEach(data => {
+      const {key} = data;
+      const spineManager = this.assetsManager.spineManager;
+
+      const sName = key.replace("enemy_", "");
+      const atlasName = sName + "/" + key + ".atlas";
+      const skelName = sName + "/" + key + ".skel";
+  
+      //使用AssetManager中的name.atlas和name.png加载纹理图集。
+      //传递给TextureAtlas的函数用于解析相对路径。
+      const atlas = spineManager.get(atlasName);
+  
+      //创建一个AtlasAttachmentLoader，用于解析区域、网格、边界框和路径附件
+      const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+      //创建一个SkeletonJson实例来解析文件
+      const skeletonJson = new spine.SkeletonBinary(atlasLoader);
+      //设置在解析过程中应用的比例，解析文件，并创建新的骨架。
+      skeletonJson.scale = 0.019;
+      const skeletonData = skeletonJson.readSkeletonData(
+        spineManager.get(skelName)
+      );
+      const moveAnimate = getAnimation(key, skeletonData.animations, "Move");
+      const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
+
+      data.skeletonData = skeletonData;
+      data.moveAnimate = moveAnimate;
+      data.idleAnimate = idleAnimate;
+    })
   }
 
   //生成寻路地图需要用到的拷贝对象

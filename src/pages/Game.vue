@@ -1,6 +1,7 @@
 <script lang="ts">
-import Game from '@/components/game/GameManager.ts';
+import Game from "@/components/game/Game"
 import {setupCanvas} from '@/components/game/GameCanvas.ts';
+
 
 export default{
   data(){
@@ -9,12 +10,11 @@ export default{
   },
   props:["mapData"],
   watch:{
-    mapData(){
-      if(this.game){
-        this.game.destroy();
+    async mapData(){
+      if(!this.game){
+        this.game = new Game();
       }
-
-      this.game = new Game(this.mapData)
+      this.game.startGame(this.mapData);
     }
   },
   mounted() {

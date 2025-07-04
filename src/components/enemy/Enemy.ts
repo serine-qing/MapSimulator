@@ -4,9 +4,10 @@ import spine from "@/assets/script/spine-threejs.js";
 import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components/utilities/Interface"
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
-import { getAnimation, getSkelOffset, getSpineSize } from "@/components/utilities/SpineHelper"
+import { getSkelOffset, getSpineSize } from "@/components/utilities/SpineHelper"
 
 class Enemy{
+  id: number;    //EnemyManager中使用的id
   key: string;
   levelType: string;
   motion: string;       
@@ -28,6 +29,7 @@ class Enemy{
 
   position: THREE.Vector2;
   velocity: Vec2;                //当前速度矢量
+  faceTo: number = 1;                //1:右, -1:左
 
   route: EnemyRoute;
   checkpoints: CheckPoint[];
@@ -41,6 +43,8 @@ class Enemy{
   isStarted: boolean = false;
   isFinished: boolean = false;
 
+  private visible: boolean = false;
+  private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
   public spine: THREE.Object3D;
   private currentAnimate: string;//当前执行动画名
@@ -55,13 +59,20 @@ class Enemy{
     this.fragmentTime = wave.fragmentTime;
     this.waveTime = wave.waveTime;
 
-    const {key, levelType, motion, name, description, rangeRadius, attributes} = enemyData;
+    const {
+      key, levelType, motion, name, description, rangeRadius, attributes, 
+      skeletonData, moveAnimate, idleAnimate
+    } = enemyData;
+
     this.key = key;
     this.levelType = levelType;
     this.motion = motion;
     this.name = name;
     this.description = description;
     this.rangeRadius = rangeRadius;
+    this.skeletonData = skeletonData;
+    this.moveAnimate = moveAnimate;
+    this.idleAnimate = idleAnimate;
     this.moveSpeed = attributes.moveSpeed;
     this.atk = attributes.atk;
     this.def = attributes.def;
@@ -79,7 +90,6 @@ class Enemy{
       y: 0
     }
 
-    this.spine = new THREE.Object3D();
     this.targetNode = null;
   }
 
@@ -130,26 +140,11 @@ class Enemy{
   }
 
   //初始化spine小人
-  public initSpine(spineManager){
-    const sName = this.key.replace("enemy_", "");
-    const atlasName = sName + "/" + this.key + ".atlas";
-    const skelName = sName + "/" + this.key + ".skel";
-
-    //使用AssetManager中的name.atlas和name.png加载纹理图集。
-    //传递给TextureAtlas的函数用于解析相对路径。
-    const atlas = spineManager.get(atlasName);
-
-    //创建一个AtlasAttachmentLoader，用于解析区域、网格、边界框和路径附件
-    const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-    //创建一个SkeletonJson实例来解析文件
-    const skeletonJson = new spine.SkeletonBinary(atlasLoader);
-    //设置在解析过程中应用的比例，解析文件，并创建新的骨架。
-    skeletonJson.scale = 0.019;
-    const skeletonData = skeletonJson.readSkeletonData(
-      spineManager.get(skelName)
-    );
+  public initSpine(){
+    this.spine = new THREE.Object3D();
+    
     //从数据创建SkeletonMesh并将其附着到场景
-    this.skeletonMesh = new spine.threejs.SkeletonMesh(skeletonData);
+    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.spine.add(this.skeletonMesh);
 
     const offset = getSkelOffset(this);
@@ -161,9 +156,6 @@ class Enemy{
     const spineSize = getSpineSize(this);
     this.spine.scale.set(spineSize,spineSize,1);
 
-    this.moveAnimate = getAnimation(this.key, skeletonData.animations, "Move");
-    this.idleAnimate = getAnimation(this.key, skeletonData.animations, "Idle");
-
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
@@ -173,6 +165,8 @@ class Enemy{
   }
 
   public setSpinePosition(x: number, y: number){
+    if(!this.spine) return;
+
     const Vec2 = this.gameManager.getCoordinate(x, y);
     
     this.spine.position.x = Vec2.x;
@@ -230,7 +224,7 @@ class Enemy{
           targetPos.y - currentPosition.y
         ).normalize();
 
-        const moveDistancePerFrame = this.moveSpeed * GameConfig.GAME_SPEED * 1/60;
+        const moveDistancePerFrame = this.moveSpeed * GameConfig.GAME_SPEED * 0.5/GameConfig.FPS;
 
         const velocity: Vec2 = {
           x: unitVector.x * moveDistancePerFrame,
@@ -300,6 +294,7 @@ class Enemy{
 
     this.velocity.x = 0;
     this.velocity.y = 0;
+
   }
 
   private waitingTo(time: number){
@@ -311,21 +306,26 @@ class Enemy{
   }
 
   public show(){
-    this.skeletonMesh.visible = true;
+    this.visible = true;
+    if(this.spine) this.skeletonMesh.visible = this.visible;
   }
 
-  public hide(){
-    this.skeletonMesh.visible = false;
+  public hide(){  
+    this.visible = false;
+    if(this.spine) this.skeletonMesh.visible = this.visible;
   }
 
   //根据移动方向更换spine方向
   private changeToward(){
-    
     if(this.velocity.x > 0){
-      this.skeletonMesh.scale.x = 1;
+
+      this.faceTo = 1;
     }else if(this.velocity.x < 0){
-      this.skeletonMesh.scale.x = -1;
+
+      this.faceTo = -1;
     }
+
+    if(this.spine) this.skeletonMesh.scale.x = this.faceTo;
   }
 
   private idle(){
@@ -346,6 +346,9 @@ class Enemy{
     if(animate !== this.currentAnimate){
 
       this.currentAnimate = animate;
+
+      if(!this.spine) return;
+
       this.skeletonMesh.state.setAnimation(
         0, 
         this.currentAnimate, 
@@ -355,17 +358,68 @@ class Enemy{
     }
   }
 
+  public get(){
+    const position = {
+      x: this.position.x,
+      y: this.position.y
+    }
+    const state = {
+      position,
+      checkPointIndex: this.checkPointIndex,
+      targetNode: this.targetNode,
+      targetWaitingSecond: this.targetWaitingSecond,
+      isStarted: this.isStarted,
+      isFinished: this.isFinished,
+      currentAnimate: this.currentAnimate,
+      visible: this.visible,
+      faceTo: this.faceTo
+    }
+
+    return state;
+  }
+  
+  public set(state){
+    const {position, 
+      checkPointIndex, 
+      targetNode, 
+      targetWaitingSecond, 
+      isStarted, 
+      isFinished, 
+      currentAnimate,
+      visible,
+      faceTo
+    } = state;
+
+    this.setPosition(position.x, position.y);
+    this.checkPointIndex = checkPointIndex;
+    this.targetNode = targetNode;
+    this.targetWaitingSecond = targetWaitingSecond;
+    this.isStarted = isStarted;
+    this.isFinished = isFinished;
+    this.faceTo = faceTo;
+    if(currentAnimate){
+      this.changeAnimation(currentAnimate);
+    }
+
+    visible? this.show() : this.hide();
+    this.changeToward();
+  }
+
   public destroy(){
     this.route = null;
     this.checkpoints = null;
     this.targetNode = null;
     this.gameManager = null;
+    this.skeletonData = null;
 
-    this.spine?.remove(this.skeletonMesh);
-    this.spine = null;
+    if(this.spine){
+      this.spine?.remove(this.skeletonMesh);
+      this.spine = null;
 
-    this.skeletonMesh?.dispose();
-    this.skeletonMesh = null;
+      this.skeletonMesh?.dispose();
+      this.skeletonMesh = null;
+    }
+
   }
 
 }

@@ -34,6 +34,9 @@ declare global {
     name: string,
     rangeRadius: number,     //攻击范围
     motion: string,         //移动motion
+    skeletonData: any,      //skel数据
+    moveAnimate: string,    //移动时的skel动画名
+    idleAnimate: string     //不动时的skel动画名
   }
 
   //敌人路径检查点

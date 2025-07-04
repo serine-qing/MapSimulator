@@ -4,11 +4,27 @@ class EventBus{
     this.events = {};
   }
   on(name: string, callback: Function){
-    if(this.events[name] === undefined){
+    if(!this.events[name]){
       this.events[name] = [];
     }
 
     this.events[name].push(callback);
+    
+  }
+
+  remove(name: string, callback?: Function){
+    const eventArr = this.events[name];
+    if(callback && eventArr){
+
+      for(let i = 0; i< eventArr.length; i++){
+        if(eventArr[i] === callback){
+          eventArr.splice(i, 1);
+          return;
+        }
+      }
+    }else{
+      this.events[name] = null;
+    }
     
   }
 

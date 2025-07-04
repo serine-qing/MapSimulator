@@ -5,47 +5,39 @@ import GameView from "./GameView"
 
 import MapModel from "./MapModel"
 import EnemyManager from "@/components/enemy/EnemyManager";
+import eventBus from "@/components/utilities/EventBus";
 
 //游戏控制器
 class GameManager{
+  private isSimulate: boolean = false;
+  private simulateData: any;
+  private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
-  private mapModel: MapModel;
   private enemyManager: EnemyManager;
   
-  private frameCount: number = 0;    //当前帧
-
-  //每秒帧率设置
-  private clock: THREE.Clock = new THREE.Clock(); //计时器
-  private singleFrameTime: number = 1 / GameConfig.FPS;
-  private timeStamp: number = 0;
-  private deltaTime: number = 0; //两次渲染之间间隔的游戏内时间
+  
+  public currentSecond: number = 0;    //当前游戏时间
+  private deltaTime: number = 1 / GameConfig.FPS; //两次渲染之间间隔的游戏内时间
 
   public isFinished: boolean = false;
-
-  constructor(map: any){
-    this.init(map);
-  }
-
-  private async init(map: any){
-    this.mapModel = new MapModel(map);
-
-    await this.mapModel.init();
-
-    this.gameView = new GameView(this.mapModel.mapTiles);
+  
+  constructor(mapModel: MapModel, isSimulate?: boolean){
+    this.isSimulate = isSimulate? isSimulate : false;
 
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
-      this.mapModel.enemyWaves,
+      mapModel.enemyWaves,
       this
     );
     
-    this.gameView.setupEnemyManager(
-      this.enemyManager
-    );
+    if(!this.isSimulate){
+      this.gameView = new GameView(mapModel.mapTiles);
+      this.gameView.setupEnemyManager(
+        this.enemyManager
+      );
 
-    await this.gameView.setupEnemyDatas(this.mapModel.enemyDatas);
-
-    this.animate();
+      this.animate();
+    }
   }
 
   public getCoordinate(x:number, y:number): Vec2{
@@ -55,22 +47,6 @@ class GameManager{
     }
   }
 
-  //当前游戏时间(秒)
-  private currentSecond(): number {
-    return this.frameCount / GameConfig.FPS * GameConfig.GAME_SPEED;
-  }
-
-
-  private gameLoop(){
-    // this.handleInput();
-    this.update();
-    this.render();
-  }
-
-  private update(){
-    this.enemyManager.update(this.currentSecond());
-  }
-
   //循环执行
   private animate(){
     if(this.isFinished) return; //结束游戏
@@ -78,34 +54,70 @@ class GameManager{
     requestAnimationFrame(()=>{
       this.animate();
     });
-    //渲染
-    const _delta = this.clock.getDelta();
-    this.timeStamp += _delta;
-    
-    if(this.timeStamp > this.singleFrameTime){
-      this.timeStamp = (this.timeStamp % this.singleFrameTime);
 
-      const t1 = this.currentSecond();
-      this.frameCount++;
-      const t2 = this.currentSecond();
-      this.deltaTime = t2 - t1;
-      
-      this.gameLoop();
+    //游戏循环
+    this.gameLoop();
+
+  }
+
+  public gameLoop(){
+    if(this.setData){
+      console.log(this.setData)
+      this.set(this.setData);
+      this.setData = null;
     }
+
+    this.update();
+
+    if( !this.isSimulate ){
+      this.render();
+    }
+
+    this.currentSecond += this.deltaTime * GameConfig.GAME_SPEED / 2;
+  }
+
+  private update(){
+    this.enemyManager.update(this.currentSecond);
   }
 
   private render(){
-    this.gameView.render(this.deltaTime);
+    this.gameView.render(this.deltaTime * GameConfig.GAME_SPEED);
+  }
+
+  public setSimulateData(simulateData: any){
+    this.simulateData = simulateData;
+    eventBus.on("jump_to_enemy_index", (index) => {
+      this.setData = this.simulateData.byEnemy[index]
+    });
+  }
+
+  public get(){
+    let state = {
+      currentSecond: this.currentSecond,
+      isFinished: this.isFinished,
+      eManagerState: this.enemyManager.get()
+    }
+    return state;
+  }
+
+  public set(state){
+    const {currentSecond, isFinished, eManagerState} = state;
+    
+    this.currentSecond = currentSecond;
+    this.isFinished = isFinished;
+    this.enemyManager.set(eManagerState)
   }
 
   public destroy(){
     this.isFinished = true;
+    eventBus.remove("jump_to_enemy_index");
+
     this.gameView?.destroy();
     this.enemyManager?.destroy();
 
-    this.mapModel = null;
     this.gameView = null;
     this.enemyManager = null;
+    this.simulateData = null;
   }
 }
 

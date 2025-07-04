@@ -5,7 +5,6 @@ import Enemy from "../enemy/Enemy"
 import EnemyManager from "../enemy/EnemyManager"
 import GameConfig from "@/components/utilities/GameConfig"
 // import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
-import AssetsManager from "@/components/assetManager/spinesAssets"
 
 import {gameCanvas} from '@/components/game/GameCanvas';
 
@@ -14,15 +13,11 @@ class GameView{
   private mapContainer: THREE.Object3D;
   private mapTiles: MapTiles;
   private enemyManager: EnemyManager;
-  private assetsManager: AssetsManager;
-  private enemies: Enemy[] = [];
-  private enemiesInMap: Enemy[] = [];
 
   constructor(mapTiles: MapTiles){
     
     this.mapTiles = mapTiles;
     this.mapContainer = new THREE.Object3D();
-    this.assetsManager = new AssetsManager();
     this.initMap();
 
   }
@@ -56,28 +51,24 @@ class GameView{
 
   public setupEnemyManager(enemyManager: EnemyManager){
     this.enemyManager = enemyManager;
-    this.enemies = this.enemyManager.flatEnemies;
-    this.enemiesInMap = this.enemyManager.enemiesInMap;
+    const enemies = this.enemyManager.flatEnemies;
 
-  }
-
-  public async setupEnemyDatas(enemyDatas: EnemyData[]){
-    const spineNames: string[] = enemyDatas.map(e => e.key);
-
-    //设置敌人spine
-    await this.assetsManager.loadSpines(spineNames);
-    this.enemies.forEach(enemy => {
-      enemy.initSpine( this.assetsManager.spineManager );
+    enemies.forEach(enemy => {
+      enemy.initSpine();
       this.mapContainer.add(enemy.spine);
-      enemy.show();
     })
+
   }
+
+
 
   public render(delta: number){
     gameCanvas.render();
-    for(let i = 0; i< this.enemiesInMap.length; i++){
-      this.enemiesInMap[i].skeletonMesh.update(delta);
-    }
+
+    this.enemyManager.getEnemiesInMap().forEach(
+      enemy => enemy.skeletonMesh.update(delta)
+    )
+
   }
 
   public destroy(){ 
@@ -107,9 +98,6 @@ class GameView{
     this.mapContainer = null;
     this.mapTiles = null;
     this.enemyManager = null;
-    this.assetsManager = null;
-    this.enemies = null;
-    this.enemiesInMap = null;
   }
 }
 

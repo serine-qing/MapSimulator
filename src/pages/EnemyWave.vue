@@ -7,7 +7,14 @@
       v-for="(enemie, index) in enemies"
     >
       <div class="button">
-        <el-button class="play-button" type="primary" :icon="CaretRight" circle size="small"/>
+        <el-button 
+          class="play-button" 
+          type="primary" 
+          :icon="CaretRight" 
+          circle 
+          size="small"
+          @click="jumpToEnemyIndex(index)"
+        />
       </div>
       <div class="content">
         <el-image class="head-image" :src="test" fit="fill" />
@@ -41,6 +48,11 @@ eventBus.on("enemies_init", (res) => {
 eventBus.on("enemy_index_change", (index) => {
   enemyIndex.value = index;
 });
+
+const jumpToEnemyIndex = (index: number) => {
+  enemyIndex.value = index;
+  eventBus.emit("jump_to_enemy_index", index);
+}
 
 </script>
 
