@@ -28,10 +28,10 @@ class GameCanvas{
       20, //视角
       this.wrapper.offsetWidth / this.wrapper.offsetHeight, //宽高比
       1, //近平面
-      1000 //远平面
+      500 //远平面
     )
     this.camera.position.x = 0;
-    this.camera.position.z = 200;
+    this.camera.position.z = 160;
     this.camera.rotation.z = 1;
     this.camera.lookAt(0,0,0); //相机看向原点
 
@@ -43,7 +43,8 @@ class GameCanvas{
     this.scene = new THREE.Scene();
     //创建渲染器
     this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
-
+    //设置设备像素比。避免HiDPI设备上绘图模糊
+    this.renderer.setPixelRatio( window.devicePixelRatio );
     //地图比例是否正确，关键看相机和渲染器的宽高比是否一致
     this.width = this.wrapper.offsetWidth;
     this.height = this.wrapper.offsetHeight;
@@ -81,6 +82,7 @@ class GameCanvas{
     this.camera.aspect = this.width / this.height;
     //更新相机投影矩阵
     this.camera.updateProjectionMatrix();
+    this.render();
   }
 
   public render() {

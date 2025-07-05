@@ -6,6 +6,8 @@ import AliasHelper from "./AliasHelper";
 import AssetsManager from "@/components/assetManager/spinesAssets"
 import spine from "@/assets/script/spine-threejs.js";
 import { getAnimation } from "@/components/utilities/SpineHelper"
+import GameConfig from "../utilities/GameConfig";
+
 //对地图json进行数据处理
 class MapModel{
   private sourceData: any;
@@ -36,10 +38,12 @@ class MapModel{
     this.parseEnemyWaves(this.sourceData.waves)
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
+    //初始化敌人spine
     await this.getEnemySpines();
 
     //绑定route和enemydata
     this.enemyWaves.flat().forEach( wave => {
+      //route可能为null
       const findRoute: EnemyRoute = this.enemyRoutes.find( route => route.index === wave.routeIndex );
       const findEnemyData = this.enemyDatas.find(e => e.key === wave.key);
 
@@ -55,7 +59,6 @@ class MapModel{
     this.bindWayFindToCheckPoints();
 
     this.sourceData = null;
-
     
   }
 
@@ -79,9 +82,7 @@ class MapModel{
 
   //解析波次
   private parseEnemyWaves(waves: any[]){ 
-
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
-    let routeIndex = 0;
     waves.forEach((wave: any) => {
       let currentTime = 0;
       
@@ -112,7 +113,7 @@ class MapModel{
             let eWave: EnemyWave = {
               actionType: action.actionType,
               key: this.runesHelper.checkEnemyChange( action.key ),
-              routeIndex,
+              routeIndex : action.routeIndex,
               startTime,
               fragmentTime,
               waveTime,
@@ -122,7 +123,6 @@ class MapModel{
             innerWaves.push(eWave);
 
           }
-          routeIndex++;
         })
 
         currentTime = lastTime;
@@ -145,13 +145,11 @@ class MapModel{
     this.sourceData.routes.forEach( (sourceRoute: any) =>{
 
       //某些敌人(例如提示)没有路径route，所以会出现null，做下兼容处理
-      if(!sourceRoute) return;
-
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
-      if(sourceRoute.motionMode !== "E_NUM") {
+      if(sourceRoute && sourceRoute.motionMode !== "E_NUM") {
 
         const route: EnemyRoute = {
-          index: routeIndex++,
+          index: routeIndex,
           allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
           startPosition: RowColToVec2(sourceRoute.startPosition),
           motionMode: AliasHelper(sourceRoute.motionMode, "motionMode"),
@@ -183,7 +181,7 @@ class MapModel{
 
         this.enemyRoutes.push(route);
       }
-      
+      routeIndex ++;
     })
 
   }
@@ -233,9 +231,11 @@ class MapModel{
             enemyData["attributes"][key] = attr.m_value;
           }
         })
-        
+
       }
       
+      enemyData.icon = GameConfig.BASE_URL + "enemy_icon/" + enemyData.key + ".png";
+
       this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
 
     })

@@ -4,7 +4,8 @@ import eventBus from '@/components/utilities/EventBus';
 import GameConfig from '@/components/utilities/GameConfig';
 
 class Game{
-  private gameManager: GameManager;
+  public gameManager: GameManager;
+  public maxSecond: number;
 
   constructor(){
   }
@@ -50,6 +51,8 @@ class Game{
       simulateGame.gameLoop();
     }
 
+    this.maxSecond = simData.byTime.length - 1;
+    
     eventBus.remove("enemy_index_change", fuc);
     simulateGame.destroy();
 

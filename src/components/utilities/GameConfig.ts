@@ -5,7 +5,7 @@ const GameConfig = {
   FPS : 60,
   BASE_URL : "http://localhost:3000/",
   TILE_SIZE : 7,
-  SIMULATE_STEP: 5,  //模拟数据间隔多少秒
+  SIMULATE_STEP: 1,  //模拟数据间隔多少秒
 }
 
 export default GameConfig;

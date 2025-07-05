@@ -7,7 +7,7 @@
       class="fixed-icon" 
     >
       <el-icon >
-        <CaretRight />
+        <View />
       </el-icon>
     </el-button>
 
@@ -20,13 +20,13 @@
       <div class="icons">
         <el-button type="info" @click="menuShow = false">
           <el-icon >
-            <CaretLeft />
+            <Hide />
           </el-icon>
         </el-button>
         
         <el-button type="info" @click="toggle = !toggle">
           <el-icon >
-            <Edit />
+            <Menu />
           </el-icon>
         </el-button>
         

@@ -13,7 +13,8 @@ class Enemy{
   motion: string;       
   name: string;
   description: string;  
-  actionType: string      //敌人生成模式
+  actionType: string;      //敌人生成模式
+  icon: string;            //敌人头像URL
 
   startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
@@ -60,7 +61,7 @@ class Enemy{
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, rangeRadius, attributes, 
+      key, levelType, motion, name, description, rangeRadius, icon, attributes, 
       skeletonData, moveAnimate, idleAnimate
     } = enemyData;
 
@@ -73,6 +74,8 @@ class Enemy{
     this.skeletonData = skeletonData;
     this.moveAnimate = moveAnimate;
     this.idleAnimate = idleAnimate;
+    this.icon = icon;
+
     this.moveSpeed = attributes.moveSpeed;
     this.atk = attributes.atk;
     this.def = attributes.def;
@@ -224,7 +227,7 @@ class Enemy{
           targetPos.y - currentPosition.y
         ).normalize();
 
-        const moveDistancePerFrame = this.moveSpeed * GameConfig.GAME_SPEED * 0.5/GameConfig.FPS;
+        const moveDistancePerFrame = this.moveSpeed * this.gameManager.gameSpeed * 0.5/GameConfig.FPS;
 
         const velocity: Vec2 = {
           x: unitVector.x * moveDistancePerFrame,

@@ -4,7 +4,7 @@
     <div 
       class="enemy-card"
       :class="{active: enemyIndex === index}"
-      v-for="(enemie, index) in enemies"
+      v-for="(enemy, index) in enemies"
     >
       <div class="button">
         <el-button 
@@ -17,10 +17,10 @@
         />
       </div>
       <div class="content">
-        <el-image class="head-image" :src="test" fit="fill" />
+        <el-image class="head-image" :src="enemy.icon" fit="fill" />
         <div class="name">
           <span class="index">#{{index + 1}}</span>
-          {{enemie.name}}
+          {{enemy.name}}
         </div>
       </div>
     </div>
@@ -31,7 +31,6 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import test from "@/assets/test.png"
 import eventBus from "@/components/utilities/EventBus";
 
 import {

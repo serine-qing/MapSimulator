@@ -14,7 +14,9 @@ class GameManager{
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
   private enemyManager: EnemyManager;
-  
+
+  public gameSpeed: number = GameConfig.GAME_SPEED;
+  public pause: boolean = false;
   
   public currentSecond: number = 0;    //当前游戏时间
   private deltaTime: number = 1 / GameConfig.FPS; //两次渲染之间间隔的游戏内时间
@@ -47,6 +49,14 @@ class GameManager{
     }
   }
 
+  public changeGameSpeed(gameSpeed: number){
+    this.gameSpeed = gameSpeed;
+  }
+
+  public changePause(pause: boolean){
+    this.pause = pause;
+  }
+
   //循环执行
   private animate(){
     if(this.isFinished) return; //结束游戏
@@ -57,23 +67,25 @@ class GameManager{
 
     //游戏循环
     this.gameLoop();
-
+    
   }
 
   public gameLoop(){
+    if(this.pause) return; //暂停
+
     if(this.setData){
-      console.log(this.setData)
       this.set(this.setData);
-      this.setData = null;
     }
 
     this.update();
 
     if( !this.isSimulate ){
+      
+      eventBus.emit("second_change", this.currentSecond);
       this.render();
     }
 
-    this.currentSecond += this.deltaTime * GameConfig.GAME_SPEED / 2;
+    this.currentSecond += this.deltaTime * this.gameSpeed / 2;
   }
 
   private update(){
@@ -81,13 +93,20 @@ class GameManager{
   }
 
   private render(){
-    this.gameView.render(this.deltaTime * GameConfig.GAME_SPEED);
+    this.gameView.render(this.deltaTime * this.gameSpeed);
   }
 
   public setSimulateData(simulateData: any){
     this.simulateData = simulateData;
+
     eventBus.on("jump_to_enemy_index", (index) => {
-      this.setData = this.simulateData.byEnemy[index]
+      const setData = this.simulateData.byEnemy[index];
+      this.addSetData(setData);
+    });
+
+    eventBus.on("jump_to_time_index", (index) => {
+      const setData = this.simulateData.byTime[index];
+      this.addSetData(setData);
     });
   }
 
@@ -104,13 +123,36 @@ class GameManager{
     const {currentSecond, isFinished, eManagerState} = state;
     
     this.currentSecond = currentSecond;
-    this.isFinished = isFinished;
     this.enemyManager.set(eManagerState)
+    this.isFinished = isFinished;
+
+    this.setData = null;
+  }
+
+  public addSetData(data){
+    //如果游戏已经结束或者正在暂停，那么就直接设置data，
+    //如果还未结束，需要在某次循环开头读取data
+    this.setData = data;
+    const isFinished = this.isFinished;
+
+    if(this.isFinished || this.pause){
+      this.set(this.setData);
+    }
+    //已经结束的话，还需要额外重新启动游戏
+    if(isFinished){
+      this.animate();
+    }
+    //如果暂停，那么设置完数据之后view需要渲染一次
+    if(this.pause){
+      this.render();
+    }
+
   }
 
   public destroy(){
     this.isFinished = true;
     eventBus.remove("jump_to_enemy_index");
+    eventBus.remove("jump_to_time_index");
 
     this.gameView?.destroy();
     this.enemyManager?.destroy();

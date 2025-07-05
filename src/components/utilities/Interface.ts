@@ -32,7 +32,8 @@ declare global {
     description: string,    //
     levelType: string,      //敌人级别 普通/精英/领袖
     name: string,
-    rangeRadius: number,     //攻击范围
+    icon: string,           //敌人头像URL
+    rangeRadius: number,    //攻击范围
     motion: string,         //移动motion
     skeletonData: any,      //skel数据
     moveAnimate: string,    //移动时的skel动画名
