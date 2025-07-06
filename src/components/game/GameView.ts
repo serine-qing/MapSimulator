@@ -1,51 +1,42 @@
 import * as THREE from "three"
 import MapTiles from "./MapTiles"
-import tileKeyMapping from "./tileKeyMapping"
-import Enemy from "../enemy/Enemy"
+
+import Tile from "./Tile"
 import EnemyManager from "../enemy/EnemyManager"
 import GameConfig from "@/components/utilities/GameConfig"
-// import {OrbitControls} from "three/examples/jsm/controls/OrbitControls.js"
 
 import {gameCanvas} from '@/components/game/GameCanvas';
+import assetsManager from "@/components/assetManager/assetsManager"
 
 class GameView{
   
   private mapContainer: THREE.Object3D;
   private mapTiles: MapTiles;
   private enemyManager: EnemyManager;
-
   constructor(mapTiles: MapTiles){
-    
     this.mapTiles = mapTiles;
     this.mapContainer = new THREE.Object3D();
-    this.initMap();
+
+    //texture加载完后再初始化map，以防地图读取到未加载的texture
+    assetsManager.textureOnload.then(()=>{
+      this.initMap();
+    })
 
   }
-
 
   //初始化地图tiles
   private initMap(){
     this.mapTiles.getMatrix().forEach((rowArray, y)=>{
-      rowArray.forEach((tile, x)=>{
-        let tileClass = tileKeyMapping[tile.tileKey];
+      rowArray.forEach((tileData, x)=>{
 
-        //TODO 临时措施，显示效果以后再做
-        if(!tileClass){
-          if(tile.passableMask === "FLY_ONLY"){
-            tileClass = tileKeyMapping["tile_forbidden"];
-            
-          }else{
-            tileClass = tileKeyMapping["tile_road"];
-          }
-        }
-        
-        this.mapContainer.add(new tileClass({x,y}).object);
+        const tile = new Tile( tileData, {x, y} );
+        this.mapContainer.add(tile.object);
       })
     })
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
-    this.mapContainer.position.x = - 30;
-    this.mapContainer.position.y = - 22;
+    this.mapContainer.position.x = - 35;
+    this.mapContainer.position.y = - 15;
     gameCanvas.scene.add(this.mapContainer);
   }
 

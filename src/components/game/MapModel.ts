@@ -3,10 +3,11 @@ import RunesHelper from "./RunesHelper";
 import MapTiles from "./MapTiles"
 import {getEnemiesData} from "@/api/stages"
 import AliasHelper from "./AliasHelper";
-import AssetsManager from "@/components/assetManager/spinesAssets"
 import spine from "@/assets/script/spine-threejs.js";
 import { getAnimation } from "@/components/utilities/SpineHelper"
 import GameConfig from "../utilities/GameConfig";
+//资源一开始就加载完毕，所以放到这里处理
+import assetsManager from "@/components/assetManager/assetsManager"
 
 //对地图json进行数据处理
 class MapModel{
@@ -18,15 +19,14 @@ class MapModel{
   public enemyRoutes: EnemyRoute[] = [];
   public pathMaps: PathMap[] = []; //寻路地图
 
-  private assetsManager: AssetsManager;   //资源一开始就加载完毕，所以放到这里处理
   constructor(data: any){
     this.sourceData = data;
-    this.assetsManager = new AssetsManager();
     // console.log(this.enemyRoutes)
   }
 
   //异步数据，需要在实例化的时候手动调用
   public async init(){
+
     this.getRunes();
     //解析地图
     this.mapTiles = new MapTiles(this.sourceData.mapData);
@@ -247,10 +247,10 @@ class MapModel{
     const spineNames: string[] = this.enemyDatas.map(e => e.key);
 
     //设置敌人spine
-    await this.assetsManager.loadSpines(spineNames);
+    await assetsManager.loadSpines(spineNames);
     this.enemyDatas.forEach(data => {
       const {key} = data;
-      const spineManager = this.assetsManager.spineManager;
+      const spineManager = assetsManager.spineManager;
 
       const sName = key.replace("enemy_", "");
       const atlasName = sName + "/" + key + ".atlas";

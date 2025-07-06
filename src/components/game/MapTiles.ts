@@ -9,15 +9,22 @@ class MapTiles{
       return row.map((item: any)=>{
 
         const tile = mapData.tiles[item];
+
         const tileData: TileData = {
           tileKey: tile.tileKey,
-          passableMask: AliasHelper(tile.passableMask, "passableMask")
+          passableMask: AliasHelper(tile.passableMask, "passableMask"),
+          heightType: tile.heightType,
+          playerSideMask: tile.playerSideMask,
+          blackboard: tile.blackboard,  
+          buildableType: tile.buildableType,  
+          effects: tile.effects,  
         }
 
         //index为坐标轴中的x值
         return tileData;
       })
     }).reverse();
+    
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
