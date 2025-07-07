@@ -19,6 +19,10 @@ const AliasMap = {
   passableMask: {
     2: "FLY_ONLY",
     3: "ALL",
+  },
+  heightType:{
+    0: "LOWLAND",
+    1: "HIGHLAND",
   }
 }
 const AliasHelper = (key, type) => {

@@ -3,6 +3,7 @@ import * as THREE from "three"
 import { textMaterials } from "./TextureHelper";
 import { isArray } from "element-plus/es/utils/types.mjs";
 import GameConfig from "../utilities/GameConfig";
+import AliasHelper from "./AliasHelper";
 
 //单元格按一定比例转化为实际长宽
 const cellChangetoNum = (num:number):number => {
@@ -44,7 +45,7 @@ class Tile{
 
     const {tileKey, heightType} = tileData;
     this.tileKey = tileKey;
-    this.heightType = heightType;
+    this.heightType = AliasHelper(heightType, "heightType");
 
     switch (tileKey) {
       case "tile_start":
@@ -63,13 +64,13 @@ class Tile{
         break;
     
       default:
-        if(heightType === "HIGHLAND"){
+        if(this.heightType === "HIGHLAND"){
 
           this.height = 3/7;
           this.margin = 0.15; //高台有间隔
           this.createMesh();
 
-        }else if(heightType === "LOWLAND"){
+        }else if(this.heightType === "LOWLAND"){
 
           this.z = -3/14;
           this.createMesh();

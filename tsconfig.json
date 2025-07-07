@@ -6,7 +6,8 @@
     "paths": {
       "@/*": ["./src/*"]   
     },
-    "target": "es2019",
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,    //允许导入json
     "allowSyntheticDefaultImports": true,         

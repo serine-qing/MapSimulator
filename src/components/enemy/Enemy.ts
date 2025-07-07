@@ -182,7 +182,7 @@ class Enemy{
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
     const {type, time, reachOffset} = checkPoint;
-
+    
     switch (type) {
       case "MOVE":  
         const pathMap = checkPoint.pathMap?.map;
@@ -192,7 +192,7 @@ class Enemy{
           //第一次执行move 添加targetNode
           const intX = Math.floor(currentPosition.x + 0.5);
           const intY = Math.floor(currentPosition.y + 0.5);
-
+          
           let cnode = pathMap? pathMap[intY]? pathMap[intY][intX] : null : null;
           
           if(cnode){
