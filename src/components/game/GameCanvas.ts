@@ -66,11 +66,12 @@ class GameCanvas{
         this.width = this.wrapper.offsetWidth;
         this.height = this.wrapper.offsetHeight;
         this.resize();
-
+        
+        // console.log(this.renderer.info.memory )
       }
       this.animate();
     });
-
+    
   }
 
   public resize(){

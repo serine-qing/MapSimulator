@@ -6,8 +6,7 @@ import * as THREE from "three"
 
 import { parseTexture } from "@/components/game/TextureHelper";
 
-import texture1 from "@/assets/texture/tile1.png"
-import texture2 from "@/assets/texture/tile2.png"
+import texture1 from "@/assets/texture/tiles1.png"
 
 
 class AssetsManager{
@@ -50,8 +49,6 @@ class AssetsManager{
   loadTexture(){
     const textures: {[key: string]: THREE.Texture} = {};
     textures.texture1 = this.textureLoader.load(texture1);
-    textures.texture2 = this.textureLoader.load(texture2);
-
     this.textureOnload = new Promise((resolve , reject)=>{
       this.loadManager.onLoad = () => {
         parseTexture(textures);

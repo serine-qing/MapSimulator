@@ -26,7 +26,7 @@ class EnemyManager{
     enemyWaves.forEach(innerWaves =>{
 
       const innerEnemies: Enemy[] = [];
-
+      
       innerWaves.forEach(wave => {
         const enemy = new Enemy(wave);
         enemy.id = index++;

@@ -6,6 +6,8 @@ const GameConfig = {
   BASE_URL : "http://localhost:3000/",
   TILE_SIZE : 7,
   SIMULATE_STEP: 1,  //模拟数据间隔多少秒
+  SPRITE_SIZE: [5, 3],   //雪碧图宽高
+
 }
 
 export default GameConfig;

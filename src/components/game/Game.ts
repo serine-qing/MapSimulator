@@ -28,6 +28,7 @@ class Game{
   startSimulate(mapModel: MapModel){
     //模拟环境禁用console.log
     const cacheFunc = console.log;
+    
     console.log = ()=>{
       return;
     }

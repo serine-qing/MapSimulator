@@ -28,6 +28,7 @@ declare global {
 
   interface EnemyData{
     key: string,            //敌人id
+    waveKey: string,       //敌人在波次数据中的id
     attributes: any,        //敌人属性
     description: string,    //
     levelType: string,      //敌人级别 普通/精英/领袖

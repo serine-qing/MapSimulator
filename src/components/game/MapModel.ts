@@ -45,7 +45,7 @@ class MapModel{
     this.enemyWaves.flat().forEach( wave => {
       //route可能为null
       const findRoute: EnemyRoute = this.enemyRoutes.find( route => route.index === wave.routeIndex );
-      const findEnemyData = this.enemyDatas.find(e => e.key === wave.key);
+      const findEnemyData = this.enemyDatas.find(e => e.waveKey === wave.key);
 
       if(findRoute) wave.route = findRoute;
       if(findEnemyData) wave.enemyData = findEnemyData;
@@ -59,7 +59,6 @@ class MapModel{
     this.bindWayFindToCheckPoints();
 
     this.sourceData = null;
-    
   }
 
   private getRunes(){
@@ -195,38 +194,55 @@ class MapModel{
   private async initEnemyData(enemyDbRefs: EnemyRef[]){
 
     const waves = this.enemyWaves.flat();
-    const enemyRefReq = enemyDbRefs.filter((enemyRef: EnemyRef) => {
+    const enemyDataKeys = ["description","levelType","name","rangeRadius","motion"];
 
-      //排除不会在地图中出场的敌人
-      const inWave = waves.find(wave => wave.key === enemyRef.id) !== undefined;
-      
-      return inWave && enemyRef.useDb;
+    //波次中会出现的敌人对应的enemyDbRef数组
+    //使用Set防止重复
+    const enemies: Set<EnemyRef>  = new Set();
+    //波次中会出现的魔改后的额外敌人
+    const extraEnemies: EnemyRef[] = [];
+
+    enemyDbRefs.forEach((enemyRef: EnemyRef) => {
+      const prefabKey = enemyRef.overwrittenData?.prefabKey;
+      let toAdd: EnemyRef = enemyRef;
+
+      if(waves.find(wave => wave.key === enemyRef.id) !== undefined){
+
+        if(prefabKey?.m_defined){
+          toAdd = enemyDbRefs.find(ref => ref.id === prefabKey.m_value);
+          extraEnemies.push(enemyRef);
+        }
+
+        enemies.add(toAdd)
+      }
     })
-    
+
+    const enemyRefReq = Array.from(enemies).filter((enemyRef: EnemyRef) => enemyRef.useDb);
     const res: any = await getEnemiesData( enemyRefReq );
     const enemyDatas = res.data.EnemyDatas;
-    enemyDbRefs.forEach((enemyDbRef: EnemyRef) => {
-      
+
+    enemies.forEach((enemyDbRef: EnemyRef) => {
+
       let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
       if(!enemyData) return;
 
-      const overwriteData = enemyDbRef.overwrittenData;
+      const overwrittenData = enemyDbRef.overwrittenData;
       
-      if(overwriteData){
+      if(overwrittenData){
         
         if(!enemyData) {
           enemyData = {};
           this.enemyDatas.push(enemyData);
         }
 
-        ["description","levelType","name","rangeRadius","motion"].forEach(key =>{
-          if(overwriteData[key]?.m_defined){
-            enemyData[key] = overwriteData[key].m_value;
+        enemyDataKeys.forEach(key =>{
+          if(overwrittenData[key]?.m_defined){
+            enemyData[key] = overwrittenData[key].m_value;
           }
         })
 
-        Object.keys(overwriteData["attributes"]).forEach(key => {
-          const attr = overwriteData["attributes"][key];
+        Object.keys(overwrittenData["attributes"]).forEach(key => {
+          const attr = overwrittenData["attributes"][key];
           if(attr.m_defined){
             enemyData["attributes"][key] = attr.m_value;
           }
@@ -234,10 +250,43 @@ class MapModel{
 
       }
       
+      enemyData.waveKey = enemyData.key;
       enemyData.icon = GameConfig.BASE_URL + "enemy_icon/" + enemyData.key + ".png";
+    })
 
-      this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
+    //关卡魔改后的敌人
+    extraEnemies.forEach((enemyDbRef: EnemyRef) => {
 
+      const overwrittenData = enemyDbRef?.overwrittenData;
+      const extraKey = overwrittenData.prefabKey.m_value;
+
+      const baseEnemy: EnemyData = enemyDatas.find(e => e.key === extraKey);
+
+      const extraEnemy = { ...baseEnemy };
+
+      extraEnemy.attributes = {...baseEnemy.attributes};
+      extraEnemy.waveKey = enemyDbRef.id;
+
+      enemyDataKeys.forEach(k => {
+        if(overwrittenData[k].m_defined){
+          extraEnemy[k] = overwrittenData[k].m_value;
+        }
+      });
+
+      Object.keys(overwrittenData["attributes"]).forEach(key => {
+        const attr = overwrittenData["attributes"][key];
+        if(attr.m_defined){
+          extraEnemy["attributes"][key] = attr.m_value;
+        }
+      })
+
+      enemyDatas.push(extraEnemy);
+
+    })
+
+    //应用地图runes效果
+    enemyDatas.forEach(enemy => {
+      this.runesHelper.checkEnemyAttribute(enemy["attributes"]);
     })
 
     this.enemyDatas = enemyDatas;

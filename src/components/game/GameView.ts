@@ -11,6 +11,7 @@ import assetsManager from "@/components/assetManager/assetsManager"
 class GameView{
   
   private mapContainer: THREE.Object3D;
+  private tiles: Tile[] = [];
   private mapTiles: MapTiles;
   private enemyManager: EnemyManager;
   constructor(mapTiles: MapTiles){
@@ -30,6 +31,7 @@ class GameView{
       rowArray.forEach((tileData, x)=>{
 
         const tile = new Tile( tileData, {x, y} );
+        this.tiles.push(tile);
         this.mapContainer.add(tile.object);
       })
     })
@@ -51,8 +53,6 @@ class GameView{
 
   }
 
-
-
   public render(delta: number){
     gameCanvas.render();
 
@@ -65,27 +65,28 @@ class GameView{
   public destroy(){ 
   
     gameCanvas.scene.remove(this.mapContainer);
-
-    this.mapContainer?.traverse(object => {
-      if(object.type === "Mesh"){
-        const mesh = object as THREE.Mesh;
+    this.tiles.forEach(tile => tile.destroy());
+    
+    // this.mapContainer?.traverse(object => {
+    //   if(object.type === "Mesh"){
+    //     const mesh = object as THREE.Mesh;
+    //     //Mesh无法调用 dispose()方法。只能将其从场景中移除。必须针对其geometry和material调用 dispose()方法。
         
-        //Mesh无法调用 dispose()方法。只能将其从场景中移除。必须针对其geometry和material调用 dispose()方法。
-        
-        // console.log(mesh.geometry)
-        if(mesh.material instanceof Array){
-          mesh.material.forEach(material => {
+    //     // console.log(mesh.geometry)
+    //     if(mesh.material instanceof Array){
+    //       mesh.material.forEach(material => {
 
-            if(material && material.dispose){
-              material.dispose()
-            }
-          })
-        }else{
-          mesh.material.dispose();
-        }
-        mesh.geometry.dispose();
-      }
-    })
+    //         if(material && material.dispose){
+    //           material.dispose()
+    //         }
+    //       })
+    //     }else{
+    //       mesh.material.dispose();
+    //     }
+    //     mesh.geometry.dispose();
+    //   }
+    // })
+    
     this.mapContainer = null;
     this.mapTiles = null;
     this.enemyManager = null;

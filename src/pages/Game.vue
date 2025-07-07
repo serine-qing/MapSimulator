@@ -4,12 +4,21 @@ import {setupCanvas} from '@/components/game/GameCanvas.ts';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 
+function timeFormat(timestamp: number): string{
+  const minute = Math.floor(timestamp / 60);
+  const second = timestamp % 60;
+  let str = minute > 0 ? minute + "分" : "";
+  str += second + "秒";
+  return str ;
+}
+
 export default{
   data(){
     return{
       gameSpeed: Number,
       maxSecond: Number,
-      currentSecond: Number,
+      sliderValue: Number,   //时间滑块的数值
+      currentSecond: Number, //当前时间(秒)
       pause: Boolean,
       cachePauseState: Boolean,
       isSliding: false
@@ -22,20 +31,17 @@ export default{
         this.game = new Game();
       }
       await this.game.startGame(this.mapData);
+      this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = this.game.maxSecond;
-      this.pause = false;
-      this.isSliding = false;
-      this.currentSecond = 0;
+      
     },
     pause(){
       this.game?.gameManager?.changePause(this.pause);
     }
   },
   created(){
-    this.maxSecond = 0;
-    this.currentSecond = 0;
-    this.pause = false;
+    this.reset();
     this.gameSpeed = GameConfig.GAME_SPEED;
     eventBus.on("second_change", this.handleSecondChange)
   },
@@ -43,6 +49,13 @@ export default{
     setupCanvas(this.$refs.wrapper);
   },
   methods:{
+    reset(){
+      this.maxSecond = 0;
+      this.currentSecond = 0;
+      this.pause = false;
+      this.isSliding = false;
+      this.sliderValue = 0;
+    },
     changeGameSpeed(){
       this.gameSpeed = this.gameSpeed === 4? 1 : this.gameSpeed * 2;
       this.game.gameManager.changeGameSpeed(this.gameSpeed);
@@ -51,7 +64,7 @@ export default{
       this.pause = !this.pause;
     },
     formatTooltip(val: number){
-      return val * GameConfig.SIMULATE_STEP + "秒";  
+      return timeFormat(val * GameConfig.SIMULATE_STEP)
     },
     changeSecond(val: number){
       if(!this.isSliding){
@@ -62,7 +75,8 @@ export default{
       eventBus.emit("jump_to_time_index", val);
     },
     handleSecondChange(second: number){
-      this.currentSecond = Math.floor(second / GameConfig.SIMULATE_STEP);
+      this.currentSecond = Math.floor(second);
+      this.sliderValue = Math.floor(second / GameConfig.SIMULATE_STEP);
     },
     //滚动结束
     endSlider(){
@@ -70,16 +84,22 @@ export default{
       this.pause = this.cachePauseState;
     }
   },
+  computed:{
+    //分秒
+    MS(){
+      return timeFormat(this.currentSecond);
+    }
+  }
 }
 </script>
 
 <template>
 <div class="game">
   <div class="top">
-
+    <span class="ms">{{ MS }}</span>
     <div class="time-slider">
       <el-slider 
-        v-model = "currentSecond" 
+        v-model = "sliderValue" 
         :max = "maxSecond"
         :format-tooltip = "formatTooltip"
         @input = "changeSecond"
@@ -117,9 +137,12 @@ export default{
     height: 80px;
     background-color: black;
     padding-top: 10px;
+    .ms{
+      color: white;
+    }
     .time-slider{
       width: 600px;
-      margin-left: 80px;
+      margin-left: 40px;
     }
     .buttons{
       width: 160px;

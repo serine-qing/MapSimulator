@@ -85,7 +85,7 @@ class GameManager{
       this.render();
     }
 
-    this.currentSecond += this.deltaTime * this.gameSpeed / 2;
+    this.currentSecond += this.deltaTime * this.gameSpeed;
   }
 
   private update(){

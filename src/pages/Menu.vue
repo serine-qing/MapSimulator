@@ -66,7 +66,7 @@ const toggle = ref(true);
   position: relative;
   z-index: 100;
   height: 100%;
-  width: 330px;
+  width: 290px;
   display: flex;
   flex-direction: column;
   .icons{
