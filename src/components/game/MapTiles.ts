@@ -3,6 +3,8 @@ import AliasHelper from "./AliasHelper";
 class MapTiles{
   private matrix: TileData[][]
 
+  public height: number;    //矩阵高度(y)
+  public width: number;    //矩阵宽度(x)
   constructor(mapData:any){
     this.matrix = mapData.map.map((row: any)=>{
       //row是一行tile的数组,rowIndex为坐标轴中的y值
@@ -25,6 +27,9 @@ class MapTiles{
       })
     }).reverse();
     
+    this.height = this.matrix.length;
+    this.width = this.matrix[0]?.length;
+
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
@@ -36,16 +41,6 @@ class MapTiles{
     else{
       return null;
     }  
-  }
-
-  //获取矩阵高度(y)
-  public height(): number{
-    return this.matrix.length;
-  }
-
-  //获取矩阵宽度(x)
-  public width(): number{
-    return this.matrix[0]?.length
   }
 
   public getMatrix(): TileData[][]{

@@ -4,38 +4,52 @@ import GameConfig from "@/components/utilities/GameConfig"
 
 //TODO 按照颜色分配变量名
 //静态数据
-const seaMaterial = new THREE.MeshBasicMaterial( {color: "#086e8d"} );
-const roadMaterial = new THREE.MeshBasicMaterial( {color: "#747474"} ); //淡灰
+const sea = new THREE.MeshBasicMaterial( {color: "#086e8d"} );
+const gray = new THREE.MeshBasicMaterial( {color: "#747474"} ); //淡灰
 
-const whiteMaterial = new THREE.MeshBasicMaterial( {color: "#c1c1c1"} ); //偏白色
-const darkMaterial = new THREE.MeshBasicMaterial( {color: "#191919"} );  //深黑
+const white = new THREE.MeshBasicMaterial( {color: "#c1c1c1"} ); //偏白色
+const dark = new THREE.MeshBasicMaterial( {color: "#191919"} );  //深黑
+
+const pureWhite = new THREE.MeshBasicMaterial( {color: "#ffffff"} );
+const pureBlack = new THREE.MeshBasicMaterial( {color: "#000000"} );
 
 const textMaterials = {
   tile_wall:{
-    top: whiteMaterial,
+    top: white,
     side: new THREE.MeshBasicMaterial( {color: "#7d7d7d"} )
   },
   tile_forbidden:{
-    top: darkMaterial,
+    top: dark,
     side: new THREE.MeshBasicMaterial( {color: "#131313"} )
   },
   tile_road:{
-    top: roadMaterial,
+    top: gray,
   },
   tile_deepsea:{
-    top: seaMaterial
+    top: sea
   },
   tile_deepwater:{
-    top: seaMaterial
+    top: sea
   },
   tile_fence:{
-    top: roadMaterial,
-    fenceTop: darkMaterial,
-    side: whiteMaterial
+    top: gray,
+    fenceTop: dark,
+    side: white
   },
   tile_hole:{
-    top: roadMaterial,
-    texture: new THREE.MeshBasicMaterial( {color: "#000000"} )
+    top: gray,
+    texture: pureBlack
+  },
+  tile_yinyang_road:{
+    top: gray,
+    yin: pureBlack,
+    yang: pureWhite
+  },
+  tile_yinyang_wall:{
+    top: white,
+    side: new THREE.MeshBasicMaterial( {color: "#7d7d7d"} ),
+    yin: pureBlack,
+    yang: pureWhite
   },
 }
 textMaterials["tile_fence_bound"] = textMaterials["tile_fence"];
@@ -70,13 +84,15 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
     if(!key) return;
     
     textMaterials[key] = {
-      top: roadMaterial,
+      top: gray,
       texture: new THREE.MeshBasicMaterial({
         map: getClone(texture1, index)
       })
     };
 
   })
+
+  // tile_defbreak 腐蚀地面2
 
 }
 

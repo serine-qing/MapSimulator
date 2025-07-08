@@ -330,8 +330,8 @@ class MapModel{
   //生成寻路地图需要用到的拷贝对象
   private generateTileMapping(): PathNode[][]{
     const mapping = [];
-    const y = this.mapTiles.height();
-    const x = this.mapTiles.width();
+    const y = this.mapTiles.height;
+    const x = this.mapTiles.width;
 
     for(let i=0; i<y;i++){
       mapping[i] = [];

@@ -1,126 +1,9 @@
 
 
 const tiles = {
-  //有了
-  "tile_bigforce": {
-    "tileKey": "tile_bigforce",
-    "name": "特种战术点",
-    "description": "置于其中的我方单位在推动或拉动敌方单位时力度增大",
-    "isFunctional": true
-  },
 
-  //有了
-  "tile_corrosion": {
-    "tileKey": "tile_corrosion",
-    "name": "腐蚀地面",
-    "description": "置于其中的干员防御力减半",
-    "isFunctional": true
-  },
 
-  //跟多索雷斯不一样，这是不能进入的水地形，仅视觉效果
-  //用单色地图表示吧
-  "tile_deepwater": {
-    "tileKey": "tile_deepwater",
-    "name": "深水区",
-    "description": "代表离岸较远的水地形",
-    "isFunctional": false
-  },
 
-  //有了
-  "tile_defup": {
-    "tileKey": "tile_defup",
-    "name": "防御符文",
-    "description": "置于其中的干员获得额外的防御力",
-    "isFunctional": true
-  },
-
-  //有了
-  "tile_end": {
-    "tileKey": "tile_end",
-    "name": "保护目标",
-    "description": "蓝色目标点，敌方进入后会减少此目标点的耐久",
-    "isFunctional": true
-  },
-
-  //自己设计
-  "tile_fence": {
-    "tileKey": "tile_fence",
-    "name": "围栏",
-    "description": "可放置近战单位，不可以通行",
-    "isFunctional": false
-  },
-
-  //同围栏
-  "tile_fence_bound": {
-    "tileKey": "tile_fence_bound",
-    "name": "围墙",
-    "description": "可放置近战单位，敌方无法进入",
-    "isFunctional": true
-  },
-
-  //有了
-  "tile_floor": {
-    "tileKey": "tile_floor",
-    "name": "不可放置位",
-    "description": "不可放置单位，可以通行",
-    "isFunctional": false
-  },
-
-  //没有
-  "tile_flystart": {
-    "tileKey": "tile_flystart",
-    "name": "空袭侵入点",
-    "description": "敌方飞行单位会从此处进入战场",
-    "isFunctional": true
-  },
-
-  //有了
-  "tile_forbidden": {
-    "tileKey": "tile_forbidden",
-    "name": "禁入区",
-    "description": "不可放置单位，不可通行",
-    "isFunctional": false
-  },
-
-  //有了
-  "tile_gazebo": {
-    "tileKey": "tile_gazebo",
-    "name": "防空符文",
-    "description": "置于其中的干员攻击速度略微下降，但在攻击空中单位时攻击力大幅度提升",
-    "isFunctional": true
-  },
-
-  //有了
-  "tile_grass": {
-    "tileKey": "tile_grass",
-    "name": "草丛",
-    "description": "置于其中的干员不会成为敌军远程攻击的目标",
-    "isFunctional": true
-  },
-
-  //有了
-  "tile_healing": {
-    "tileKey": "tile_healing",
-    "name": "医疗符文",
-    "description": "置于其中的干员会持续恢复生命",
-    "isFunctional": true
-  },
-
-  //自己抠图
-  "tile_hole": {
-    "tileKey": "tile_hole",
-    "name": "地穴",
-    "description": "危险的凹陷地形或地面破洞，经过的敌人会摔落至底部直接死亡",
-    "isFunctional": true
-  },
-
-  //有了
-  "tile_infection": {
-    "tileKey": "tile_infection",
-    "name": "活性源石",
-    "description": "部署的友军和经过的敌军获得攻击力和攻击速度提升的效果，但会持续失去生命",
-    "isFunctional": true
-  },
 
   //自己抠图
   "tile_rcm_crate": {
@@ -139,12 +22,6 @@ const tiles = {
   },
 
   //有了
-  "tile_road": {
-    "tileKey": "tile_road",
-    "name": "平地",
-    "description": "可以放置近战单位，可以通行",
-    "isFunctional": false
-  },
   "tile_shallowwater": {
     "tileKey": "tile_shallowwater",
     "name": "浅水区",
@@ -152,48 +29,17 @@ const tiles = {
     "isFunctional": false
   },
 
-  //有了
-  "tile_start": {
-    "tileKey": "tile_start",
-    "name": "侵入点",
-    "description": "敌方会从此进入战场",
-    "isFunctional": true
-  },
-  //有了
-  "tile_telin": {
-    "tileKey": "tile_telin",
-    "name": "通道入口",
-    "description": "敌方会从此进入通道，从通道出口出现",
-    "isFunctional": true
-  },
-  //有了
-  "tile_telout": {
-    "tileKey": "tile_telout",
-    "name": "通道出口",
-    "description": "进入通道的敌方单位会从此处再度出现",
-    "isFunctional": true
-  },
-  //有了
-  "tile_volcano": {
-    "tileKey": "tile_volcano",
-    "name": "热泵通道",
-    "description": "每隔一段时间便会喷出高温气体，对其上的任何单位造成无视防御和法抗的伤害",
-    "isFunctional": true
-  },
-  //有了
+
+
+
   "tile_volspread": {
     "tileKey": "tile_volspread",
     "name": "岩浆喷射处",
     "description": "每隔一段时间会喷出岩浆，对周围8格内的我方单位造成大量伤害且可以融化障碍物",
     "isFunctional": true
   },
-  //有了
-  "tile_wall": {
-    "tileKey": "tile_wall",
-    "name": "高台",
-    "description": "可以放置远程单位，不可通行",
-    "isFunctional": false
-  },
+
+
   //有了
   "tile_defbreak": {
     "tileKey": "tile_defbreak",
@@ -201,27 +47,8 @@ const tiles = {
     "description": "置于其中的干员防御力减半",
     "isFunctional": true
   },
-  //有了
-  "tile_smog": {
-    "tileKey": "tile_smog",
-    "name": "排气格栅",
-    "description": "置于其中的干员不会成为敌军远程攻击的目标",
-    "isFunctional": true
-  },
-  //没有
-  "tile_yinyang_road": {
-    "tileKey": "tile_yinyang_road",
-    "name": "晦明之印",
-    "description": "置于其中的干员获得与其相同的明晦属性",
-    "isFunctional": true
-  },
-  //没有
-  "tile_yinyang_wall": {
-    "tileKey": "tile_yinyang_wall",
-    "name": "晦明之印",
-    "description": "置于其中的干员获得与其相同的明晦属性",
-    "isFunctional": true
-  },
+
+
   //没有
   "tile_yinyang_switch": {
     "tileKey": "tile_yinyang_switch",
@@ -238,13 +65,7 @@ const tiles = {
     "isFunctional": true
   },
 
-  //用单色地图表示吧
-  "tile_deepsea": {
-    "tileKey": "tile_deepsea",
-    "name": "深水区",
-    "description": "敌方在其中攻击和移动速度降低，并持续损失生命",
-    "isFunctional": true
-  },
+
 
   //冰面用的较少，最后考虑
   "tile_icestr": {
@@ -279,6 +100,7 @@ const tiles = {
     "isFunctional": false
   },
 
+
   //没有
   "tile_magic_circle": {
     "tileKey": "tile_magic_circle",
@@ -293,6 +115,7 @@ const tiles = {
     "isFunctional": false
   },
 
+  
   //都没有，自己抠图吧
   "tile_reed": {
     "tileKey": "tile_reed",

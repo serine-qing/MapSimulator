@@ -13,6 +13,8 @@ const cellChangetoNum = (num:number):number => {
 class Tile{
   static boxGeos = [];
 
+  tileData: any;
+
   width: number;
   height: number;
   margin: number;
@@ -29,8 +31,9 @@ class Tile{
 
   sideMaterial: Material;
   topMaterial: Material;
-  
+  defaultMat: any;    //默认材质
   constructor(tileData: TileData ,position: Vec2){
+    this.tileData = tileData;
     this.width = 1;
     this.height = 0;
     this.margin = 0; //tile之间的间隔
@@ -39,6 +42,8 @@ class Tile{
       y: 0
     }
     this.z = 0;
+
+    this.defaultMat = {};
 
     this.position.x = position.x ? position.x : 0;
     this.position.y = position.y ? position.y : 0;
@@ -52,38 +57,41 @@ class Tile{
       case "tile_end":
         this.height = 1;
         this.z = 2/7;
-        this.createMesh();
-        this.addBorder(tileKey === "tile_end"? "#359dde":"#e03253");
         break;
 
       case "tile_fence":
       case "tile_fence_bound":
-        this.height = 2/7;
+        this.height = 0;
         this.z = -3/14;
-        this.createMesh();
         break;
-    
+      case "tile_passable_wall":
+        this.defaultMat =  textMaterials["tile_wall"];
+        this.height = 3/7;
+        this.margin = 0.15; //高台有间隔
+        break;
       default:
         if(this.heightType === "HIGHLAND"){
 
+          this.defaultMat =  textMaterials["tile_wall"];
           this.height = 3/7;
           this.margin = 0.15; //高台有间隔
-          this.createMesh();
 
         }else if(this.heightType === "LOWLAND"){
-
+          this.height = 0;
+          this.defaultMat =  textMaterials["tile_road"];
           this.z = -3/14;
-          this.createMesh();
-          this.addBorder("#0d0d0d");
+          
         }
         break;
     }
-    
+
+    this.createMesh();
+    this.addBorder();
   }
 
 
   createMesh(){
-    const material = textMaterials[this.tileKey]? textMaterials[this.tileKey] : {};
+    const material = textMaterials[this.tileKey]? textMaterials[this.tileKey] : this.defaultMat;
     const {top : topMaterial, side : sideMaterial, texture} = material;
 
     this.object = new Object3D();
@@ -99,10 +107,8 @@ class Tile{
         const sideGeometry = new BoxGeometry( 
           cellChangetoNum(fenceWidth),
           cellChangetoNum(this.width),
-          cellChangetoNum(this.height),
+          cellChangetoNum(2/7),
         );
-
-        const bottomGeometry = this.getBoxGeo(this.width, 0, 0);
 
         const fenceTop = material.fenceTop;
         const fenceMaterials = [
@@ -112,10 +118,6 @@ class Tile{
         const right = new Mesh( sideGeometry, fenceMaterials); 
         const up = new Mesh( sideGeometry, fenceMaterials); 
         const down = new Mesh( sideGeometry, fenceMaterials); 
-
-        const bottom = new Mesh( bottomGeometry, [
-          sideMaterial, sideMaterial, sideMaterial, sideMaterial, topMaterial, topMaterial
-        ]); 
 
         left.position.x = cellChangetoNum(-this.width/2 + fenceWidth / 2);
         right.position.x = cellChangetoNum(this.width/2 - fenceWidth / 2);
@@ -129,29 +131,41 @@ class Tile{
         this.object.add(right);
         this.object.add(up);
         this.object.add(down);
-        this.object.add(bottom);
         break;
-    
+        
+      case "tile_yinyang_road":
+      case "tile_yinyang_wall":
+        const geometry = new THREE.CircleGeometry( cellChangetoNum(this.width / 8),64);
+
+        const {yin, yang}  = material;
+        const dynamic = this.tileData?.blackboard?.find(arr => arr.key === "dynamic");
+
+        const huimingMat = dynamic?.value === 0? yin : yang;
+        const huiming = new THREE.Mesh( geometry, huimingMat );
+
+        huiming.position.z = cellChangetoNum(this.height/2) + 0.1;
+        this.object.add(huiming);
+        break;
       default:
-        const geometry = this.getBoxGeo(this.width, this.height, this.margin);
-
-        this.cube = new Mesh( geometry, [
-          sideMaterial, sideMaterial, sideMaterial, sideMaterial, topMaterial, topMaterial
-        ]); 
-
-        this.object.add(this.cube);
-
-        if(texture){
-
-          const textureSize = cellChangetoNum(0.85);
-          const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
-          const textureMat = texture;
-          this.textureObj = new THREE.Mesh( textureGeo, textureMat );
-          this.textureObj.position.setZ(cellChangetoNum(this.height/2) + 0.1);
-          this.object.add(this.textureObj)
-        }
-
         break;
+    }
+
+    const geometry = this.getBoxGeo(this.width, this.height, this.margin);
+
+    this.cube = new Mesh( geometry, [
+      sideMaterial, sideMaterial, sideMaterial, sideMaterial, topMaterial, topMaterial
+    ]); 
+
+    this.object.add(this.cube);
+
+    if(texture){
+
+      const textureSize = cellChangetoNum(0.85);
+      const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
+      const textureMat = texture;
+      this.textureObj = new THREE.Mesh( textureGeo, textureMat );
+      this.textureObj.position.setZ(cellChangetoNum(this.height/2) + 0.1);
+      this.object.add(this.textureObj)
     }
 
   }
@@ -181,9 +195,28 @@ class Tile{
   }
 
   //添加边框
-  addBorder(color){
-    this.border = new BoxHelper( this.cube, color);
-    this.object.add(this.border);
+  addBorder(){
+    let borderColor;
+    switch (this.tileKey) {
+      case "tile_start":
+      case "tile_end":
+        borderColor = this.tileKey === "tile_end"? "#359dde":"#e03253";
+        break;
+      case "tile_passable_wall":
+        break;
+      default:
+        if(this.heightType === "LOWLAND"){
+
+          borderColor = "#0d0d0d";
+        }
+        break;
+    }
+
+    if(borderColor){
+      this.border = new BoxHelper( this.cube, borderColor);
+      this.object.add(this.border);
+    }
+
   }
 
   destroy() {

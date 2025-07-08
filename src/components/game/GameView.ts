@@ -36,10 +36,9 @@ class GameView{
       })
     })
 
-    //TODO 得动态调整
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
-    this.mapContainer.position.x = - 40;
-    this.mapContainer.position.y = - 20;
+    this.mapContainer.position.x = - this.mapTiles.width / 2 * GameConfig.TILE_SIZE;
+    this.mapContainer.position.y = - this.mapTiles.height / 2 * GameConfig.TILE_SIZE + 7;
     gameCanvas.scene.add(this.mapContainer);
   }
 
