@@ -1,5 +1,5 @@
 import * as THREE from "three";
-
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 class GameCanvas{
   public wrapper: HTMLDivElement;
   public canvas: HTMLCanvasElement;
@@ -16,6 +16,8 @@ class GameCanvas{
     this.initCamera();
     this.initRenderer();
     this.animate();
+
+    const controls = new OrbitControls(this.camera, this.renderer.domElement);
   }
 
     //初始化相机
@@ -30,6 +32,7 @@ class GameCanvas{
       0.1, //近平面
       500 //远平面
     )
+
     this.camera.position.x = 0;
     this.camera.position.z = 180;
     this.camera.rotation.z = 1;
@@ -45,6 +48,8 @@ class GameCanvas{
     this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
     //设置设备像素比。避免HiDPI设备上绘图模糊
     this.renderer.setPixelRatio( window.devicePixelRatio );
+    //@ts-ignore
+    this.renderer.gammaOutput = true;
 
     //地图比例是否正确，关键看相机和渲染器的宽高比是否一致
     this.width = this.wrapper.offsetWidth;

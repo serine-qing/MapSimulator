@@ -7,6 +7,8 @@ import GameManager from "../game/GameManager";
 import { getSkelOffset, getSpineSize } from "@/components/utilities/SpineHelper"
 
 class Enemy{
+  enemyData: EnemyData;  //原始data数据
+
   id: number;    //EnemyManager中使用的id
   key: string;
   levelType: string;
@@ -48,22 +50,22 @@ class Enemy{
   private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
   public spine: THREE.Object3D;
-  private currentAnimate: string;//当前执行动画名
+
+  private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
   private idleAnimate: string;   //skel 站立的动画名
 
   public gameManager: GameManager;
   constructor(wave: EnemyWave){
-    const enemyData = wave.enemyData;
+    this.enemyData = wave.enemyData;
     this.actionType = wave.actionType;
     this.startTime = wave.startTime;
     this.fragmentTime = wave.fragmentTime;
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, rangeRadius, icon, attributes, 
-      skeletonData, moveAnimate, idleAnimate
-    } = enemyData;
+      key, levelType, motion, name, description, rangeRadius, icon, attributes
+    } = this.enemyData;
 
     this.key = key;
     this.levelType = levelType;
@@ -71,9 +73,8 @@ class Enemy{
     this.name = name;
     this.description = description;
     this.rangeRadius = rangeRadius;
-    this.skeletonData = skeletonData;
-    this.moveAnimate = moveAnimate;
-    this.idleAnimate = idleAnimate;
+
+
     this.icon = icon;
 
     this.moveSpeed = attributes.moveSpeed;
@@ -144,8 +145,15 @@ class Enemy{
 
   //初始化spine小人
   public initSpine(){
+    //显示相关的数据为异步加载数据，会晚于构造函数调用
+    const {skeletonData, moveAnimate, idleAnimate} = this.enemyData;
+
+    this.skeletonData = skeletonData;
+    this.moveAnimate = moveAnimate;
+    this.idleAnimate = idleAnimate;
+
     this.spine = new THREE.Object3D();
-    
+
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.spine.add(this.skeletonMesh);
@@ -163,6 +171,7 @@ class Enemy{
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     this.skeletonMesh.position.z = this.motion === "WALK"? 0 : 10;
+    this.changeAnimation();
     //初始不可见的
     this.hide();
   }
@@ -332,7 +341,12 @@ class Enemy{
   }
 
   private idle(){
-    this.changeAnimation(this.idleAnimate);
+    const prevAnimate = this.animateState;
+    this.animateState = "idle";
+
+    if(prevAnimate !== this.animateState){
+      this.changeAnimation();
+    }
   }
 
   private move(){
@@ -340,25 +354,27 @@ class Enemy{
       this.position.x + this.velocity.x,
       this.position.y + this.velocity.y
     );
-    this.changeAnimation(this.moveAnimate);
+
+    const prevAnimate = this.animateState;
+    this.animateState = "move";
+
+    if(prevAnimate !== this.animateState){
+      this.changeAnimation();
+    }
+    
   }
 
   //更改动画
-  private changeAnimation(animate: string){
+  private changeAnimation(){
+    if(!this.spine) return;
 
-    if(animate !== this.currentAnimate){
+    const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
+    this.skeletonMesh.state.setAnimation(
+      0, 
+      animate, 
+      true
+    );
 
-      this.currentAnimate = animate;
-
-      if(!this.spine) return;
-
-      this.skeletonMesh.state.setAnimation(
-        0, 
-        this.currentAnimate, 
-        true
-      );
-
-    }
   }
 
   public get(){
@@ -373,7 +389,7 @@ class Enemy{
       targetWaitingSecond: this.targetWaitingSecond,
       isStarted: this.isStarted,
       isFinished: this.isFinished,
-      currentAnimate: this.currentAnimate,
+      animateState: this.animateState,
       visible: this.visible,
       faceTo: this.faceTo
     }
@@ -388,7 +404,7 @@ class Enemy{
       targetWaitingSecond, 
       isStarted, 
       isFinished, 
-      currentAnimate,
+      animateState,
       visible,
       faceTo
     } = state;
@@ -400,8 +416,9 @@ class Enemy{
     this.isStarted = isStarted;
     this.isFinished = isFinished;
     this.faceTo = faceTo;
-    if(currentAnimate){
-      this.changeAnimation(currentAnimate);
+    this.animateState = animateState;
+    if(animateState){
+      this.changeAnimation();
     }
 
     visible? this.show() : this.hide();

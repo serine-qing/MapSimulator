@@ -6,34 +6,37 @@ import EnemyManager from "../enemy/EnemyManager"
 import GameConfig from "@/components/utilities/GameConfig"
 
 import {gameCanvas} from '@/components/game/GameCanvas';
-import assetsManager from "@/components/assetManager/assetsManager"
+import Trap from "./Trap"
+import GameManager from "./GameManager"
 
 class GameView{
   
   private mapContainer: THREE.Object3D;
-  private tiles: Tile[] = [];
+
   private mapTiles: MapTiles;
+  private traps: Trap[];
+  private gameManager: GameManager;
   private enemyManager: EnemyManager;
-  constructor(mapTiles: MapTiles){
+
+  constructor(gameManager: GameManager, mapTiles: MapTiles, traps: Trap[], enemyManager: EnemyManager){
+    this.gameManager = gameManager;
     this.mapTiles = mapTiles;
+    this.traps = traps;
+    this.enemyManager = enemyManager;
+
     this.mapContainer = new THREE.Object3D();
-
-    //texture加载完后再初始化map，以防地图读取到未加载的texture
-    assetsManager.textureOnload.then(()=>{
-      this.initMap();
-    })
-
+    
+    this.initMap();
+    this.initTraps();
+    this.initEnemys();
   }
 
   //初始化地图tiles
   private initMap(){
-    this.mapTiles.getMatrix().forEach((rowArray, y)=>{
-      rowArray.forEach((tileData, x)=>{
-
-        const tile = new Tile( tileData, {x, y} );
-        this.tiles.push(tile);
-        this.mapContainer.add(tile.object);
-      })
+    this.mapTiles.tiles.flat().forEach((tile: Tile)=>{
+      tile.gameManager = this.gameManager;
+      tile.initMeshs();
+      this.mapContainer.add(tile.object);
     })
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
@@ -42,8 +45,14 @@ class GameView{
     gameCanvas.scene.add(this.mapContainer);
   }
 
-  public setupEnemyManager(enemyManager: EnemyManager){
-    this.enemyManager = enemyManager;
+  private initTraps(){
+    this.traps.forEach(trap => {
+      trap.initMesh();
+      this.mapContainer.add(trap.mesh? trap.mesh : trap.skeletonMesh);
+    })
+  } 
+
+  public initEnemys(){
     const enemies = this.enemyManager.flatEnemies;
 
     enemies.forEach(enemy => {
@@ -60,12 +69,15 @@ class GameView{
       enemy => enemy.skeletonMesh.update(delta)
     )
 
+    this.traps.forEach(
+      trap => trap.skeletonMesh?.update(delta)
+    )
   }
 
   public destroy(){ 
   
     gameCanvas.scene.remove(this.mapContainer);
-    this.tiles.forEach(tile => tile.destroy());
+    this.mapTiles.tiles.flat().forEach(tile => tile.destroy());
     
     // this.mapContainer?.traverse(object => {
     //   if(object.type === "Mesh"){

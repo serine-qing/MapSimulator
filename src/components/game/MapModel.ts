@@ -8,15 +8,21 @@ import { getAnimation } from "@/components/utilities/SpineHelper"
 import GameConfig from "../utilities/GameConfig";
 //资源一开始就加载完毕，所以放到这里处理
 import assetsManager from "@/components/assetManager/assetsManager"
+import * as THREE from "three"
+import { getTrapsKey } from "@/api/assets";
 
 //对地图json进行数据处理
+//保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
   private sourceData: any;
   private runesHelper: RunesHelper;
+
   public mapTiles: MapTiles; //地图tiles
   public enemyWaves: EnemyWave[][] = [];
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
+  public trapDatas: trapData[] = [];
+
   public pathMaps: PathMap[] = []; //寻路地图
 
   constructor(data: any){
@@ -38,8 +44,11 @@ class MapModel{
     this.parseEnemyWaves(this.sourceData.waves)
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
-    //初始化敌人spine
-    await this.getEnemySpines();
+    //获取敌人spine
+    this.getEnemySpines();
+
+    //获取fbc文件
+    await this.getTrapsFbx();
 
     //绑定route和enemydata
     this.enemyWaves.flat().forEach( wave => {
@@ -64,7 +73,6 @@ class MapModel{
   private getRunes(){
     //"difficultyMask": 1和NORMAL是普通  2和FOUR_STAR是突袭  3和ALL是全部生效
     
-
     const runesData = [];
     this.sourceData.runes?.forEach( rune => {
       const difficultyMask = rune.difficultyMask;
@@ -293,17 +301,28 @@ class MapModel{
   }
 
   private async getEnemySpines(){
-    const spineNames: string[] = this.enemyDatas.map(e => e.key);
+
+    const skelNames = [];
+    const atlasNames = [];
+    this.enemyDatas.forEach(data => {
+      const sName = data.key.replace("enemy_", "");
+      const skelName = `spine/${sName}/${data.key}.skel`;
+      const atlasName = `spine/${sName}/${data.key}.atlas`;
+      data.skelUrl = skelName;
+      data.atlasUrl = atlasName;
+
+      skelNames.push(skelName);
+      atlasNames.push(atlasName);
+    });
 
     //设置敌人spine
-    await assetsManager.loadSpines(spineNames);
+    await assetsManager.loadSpines(skelNames, atlasNames);
+    const spineManager = assetsManager.spineManager;
     this.enemyDatas.forEach(data => {
       const {key} = data;
-      const spineManager = assetsManager.spineManager;
 
-      const sName = key.replace("enemy_", "");
-      const atlasName = sName + "/" + key + ".atlas";
-      const skelName = sName + "/" + key + ".skel";
+      const atlasName = data.atlasUrl;
+      const skelName = data.skelUrl;
   
       //使用AssetManager中的name.atlas和name.png加载纹理图集。
       //传递给TextureAtlas的函数用于解析相对路径。
@@ -324,7 +343,105 @@ class MapModel{
       data.skeletonData = skeletonData;
       data.moveAnimate = moveAnimate;
       data.idleAnimate = idleAnimate;
+      
     })
+
+  }
+
+  private async getTrapsFbx(){
+    const tokenInsts = this.sourceData.predefines?.tokenInsts;
+
+    if(tokenInsts){
+      const trapKeys:Set<string> = new Set();
+
+      tokenInsts.forEach(data => {
+        const {direction, position, inst} = data;
+
+        this.trapDatas.push({
+          key: inst.characterKey,
+          direction,
+          position: RowColToVec2(position),
+          mesh: null
+        });
+
+        trapKeys.add(inst.characterKey);
+      })
+
+      //TODO 垃圾回收
+      
+      const res = await getTrapsKey(Array.from(trapKeys));
+
+      const fbxs = res.data?.fbx;
+      const spines = res.data?.spine;
+
+      if(fbxs){
+        const meshs: { [key:string]: any}  = {};
+        assetsManager.loadFbx( fbxs.map( i => i.fbx) ).then(res => {
+
+          res.forEach(group => {
+            const mesh = group?.children[0];
+
+            const oldMat = mesh.material;
+            mesh.material =  new THREE.MeshMatcapMaterial({
+              color: oldMat.color,
+              map: oldMat.map
+            });
+
+            mesh.scale.set(0.068,0.068,0.068)
+
+            // let box:any = new THREE.Box3().setFromObject( mesh );
+            // let measure = new THREE.Vector3();
+            // let size = box.getSize(measure);
+
+            oldMat.dispose();
+            meshs[mesh.name] = mesh;
+          })
+
+          this.trapDatas.forEach( trapData => {
+            trapData.mesh = meshs[trapData.key];
+          })
+
+        })
+      }else if(spine){
+        const skelDatas: { [key:string]: any} = {};
+        const skelNames = [];
+        const atlasNames = [];
+
+        spines.forEach(spine => {
+          const { skel, atlas } = spine;
+          skelNames.push(`trap/${skel}/${skel}.skel`);
+          atlasNames.push(`trap/${atlas}/${atlas}.atlas`);
+        })
+
+        assetsManager.loadSpines(skelNames, atlasNames).then( () => {
+
+          const spineManager = assetsManager.spineManager;
+          for (let i = 0; i< skelNames.length; i++){
+            const key = spines[i].skel;
+            const skelName = skelNames[i];
+            const atlasName = atlasNames[i];
+          
+            const atlas = spineManager.get(atlasName);
+            const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+            const skeletonJson = new spine.SkeletonBinary(atlasLoader);
+            skeletonJson.scale = 0.019;
+
+            const skeletonData = skeletonJson.readSkeletonData(
+              spineManager.get(skelName)
+            );
+
+            skelDatas[key] = skeletonData;
+          }
+
+          this.trapDatas.forEach( trapData => {
+            trapData.skeletonData = skelDatas[trapData.key];
+          })
+
+        })
+
+      }
+    }
+
   }
 
   //生成寻路地图需要用到的拷贝对象

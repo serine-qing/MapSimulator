@@ -6,6 +6,8 @@ import GameConfig from "@/components/utilities/GameConfig"
 //静态数据
 const sea = new THREE.MeshBasicMaterial( {color: "#086e8d"} );
 const gray = new THREE.MeshBasicMaterial( {color: "#747474"} ); //淡灰
+const deepGray = new THREE.MeshBasicMaterial( {color: "#131313"} ); //深灰2
+const darkGray = new THREE.MeshBasicMaterial( {color: "#7d7d7d"} ); //深灰
 
 const white = new THREE.MeshBasicMaterial( {color: "#c1c1c1"} ); //偏白色
 const dark = new THREE.MeshBasicMaterial( {color: "#191919"} );  //深黑
@@ -13,14 +15,24 @@ const dark = new THREE.MeshBasicMaterial( {color: "#191919"} );  //深黑
 const pureWhite = new THREE.MeshBasicMaterial( {color: "#ffffff"} );
 const pureBlack = new THREE.MeshBasicMaterial( {color: "#000000"} );
 
+//https://discourse.threejs.org/t/fbxloader-loaded-models-with-attached-textures-have-become-darker/9300/4
+sea.color.convertSRGBToLinear();
+gray.color.convertSRGBToLinear();
+deepGray.color.convertSRGBToLinear();
+darkGray.color.convertSRGBToLinear();
+white.color.convertSRGBToLinear();
+dark.color.convertSRGBToLinear();
+pureWhite.color.convertSRGBToLinear();
+pureBlack.color.convertSRGBToLinear();
+
 const textMaterials = {
   tile_wall:{
     top: white,
-    side: new THREE.MeshBasicMaterial( {color: "#7d7d7d"} )
+    side: darkGray
   },
   tile_forbidden:{
     top: dark,
-    side: new THREE.MeshBasicMaterial( {color: "#131313"} )
+    side: deepGray
   },
   tile_road:{
     top: gray,
@@ -47,7 +59,7 @@ const textMaterials = {
   },
   tile_yinyang_wall:{
     top: white,
-    side: new THREE.MeshBasicMaterial( {color: "#7d7d7d"} ),
+    side: darkGray,
     yin: pureBlack,
     yang: pureWhite
   },
@@ -73,7 +85,7 @@ const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
 
 const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   const {texture1, texture2} = textures;
-  
+  texture1.encoding = THREE.sRGBEncoding;
   const keyArr = [
     "tile_bigforce","tile_corrosion","tile_defup","tile_gazebo","tile_grass",
     "tile_telout","tile_smog","tile_healing","tile_infection","tile_bigforce2",

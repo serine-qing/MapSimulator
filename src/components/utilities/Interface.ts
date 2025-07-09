@@ -36,6 +36,8 @@ declare global {
     icon: string,           //敌人头像URL
     rangeRadius: number,    //攻击范围
     motion: string,         //移动motion
+    skelUrl?: string,
+    atlasUrl?: string,
     skeletonData: any,      //skel数据
     moveAnimate: string,    //移动时的skel动画名
     idleAnimate: string     //不动时的skel动画名
@@ -92,6 +94,14 @@ declare global {
     level: number,
     overwrittenData: any,
     useDb: boolean
+  }
+
+  interface trapData{
+    key: string,
+    direction: string,
+    position: Vec2,
+    mesh?: THREE.Mesh,     //fbx数据有mesh
+    skeletonData?: any     //spine数据有skeletonData
   }
 }
 

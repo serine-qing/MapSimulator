@@ -1,12 +1,13 @@
 import AliasHelper from "./AliasHelper";
+import Tile from "./Tile";
 
 class MapTiles{
-  private matrix: TileData[][]
+  public tiles: Tile[][] = [];
 
   public height: number;    //矩阵高度(y)
   public width: number;    //矩阵宽度(x)
   constructor(mapData:any){
-    this.matrix = mapData.map.map((row: any)=>{
+    const matrix = mapData.map.map((row: any)=>{
       //row是一行tile的数组,rowIndex为坐标轴中的y值
       return row.map((item: any)=>{
 
@@ -27,24 +28,34 @@ class MapTiles{
       })
     }).reverse();
     
-    this.height = this.matrix.length;
-    this.width = this.matrix[0]?.length;
+    this.height = matrix.length;
+    this.width = matrix[0]?.length;
 
+    matrix.forEach((arr, y) => {
+      arr.forEach((tileData: TileData, x) => {
+
+        const tile = new Tile(tileData, {x, y});
+        if(!this.tiles[y]){
+          this.tiles[y] = [];
+        }
+        this.tiles[y][x] = tile;
+        
+      })
+    })
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
-  public get(x: number, y: number): TileData | null{
-    const column = this.matrix[y];
-    if(column && column[x]){
-      return column[x];
+  public get(x: number | Vec2, y?: number): Tile | null{
+    const _x = typeof x === "number"? x : x.x; 
+    const _y = typeof x === "number"? y : x.y; 
+
+    const column = this.tiles[_y];
+    if(column && column[_x]){
+      return column[_x];
     }
     else{
       return null;
     }  
-  }
-
-  public getMatrix(): TileData[][]{
-    return this.matrix;
   }
 
   //获取某个地板是否可地面通行

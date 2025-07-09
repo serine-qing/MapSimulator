@@ -6,6 +6,9 @@ import GameView from "./GameView"
 import MapModel from "./MapModel"
 import EnemyManager from "@/components/enemy/EnemyManager";
 import eventBus from "@/components/utilities/EventBus";
+import Trap from "./Trap";
+
+import assetsManager from "@/components/assetManager/assetsManager"
 
 //游戏控制器
 class GameManager{
@@ -14,6 +17,7 @@ class GameManager{
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
   private enemyManager: EnemyManager;
+  private traps: Trap[] = [];       //现在Trap只是静态图像，但是可能后续Trap会和敌人进行数据交换
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -32,21 +36,46 @@ class GameManager{
       this
     );
     
-    if(!this.isSimulate){
-      this.gameView = new GameView(mapModel.mapTiles);
-      this.gameView.setupEnemyManager(
-        this.enemyManager
-      );
+    mapModel.trapDatas.forEach(trapData => {
+      const trap = new Trap(this, trapData);
+      trap.mapTiles = mapModel.mapTiles;
+      this.traps.push(trap);
+    })
 
-      this.animate();
+    if(!this.isSimulate){
+
+      assetsManager.allOnload.then( () => {
+
+        this.gameView = new GameView(
+          this,
+          mapModel.mapTiles,
+          this.traps,
+          this.enemyManager
+        );
+        this.animate();
+
+      })
+
     }
   }
 
-  public getCoordinate(x:number, y:number): Vec2{
-    return {
-      x: x * GameConfig.TILE_SIZE,
-      y: y * GameConfig.TILE_SIZE,
+  public getPixelSize(x:number):number {
+    return x * GameConfig.TILE_SIZE;
+  }
+
+  public getCoordinate(x:number | Vec2, y?:number): Vec2{
+    if(typeof x === "number" && y !== undefined){
+      return {
+        x: x * GameConfig.TILE_SIZE,
+        y: y * GameConfig.TILE_SIZE,
+      }
+    }else if(typeof x === "object" && y === undefined){
+      return {
+        x: x.x * GameConfig.TILE_SIZE,
+        y: x.y * GameConfig.TILE_SIZE,
+      }
     }
+
   }
 
   public changeGameSpeed(gameSpeed: number){

@@ -2,17 +2,13 @@ import {Object3D, BoxGeometry, BoxHelper, Mesh, Material, MeshBasicMaterial, Tex
 import * as THREE from "three"
 import { textMaterials } from "./TextureHelper";
 import { isArray } from "element-plus/es/utils/types.mjs";
-import GameConfig from "../utilities/GameConfig";
 import AliasHelper from "./AliasHelper";
-
-//单元格按一定比例转化为实际长宽
-const cellChangetoNum = (num:number):number => {
-  return num * GameConfig.TILE_SIZE;
-}
+import GameManager from "./GameManager";
 
 class Tile{
   static boxGeos = [];
 
+  public gameManager: GameManager;
   tileData: any;
 
   width: number;
@@ -21,6 +17,7 @@ class Tile{
   position: Vec2;
   z: number;      //z轴高度
 
+  passableMask: string;
   tileKey: string;
   heightType: string;
 
@@ -32,8 +29,13 @@ class Tile{
   sideMaterial: Material;
   topMaterial: Material;
   defaultMat: any;    //默认材质
-  constructor(tileData: TileData ,position: Vec2){
+
+  constructor(tileData: TileData , position: Vec2){
     this.tileData = tileData;
+    const {tileKey, heightType, passableMask} = tileData;
+
+    this.passableMask = passableMask;
+
     this.width = 1;
     this.height = 0;
     this.margin = 0; //tile之间的间隔
@@ -48,11 +50,19 @@ class Tile{
     this.position.x = position.x ? position.x : 0;
     this.position.y = position.y ? position.y : 0;
 
-    const {tileKey, heightType} = tileData;
+
     this.tileKey = tileKey;
     this.heightType = AliasHelper(heightType, "heightType");
+  }
 
-    switch (tileKey) {
+  public initMeshs(){
+    this.initSize();
+    this.createMesh();
+    this.addBorder();
+  }
+
+  private initSize(){
+    switch (this.tileKey) {
       case "tile_start":
       case "tile_end":
         this.height = 1;
@@ -84,20 +94,15 @@ class Tile{
         }
         break;
     }
-
-    this.createMesh();
-    this.addBorder();
   }
-
-
-  createMesh(){
+  private createMesh(){
     const material = textMaterials[this.tileKey]? textMaterials[this.tileKey] : this.defaultMat;
     const {top : topMaterial, side : sideMaterial, texture} = material;
 
     this.object = new Object3D();
-    this.object.position.x = cellChangetoNum(this.position.x);
-    this.object.position.y = cellChangetoNum(this.position.y);
-    this.object.position.z = cellChangetoNum(this.z);
+    this.object.position.x = this.gameManager.getPixelSize(this.position.x);
+    this.object.position.y = this.gameManager.getPixelSize(this.position.y);
+    this.object.position.z = this.gameManager.getPixelSize(this.z);
 
     switch (this.tileKey) {
       //围栏
@@ -105,9 +110,9 @@ class Tile{
       case "tile_fence_bound":
         const fenceWidth = this.width / 10;
         const sideGeometry = new BoxGeometry( 
-          cellChangetoNum(fenceWidth),
-          cellChangetoNum(this.width),
-          cellChangetoNum(2/7),
+          this.gameManager.getPixelSize(fenceWidth),
+          this.gameManager.getPixelSize(this.width),
+          this.gameManager.getPixelSize(2/7),
         );
 
         const fenceTop = material.fenceTop;
@@ -119,10 +124,10 @@ class Tile{
         const up = new Mesh( sideGeometry, fenceMaterials); 
         const down = new Mesh( sideGeometry, fenceMaterials); 
 
-        left.position.x = cellChangetoNum(-this.width/2 + fenceWidth / 2);
-        right.position.x = cellChangetoNum(this.width/2 - fenceWidth / 2);
-        up.position.y = cellChangetoNum(this.width/2 - fenceWidth / 2);
-        down.position.y = cellChangetoNum(-this.width/2 + fenceWidth / 2);
+        left.position.x = this.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
+        right.position.x = this.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
+        up.position.y = this.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
+        down.position.y = this.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
 
         up.rotation.z = Math.PI / 2;
         down.rotation.z = Math.PI / 2;
@@ -135,7 +140,7 @@ class Tile{
         
       case "tile_yinyang_road":
       case "tile_yinyang_wall":
-        const geometry = new THREE.CircleGeometry( cellChangetoNum(this.width / 8),64);
+        const geometry = new THREE.CircleGeometry( this.gameManager.getPixelSize(this.width / 8),64);
 
         const {yin, yang}  = material;
         const dynamic = this.tileData?.blackboard?.find(arr => arr.key === "dynamic");
@@ -143,7 +148,7 @@ class Tile{
         const huimingMat = dynamic?.value === 0? yin : yang;
         const huiming = new THREE.Mesh( geometry, huimingMat );
 
-        huiming.position.z = cellChangetoNum(this.height/2) + 0.1;
+        huiming.position.z = this.gameManager.getPixelSize(this.height/2) + 0.1;
         this.object.add(huiming);
         break;
       default:
@@ -160,18 +165,18 @@ class Tile{
 
     if(texture){
 
-      const textureSize = cellChangetoNum(0.85);
+      const textureSize = this.gameManager.getPixelSize(0.85);
       const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
       const textureMat = texture;
       this.textureObj = new THREE.Mesh( textureGeo, textureMat );
-      this.textureObj.position.setZ(cellChangetoNum(this.height/2) + 0.1);
+      this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.1);
       this.object.add(this.textureObj)
     }
 
   }
 
   //重复的geo直接读取缓存
-  getBoxGeo(width:number, height:number, margin:number):BoxGeometry {
+  private getBoxGeo(width:number, height:number, margin:number):BoxGeometry {
     let boxGeo: BoxGeometry;
 
     boxGeo = Tile.boxGeos.find(item => {
@@ -182,9 +187,9 @@ class Tile{
 
     if(!boxGeo){
       boxGeo = new BoxGeometry( 
-        cellChangetoNum(width) - margin,
-        cellChangetoNum(width) - margin,
-        cellChangetoNum(height),
+        this.gameManager.getPixelSize(width) - margin,
+        this.gameManager.getPixelSize(width) - margin,
+        this.gameManager.getPixelSize(height),
       );
       Tile.boxGeos.push({
         width, height, margin,
@@ -195,7 +200,7 @@ class Tile{
   }
 
   //添加边框
-  addBorder(){
+  private addBorder(){
     let borderColor;
     switch (this.tileKey) {
       case "tile_start":
@@ -214,12 +219,13 @@ class Tile{
 
     if(borderColor){
       this.border = new BoxHelper( this.cube, borderColor);
+      (this.border.material as THREE.MeshBasicMaterial).color.convertSRGBToLinear();
       this.object.add(this.border);
     }
 
   }
 
-  destroy() {
+  public destroy() {
     //释放内存
     
     this.object.children.forEach((mesh:THREE.Mesh) => {
@@ -232,7 +238,6 @@ class Tile{
         })
 
       }else{
-              
         mesh.material.dispose();
       }
     })

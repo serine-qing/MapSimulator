@@ -3,61 +3,94 @@
 import spine from "@/assets/script/spine-threejs.js";
 import GameConfig from '@/components/utilities/GameConfig';
 import * as THREE from "three"
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 
 import { parseTexture } from "@/components/game/TextureHelper";
-
+//@ts-ignore
 import texture1 from "@/assets/texture/tiles1.png"
 
 
 class AssetsManager{
-
-  public textureOnload: Promise<any>;
+  public allOnload: Promise<any>;
 
   public spineManager: any;
   public loadManager: THREE.LoadingManager;
   public textureLoader: THREE.TextureLoader;
+  public fbxLoader: FBXLoader;
 
   constructor(){
-    this.spineManager = new spine.threejs.AssetManager( GameConfig.BASE_URL + "spine/");
+    this.spineManager = new spine.threejs.AssetManager( GameConfig.BASE_URL );
 
     this.loadManager = new THREE.LoadingManager();
     this.textureLoader = new THREE.TextureLoader(this.loadManager);
 
+    this.fbxLoader = new FBXLoader();
   }
 
-  loadSpines( spineNames: string[] ){
+  loadSpines( skelNames: string[], atlasNames: string[] ){
     //动态批量导入skel和atlas资源
-    spineNames.forEach( name => {
-      const sName = name.replace("enemy_", "");
-      const skelName =sName + "/" + name + ".skel";
-      const atlasName =sName + "/" + name + ".atlas";
-      // console.log(skelName)
-      this.spineManager.loadBinary(skelName);
-      this.spineManager.loadTextureAtlas(atlasName);
+    skelNames.forEach( name => {
+      this.spineManager.loadBinary(name);
+    })
+    atlasNames.forEach( name => {
+      this.spineManager.loadTextureAtlas(name);
     })
 
-    return new Promise((resolve , reject)=>{
+    const spineOnload = new Promise((resolve , reject) => {
       const loadSpines = ()=>{
         if (this.spineManager.isLoadingComplete()) {
           resolve(0);
         } else requestAnimationFrame(loadSpines);
       }
       requestAnimationFrame(loadSpines);
-    })
+    });
+
+    this.addPromise(spineOnload);
+
+    return spineOnload;
   }
 
   loadTexture(){
     const textures: {[key: string]: THREE.Texture} = {};
     textures.texture1 = this.textureLoader.load(texture1);
-    this.textureOnload = new Promise((resolve , reject)=>{
+    const textureOnload = new Promise((resolve , reject)=>{
       this.loadManager.onLoad = () => {
         parseTexture(textures);
         resolve(0);
       };
     })
 
+    this.addPromise(textureOnload);
   }
 
+  loadFbx(fbxNames: string[]): Promise<any>{
+    const promiseArr: Promise<any>[] = [];
+
+    fbxNames.forEach(name => {
+      const promise = new Promise((resolve , reject) => {
+        this.fbxLoader.load( `${GameConfig.BASE_URL}trap/${name}/${name}.fbx`, 
+          (object) => {
+            resolve(object);
+          },
+          null,
+          (error) => {
+            console.log(error);
+            reject(error);
+          }
+        )
+      })
+
+      promiseArr.push(promise);
+    })
+    const fbxOnload = Promise.all(promiseArr);
+    this.addPromise(fbxOnload);
+    
+    return fbxOnload;
+  }
+
+  addPromise(promise: Promise<any>){
+    this.allOnload = Promise.all([this.allOnload, promise]);
+  }
 }
 
 const assetsManager = new AssetsManager();

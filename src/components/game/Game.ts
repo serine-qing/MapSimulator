@@ -58,7 +58,6 @@ class Game{
     simulateGame.destroy();
 
     console.log = cacheFunc;
-
     return simData;
   }
 }
