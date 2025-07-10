@@ -63,12 +63,13 @@ class AssetsManager{
     this.addPromise(textureOnload);
   }
 
-  loadFbx(fbxNames: string[]): Promise<any>{
+  loadFbx(fbxs: any[]): Promise<any>{
     const promiseArr: Promise<any>[] = [];
 
-    fbxNames.forEach(name => {
+    fbxs.forEach(fbx => {
+      const { name, fbx: fbxName} = fbx;
       const promise = new Promise((resolve , reject) => {
-        this.fbxLoader.load( `${GameConfig.BASE_URL}trap/${name}/${name}.fbx`, 
+        this.fbxLoader.load( `${GameConfig.BASE_URL}trap/fbx/${name}/${fbxName}.fbx`, 
           (object) => {
             resolve(object);
           },

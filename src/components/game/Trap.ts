@@ -4,6 +4,7 @@ import MapTiles from "./MapTiles";
 import GameConfig from "../utilities/GameConfig";
 import {getSpineSize } from "@/components/utilities/SpineHelper"
 import spine from "@/assets/script/spine-threejs.js";
+import { GC_Add } from "./GC";
 
 class Trap{
   gameManager: GameManager;
@@ -15,8 +16,8 @@ class Trap{
 
   position: Vec2;
 
-  mesh: THREE.Mesh;
-
+  object: THREE.Object3D;          //fbxMesh和skeletonMesh
+  fbxMesh: THREE.Mesh;
   skeletonData: any;
   skeletonMesh: any;
 
@@ -30,58 +31,57 @@ class Trap{
   }
 
   initMesh(){
+    this.object = new THREE.Object3D();
+    GC_Add(this.object);
     this.skeletonData = this.data.skeletonData;
+
+    const localTile = this.mapTiles.get(this.position);
+    const height = localTile.height? localTile.height : 0;
+
     if( this.data.mesh){
 
       this.initFbx();
-      
+
+      //微调高台装置的高度
+      if(localTile.heightType === "HIGHLAND"){
+        this.object.position.z = 0.2;
+      }
+
     }else if(this.skeletonData){
+
       this.initSpine();
-      
+      this.object.position.z = this.gameManager.getPixelSize(height) - 1;
     }
 
+    const coordinate = this.gameManager.getCoordinate(this.position);
+    this.object.position.x = coordinate.x;
+    this.object.position.y = coordinate.y;
+
+    
   }
 
   initFbx(){
-    this.mesh = this.data.mesh.clone();
-    const coordinate: Vec2 = this.gameManager.getCoordinate(this.position);
-    this.mesh.position.x = coordinate.x;
-    this.mesh.position.y = coordinate.y;
-
-    const localTile = this.mapTiles.get(this.position);
-    const height = localTile.height? localTile.height : 0;
-    this.mesh.position.z = this.gameManager.getPixelSize(height) - 1.7;
-
+    this.fbxMesh = this.data.mesh.clone();
+    this.object.add(this.fbxMesh);
     //Math.PI 一个PI等于180度 Math.PI 乘以 1234分别对应 下左上右
-    this.mesh.rotation.x = Math.PI / 2;
+    this.fbxMesh.rotation.x = Math.PI / 2;
+    
     const directions = {
-      "UP": 3,
-      "LEFT": 2,
-      "DOWN": 1,
-      "RIGHT": 4,
+      "UP": 0,
+      "LEFT": 1,
+      "DOWN": 2,
+      "RIGHT": 3,
     }
-    this.mesh.rotation.y = Math.PI * directions[this.direction] / 2;
-      
+
+    //逆时针
+    this.fbxMesh.rotation.y += Math.PI * directions[this.direction] / 2;
   }
 
   initSpine(){
-
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
-    
-    const spineSize = getSpineSize(this);
-
-    const position = this.gameManager.getCoordinate(this.position);
-    this.skeletonMesh.position.x = position.x;
-    this.skeletonMesh.position.y = position.y;
-
-    const localTile = this.mapTiles.get(this.position);
-    const height = localTile.height? localTile.height : 0;
-    this.skeletonMesh.position.z = this.gameManager.getPixelSize(height) - 1;
-
-    this.skeletonMesh.position.y -= 0.5;
-    this.skeletonMesh.scale.set(spineSize,spineSize,1);
-
+    this.object.add(this.skeletonMesh);
+    this.skeletonMesh.position.y = -0.5;
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
 
     const idle = this.skeletonData.animations.find( animation => animation.name.includes("Idle"));

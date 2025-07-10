@@ -8,6 +8,7 @@ import GameConfig from "@/components/utilities/GameConfig"
 import {gameCanvas} from '@/components/game/GameCanvas';
 import Trap from "./Trap"
 import GameManager from "./GameManager"
+import { GC_Sweep } from "./GC"
 
 class GameView{
   
@@ -48,7 +49,7 @@ class GameView{
   private initTraps(){
     this.traps.forEach(trap => {
       trap.initMesh();
-      this.mapContainer.add(trap.mesh? trap.mesh : trap.skeletonMesh);
+      this.mapContainer.add(trap.object);
     })
   } 
 
@@ -77,8 +78,9 @@ class GameView{
   public destroy(){ 
   
     gameCanvas.scene.remove(this.mapContainer);
+
     this.mapTiles.tiles.flat().forEach(tile => tile.destroy());
-    
+    GC_Sweep();
     // this.mapContainer?.traverse(object => {
     //   if(object.type === "Mesh"){
     //     const mesh = object as THREE.Mesh;

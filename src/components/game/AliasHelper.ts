@@ -23,6 +23,12 @@ const AliasMap = {
   heightType:{
     0: "LOWLAND",
     1: "HIGHLAND",
+  },
+  predefDirection:{
+    0: "UP",
+    1: "RIGHT",
+    2: "LEFT",
+    3: "DOWN"
   }
 }
 const AliasHelper = (key, type) => {

@@ -17,7 +17,7 @@ class GameCanvas{
     this.initRenderer();
     this.animate();
 
-    const controls = new OrbitControls(this.camera, this.renderer.domElement);
+    // const controls = new OrbitControls(this.camera, this.renderer.domElement);
   }
 
     //初始化相机
@@ -60,7 +60,7 @@ class GameCanvas{
       this.height
     ); //设置宽高
     
-    // this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+    // new OrbitControls(this.camera, this.renderer.domElement)
 
   }
   //循环执行

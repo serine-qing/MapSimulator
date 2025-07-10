@@ -13,6 +13,8 @@ import assetsManager from "@/components/assetManager/assetsManager"
 //游戏控制器
 class GameManager{
   private isSimulate: boolean = false;
+  private clock: THREE.Clock = new THREE.Clock();
+
   private simulateData: any;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
@@ -22,8 +24,11 @@ class GameManager{
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
   
+  private delta: number;
+  private timeStamp: number = 1 / GameConfig.FPS;
+  private singleFrameTime: number = 1 / GameConfig.FPS; //两次渲染之间间隔的游戏内时间
+
   public currentSecond: number = 0;    //当前游戏时间
-  private deltaTime: number = 1 / GameConfig.FPS; //两次渲染之间间隔的游戏内时间
 
   public isFinished: boolean = false;
   
@@ -52,6 +57,7 @@ class GameManager{
           this.traps,
           this.enemyManager
         );
+
         this.animate();
 
       })
@@ -90,13 +96,21 @@ class GameManager{
   private animate(){
     if(this.isFinished) return; //结束游戏
 
+    this.delta = this.clock.getDelta();
+    this.timeStamp += this.delta;
+
+    if(this.timeStamp > this.singleFrameTime){
+
+      this.timeStamp = (this.timeStamp % this.singleFrameTime);
+      //游戏循环
+      this.gameLoop();
+    }
+
     requestAnimationFrame(()=>{
       this.animate();
     });
 
-    //游戏循环
-    this.gameLoop();
-    
+
   }
 
   public gameLoop(){
@@ -114,7 +128,7 @@ class GameManager{
       this.render();
     }
 
-    this.currentSecond += this.deltaTime * this.gameSpeed;
+    this.currentSecond += this.singleFrameTime * this.gameSpeed;
   }
 
   private update(){
@@ -122,7 +136,7 @@ class GameManager{
   }
 
   private render(){
-    this.gameView.render(this.deltaTime * this.gameSpeed);
+    this.gameView.render(this.singleFrameTime * this.gameSpeed);
   }
 
   public setSimulateData(simulateData: any){

@@ -11,4 +11,20 @@ const service = axios.create({
   timeout: 20000,
 });
 
+// 添加响应拦截器
+service.interceptors.response.use(function (response) {
+  if(response.data.data){
+
+    const error = response.data.error;
+    response.data = response.data.data;
+    if(error){
+      console.error(error);
+    }
+    
+  }
+  return response;
+}, function (error) {
+  return Promise.reject(error);
+});
+
 export default service;

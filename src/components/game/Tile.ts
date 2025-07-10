@@ -97,8 +97,11 @@ class Tile{
   }
   private createMesh(){
     const material = textMaterials[this.tileKey]? textMaterials[this.tileKey] : this.defaultMat;
-    const {top : topMaterial, side : sideMaterial, texture} = material;
+    let {top : topMaterial, side : sideMaterial, texture} = material;
 
+    if(!topMaterial) topMaterial = this.defaultMat.top;
+    if(!sideMaterial) sideMaterial = this.defaultMat.side;
+    
     this.object = new Object3D();
     this.object.position.x = this.gameManager.getPixelSize(this.position.x);
     this.object.position.y = this.gameManager.getPixelSize(this.position.y);
@@ -165,9 +168,9 @@ class Tile{
 
     if(texture){
 
-      const textureSize = this.gameManager.getPixelSize(0.85);
+      const textureSize = this.gameManager.getPixelSize(texture.size? texture.size : 0.85);
       const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
-      const textureMat = texture;
+      const textureMat = texture.material;
       this.textureObj = new THREE.Mesh( textureGeo, textureMat );
       this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.1);
       this.object.add(this.textureObj)

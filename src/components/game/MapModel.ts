@@ -9,7 +9,10 @@ import GameConfig from "../utilities/GameConfig";
 //资源一开始就加载完毕，所以放到这里处理
 import assetsManager from "@/components/assetManager/assetsManager"
 import * as THREE from "three"
+import { unitizeFbx  } from "./FbxHelper";
+
 import { getTrapsKey } from "@/api/assets";
+import { GC_Add } from "./GC";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -359,7 +362,7 @@ class MapModel{
 
         this.trapDatas.push({
           key: inst.characterKey,
-          direction,
+          direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
           mesh: null
         });
@@ -370,31 +373,45 @@ class MapModel{
       //TODO 垃圾回收
       
       const res = await getTrapsKey(Array.from(trapKeys));
-
       const fbxs = res.data?.fbx;
       const spines = res.data?.spine;
 
       if(fbxs){
         const meshs: { [key:string]: any}  = {};
-        assetsManager.loadFbx( fbxs.map( i => i.fbx) ).then(res => {
+        assetsManager.loadFbx( fbxs ).then(res => {
+          res.forEach((group, index) => {
+            let setObj: THREE.Object3D;
+            group.traverse(object => {
 
-          res.forEach(group => {
-            const mesh = group?.children[0];
+              //需要添加到场景中的obj
+              if(object.name === fbxs[index].fbx){
+                setObj = object;
+              }
+              const { material: oldMat } = object
+              if(oldMat){
 
-            const oldMat = mesh.material;
-            mesh.material =  new THREE.MeshMatcapMaterial({
-              color: oldMat.color,
-              map: oldMat.map
-            });
+                object.material =  new THREE.MeshMatcapMaterial({
+                  color: oldMat.color,
+                  map: oldMat.map
+                });
 
-            mesh.scale.set(0.068,0.068,0.068)
+                oldMat.dispose();
 
+              }
+            })
+
+            setObj.scale.set(0.07,0.07,0.07)
+            console.log(setObj)
+            setObj.position.z = -1.5;  //-1.5是地面高度
+            
+            GC_Add(setObj);
+            //让fbx对象的大小、方向统一化
+            unitizeFbx(setObj);
             // let box:any = new THREE.Box3().setFromObject( mesh );
             // let measure = new THREE.Vector3();
             // let size = box.getSize(measure);
 
-            oldMat.dispose();
-            meshs[mesh.name] = mesh;
+            meshs[fbxs[index].name] = setObj;
           })
 
           this.trapDatas.forEach( trapData => {
@@ -402,15 +419,15 @@ class MapModel{
           })
 
         })
-      }else if(spine){
+      }else if(spines){
         const skelDatas: { [key:string]: any} = {};
         const skelNames = [];
         const atlasNames = [];
 
         spines.forEach(spine => {
           const { skel, atlas } = spine;
-          skelNames.push(`trap/${skel}/${skel}.skel`);
-          atlasNames.push(`trap/${atlas}/${atlas}.atlas`);
+          skelNames.push(`trap/spine/${skel}/${skel}.skel`);
+          atlasNames.push(`trap/spine/${atlas}/${atlas}.atlas`);
         })
 
         assetsManager.loadSpines(skelNames, atlasNames).then( () => {

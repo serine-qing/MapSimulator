@@ -26,16 +26,19 @@ pureWhite.color.convertSRGBToLinear();
 pureBlack.color.convertSRGBToLinear();
 
 const textMaterials = {
+
+  //wall和road是高台地面默认的材质，很多tile都会用到
   tile_wall:{
     top: white,
     side: darkGray
   },
+  tile_road:{
+    top: gray,
+  },
+
   tile_forbidden:{
     top: dark,
     side: deepGray
-  },
-  tile_road:{
-    top: gray,
   },
   tile_deepsea:{
     top: sea
@@ -49,17 +52,16 @@ const textMaterials = {
     side: white
   },
   tile_hole:{
-    top: gray,
-    texture: pureBlack
+    texture: {
+      size: 0.73,
+      material: pureBlack
+    }
   },
   tile_yinyang_road:{
-    top: gray,
     yin: pureBlack,
     yang: pureWhite
   },
   tile_yinyang_wall:{
-    top: white,
-    side: darkGray,
     yin: pureBlack,
     yang: pureWhite
   },
@@ -92,14 +94,22 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
     "tile_flystart","tile_floor","tile_volcano",null,"tile_telin"
   ]
 
+  const sizeMap = new Map([
+    ["tile_floor", 0.85],
+  ]);
+
   keyArr.forEach( (key, index) => {
     if(!key) return;
-    
+
+    const size = sizeMap.get(key);
+
     textMaterials[key] = {
-      top: gray,
-      texture: new THREE.MeshBasicMaterial({
-        map: getClone(texture1, index)
-      })
+      texture: {
+        size: size ? size : 0.9,
+        material: new THREE.MeshBasicMaterial({
+          map: getClone(texture1, index)
+        })
+      }
     };
 
   })
