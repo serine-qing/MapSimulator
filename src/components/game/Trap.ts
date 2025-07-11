@@ -2,7 +2,6 @@ import * as THREE from "three";
 import GameManager from "./GameManager";
 import MapTiles from "./MapTiles";
 import GameConfig from "../utilities/GameConfig";
-import {getSpineSize } from "@/components/utilities/SpineHelper"
 import spine from "@/assets/script/spine-threejs.js";
 import { GC_Add } from "./GC";
 
@@ -13,9 +12,9 @@ class Trap{
 
   key: string;
   direction: string;
-
   position: Vec2;
-
+  idleAnimate: string;
+  
   object: THREE.Object3D;          //fbxMesh和skeletonMesh
   fbxMesh: THREE.Mesh;
   skeletonData: any;
@@ -78,16 +77,16 @@ class Trap{
   }
 
   initSpine(){
+    this.idleAnimate = this.data.idleAnimate;
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.object.add(this.skeletonMesh);
-    this.skeletonMesh.position.y = -0.5;
+    this.skeletonMesh.position.y = this.gameManager.getPixelSize(-1/4);
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
 
-    const idle = this.skeletonData.animations.find( animation => animation.name.includes("Idle"));
     this.skeletonMesh.state.setAnimation(
       0, 
-      idle.name, 
+      this.idleAnimate, 
       false
     );
     

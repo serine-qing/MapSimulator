@@ -48,8 +48,9 @@ class GameCanvas{
     this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
     //设置设备像素比。避免HiDPI设备上绘图模糊
     this.renderer.setPixelRatio( window.devicePixelRatio );
-    //@ts-ignore
-    this.renderer.gammaOutput = true;
+
+    //防止fbx文件出现色差
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
 
     //地图比例是否正确，关键看相机和渲染器的宽高比是否一致
     this.width = this.wrapper.offsetWidth;

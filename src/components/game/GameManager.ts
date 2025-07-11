@@ -12,7 +12,7 @@ import assetsManager from "@/components/assetManager/assetsManager"
 
 //游戏控制器
 class GameManager{
-  private isSimulate: boolean = false;
+  public isSimulate: boolean = false;
   private clock: THREE.Clock = new THREE.Clock();
 
   private simulateData: any;
@@ -50,6 +50,8 @@ class GameManager{
     if(!this.isSimulate){
 
       assetsManager.allOnload.then( () => {
+
+        eventBus.emit("gamestart")
 
         this.gameView = new GameView(
           this,
@@ -99,7 +101,7 @@ class GameManager{
     this.delta = this.clock.getDelta();
     this.timeStamp += this.delta;
 
-    if(this.timeStamp > this.singleFrameTime){
+    if(this.timeStamp >= this.singleFrameTime){
 
       this.timeStamp = (this.timeStamp % this.singleFrameTime);
       //游戏循环
@@ -141,6 +143,10 @@ class GameManager{
 
   public setSimulateData(simulateData: any){
     this.simulateData = simulateData;
+
+    this.enemyManager.flatEnemies.forEach((enemy, index) => {
+      enemy.spawnTime = parseFloat(simulateData.byEnemy[index].currentSecond.toFixed(1));
+    })
 
     eventBus.on("jump_to_enemy_index", (index) => {
       const setData = this.simulateData.byEnemy[index];

@@ -1,6 +1,12 @@
 import Enemy from "../enemy/Enemy";
+import Trap from "../game/Trap";
+
+const specialIdle = {
+  enemy_1536_ncrmcr: "Idle_b"       //boss领袖
+}
 
 export const getAnimation = (key: string, animations: any, state: string) => {
+
   let animation;
   switch (state) {
     case "Move":
@@ -9,12 +15,15 @@ export const getAnimation = (key: string, animations: any, state: string) => {
     case "Idle":
       animation = getIdleAnimation(key, animations);
       break;
+    case "Trap_Idle":
+      animation = getTrapIdleAnimation(key, animations);
+      break;
   }
 
   return animation;
 }
 
-const getMoveAnimation = (key: string, animations: any) => {
+const getMoveAnimation = (key:string, animations: any) => {
   const moveStates = ["Run_Loop","Move_Loop","Run","Move"];
 
   for(let i=0; i<moveStates.length; i++){
@@ -31,8 +40,12 @@ const getMoveAnimation = (key: string, animations: any) => {
   return;
 }
 
-const getIdleAnimation = (key: string, animations: any) => {
-  const idleStates = ["Idle"];
+const getIdleAnimation = (key:string, animations: any) => {
+  const special = specialIdle[key];
+  if(special) return special;
+
+  //"Idile"是拼写错误 但是偶尔会出现在模型里面
+  const idleStates = ["Idle", "Idile"];
 
   for(let i=0; i<idleStates.length; i++){
     const stateName = idleStates[i];
@@ -48,8 +61,25 @@ const getIdleAnimation = (key: string, animations: any) => {
   return;
 }
 
-export const getSkelOffset = (enemy:Enemy): Vec2 => {
-  switch (enemy.motion) {
+const getTrapIdleAnimation = (key:string, animations: any) => {
+  const idleStates = ["Idle", "Default"];
+
+  for(let i=0; i<idleStates.length; i++){
+    const stateName = idleStates[i];
+    const find = animations.find( (animation: any ) => {
+      return animation.name.includes(stateName);
+    })
+
+    if(find){
+      return find.name;
+    }
+  }
+
+  return;
+}
+
+export const getSkelOffset = (item:Enemy): Vec2 => {
+  switch (item.motion) {
     case "WALK":
       return {
         x:0, 

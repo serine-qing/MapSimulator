@@ -36,7 +36,10 @@
         @changeStage = "handleChangeStage"
         v-show="toggle"
       />
-      <EnemyWave v-show="!toggle"/>
+      <EnemyWave 
+        v-show="!toggle"
+        :active = "!toggle"
+      />
     </div>
 
     </transition>
@@ -66,7 +69,7 @@ const toggle = ref(true);
   position: relative;
   z-index: 100;
   height: 100%;
-  width: 290px;
+  width: 350px;
   display: flex;
   flex-direction: column;
   .icons{

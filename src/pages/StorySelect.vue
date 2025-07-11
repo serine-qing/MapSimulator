@@ -16,23 +16,41 @@
           <span>{{ story.type }}</span>
         </template>
 
-        <el-sub-menu 
-          v-for="(episode, index2) in story.childNodes"
-          :index="episode.episode"
-          :key="index2"
+        <template
+          v-if = "!story.stage"
         >
-          <template #title>{{ episode.episode }}</template>
+          <el-sub-menu 
+            v-for="(episode, index2) in story.childNodes"
+            :index="episode.episode"
+            :key="index2"
+          >
+            <template #title>{{ episode.episode }}</template>
 
+            <el-menu-item 
+              v-for="(stage, index3) in episode.childNodes"
+              :index="stage.operation"
+              :key="index3"
+              @click="handleItemClick(stage)"
+            >
+              {{ stage.operation + " " + stage.cn_name }}
+            </el-menu-item>
+
+          </el-sub-menu>
+        </template>
+
+        <template
+          v-else-if = "story.stage"
+        >
           <el-menu-item 
-            v-for="(stage, index3) in episode.childNodes"
+            v-for="(stage, index3) in story.childNodes"
             :index="stage.operation"
             :key="index3"
             @click="handleItemClick(stage)"
           >
-            {{ stage.operation + "  " + stage.cn_name }}
+            {{ stage.operation + " " + stage.cn_name }}
           </el-menu-item>
 
-        </el-sub-menu>
+        </template>
 
       </el-sub-menu>
     </el-menu>

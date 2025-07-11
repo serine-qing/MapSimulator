@@ -9,7 +9,7 @@ class EnemyManager{
   public enemies: Enemy[][] = []; //敌人对象数组
   public flatEnemies: Enemy[] = []; //一维敌人对象数组，方便读取
   public enemiesInMap: number[] = []; //需要在地图上渲染的enemy ids
-  public enemyIndex: number = -1;     //当前出到第几个敌人
+  public enemyIndexInWave: number = -1;     //当前波次出到第几个敌人
 
   private waveIndex: number = 0;
   private currentSecond: number = -1; //当前游戏时间（-1为未开始默认值）
@@ -38,7 +38,11 @@ class EnemyManager{
     })
     
     this.flatEnemies = this.enemies.flat();
-    eventBus.emit("enemies_init", this.flatEnemies);
+
+    if(!this.gameManager.isSimulate){
+      eventBus.emit("enemies_init", this.enemies);
+    }
+    
   }
 
   private removeEnemies(){
@@ -66,6 +70,7 @@ class EnemyManager{
 
   private nextWave(){
     this.waveIndex ++;
+    this.enemyIndexInWave = -1;
 
     this.usedSecond = this.currentSecond;
     if(this.currentWave() === undefined){
@@ -94,9 +99,9 @@ class EnemyManager{
         //重置
         
         this.enemiesInMap.push(enemy.id);
-        this.enemyIndex ++;
+        this.enemyIndexInWave ++;
 
-        eventBus.emit("enemy_index_change", this.enemyIndex)
+        eventBus.emit("enemy_index_change", this.enemyIndexInWave, this.waveIndex)
       }
     }
 
@@ -138,7 +143,7 @@ class EnemyManager{
     let state = {
       enemyStates,
       enemiesInMap: [...this.enemiesInMap],
-      enemyIndex: this.enemyIndex,
+      enemyIndexInWave: this.enemyIndexInWave,
       waveIndex: this.waveIndex,
       usedSecond: this.usedSecond,
       allWaveFinished: this.allWaveFinished
@@ -150,7 +155,7 @@ class EnemyManager{
   public set(state){
     const {
       enemiesInMap, 
-      enemyIndex, 
+      enemyIndexInWave, 
       waveIndex, 
       usedSecond, 
       allWaveFinished, 
@@ -158,7 +163,7 @@ class EnemyManager{
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
-    this.enemyIndex = enemyIndex;
+    this.enemyIndexInWave = enemyIndexInWave;
     this.waveIndex = waveIndex;
     this.usedSecond = usedSecond;
     this.allWaveFinished = allWaveFinished;
@@ -169,6 +174,8 @@ class EnemyManager{
 
       enemy.set(eState);
     }
+
+    eventBus.emit("enemy_index_change", this.enemyIndexInWave, this.waveIndex)
   }
 
   public destroy(){

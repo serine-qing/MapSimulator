@@ -46,6 +46,8 @@ class Enemy{
   isStarted: boolean = false;
   isFinished: boolean = false;
 
+  public spawnTime;             //模拟数据中的出生时间
+
   private visible: boolean = false;
   private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
@@ -145,6 +147,7 @@ class Enemy{
 
   //初始化spine小人
   public initSpine(){
+    //TODO 不同角度会导致spine看起来很奇怪，看能不能通过改mesh方向修复它
     //显示相关的数据为异步加载数据，会晚于构造函数调用
     const {skeletonData, moveAnimate, idleAnimate} = this.enemyData;
 
@@ -369,11 +372,17 @@ class Enemy{
     if(!this.spine) return;
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
-    this.skeletonMesh.state.setAnimation(
-      0, 
-      animate, 
-      true
-    );
+
+    if(animate){
+      this.skeletonMesh.state.setAnimation(
+        0, 
+        animate, 
+        true
+      );
+    }else{
+      console.error(`${this.key}动画名获取失败！`)
+    }
+
 
   }
 

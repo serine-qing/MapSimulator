@@ -3,14 +3,8 @@ import Game from "@/components/game/Game"
 import {setupCanvas} from '@/components/game/GameCanvas.ts';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
+import { timeFormat } from "@/components/utilities/utilities";
 
-function timeFormat(timestamp: number): string{
-  const minute = Math.floor(timestamp / 60);
-  const second = timestamp % 60;
-  let str = minute > 0 ? minute + "分" : "";
-  str += second + "秒";
-  return str ;
-}
 
 export default{
   data(){
@@ -21,7 +15,8 @@ export default{
       currentSecond: Number, //当前时间(秒)
       pause: Boolean,
       cachePauseState: Boolean,
-      isSliding: false
+      isSliding: false,
+      loading: false
     }
   },
   props:["mapData"],
@@ -30,11 +25,11 @@ export default{
       if(!this.game){
         this.game = new Game();
       }
+      this.loading = true;
       await this.game.startGame(this.mapData);
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = this.game.maxSecond;
-      
     },
     pause(){
       this.game?.gameManager?.changePause(this.pause);
@@ -44,6 +39,9 @@ export default{
     this.reset();
     this.gameSpeed = GameConfig.GAME_SPEED;
     eventBus.on("second_change", this.handleSecondChange)
+    eventBus.on("gamestart", () => {
+      this.loading = false;
+    })
   },
   mounted() {
     setupCanvas(this.$refs.wrapper);
@@ -94,7 +92,7 @@ export default{
 </script>
 
 <template>
-<div class="game">
+<div class="game" v-loading="loading">
   <div class="top">
     <span class="ms">{{ MS }}</span>
     <div class="time-slider">

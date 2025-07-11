@@ -340,6 +340,7 @@ class MapModel{
       const skeletonData = skeletonJson.readSkeletonData(
         spineManager.get(skelName)
       );
+
       const moveAnimate = getAnimation(key, skeletonData.animations, "Move");
       const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
 
@@ -364,13 +365,11 @@ class MapModel{
           key: inst.characterKey,
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
-          mesh: null
+          mesh: null,
         });
 
         trapKeys.add(inst.characterKey);
       })
-
-      //TODO 垃圾回收
       
       const res = await getTrapsKey(Array.from(trapKeys));
       const fbxs = res.data?.fbx;
@@ -401,7 +400,6 @@ class MapModel{
             })
 
             setObj.scale.set(0.07,0.07,0.07)
-            console.log(setObj)
             setObj.position.z = -1.5;  //-1.5是地面高度
             
             GC_Add(setObj);
@@ -446,12 +444,15 @@ class MapModel{
             const skeletonData = skeletonJson.readSkeletonData(
               spineManager.get(skelName)
             );
-
+            
             skelDatas[key] = skeletonData;
           }
 
           this.trapDatas.forEach( trapData => {
-            trapData.skeletonData = skelDatas[trapData.key];
+            const skelData = skelDatas[trapData.key];
+            trapData.skeletonData = skelData;
+            const idleAnimate = getAnimation(trapData.key, skelData.animations, "Trap_Idle");
+            trapData.idleAnimate = idleAnimate;
           })
 
         })

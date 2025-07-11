@@ -100,4 +100,13 @@ const toCamelCase = (str) => {
   return str.replace(/[-_]\w/g, match => match[1].toUpperCase());
 }
 
-export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase}
+//秒转化为分 秒
+function timeFormat(timestamp: number): string{
+  const minute = Math.floor(timestamp / 60);
+  const second = timestamp % 60;
+  let str = minute > 0 ? minute + "分" : "";
+  str += second + "秒";
+  return str ;
+}
+
+export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, timeFormat}

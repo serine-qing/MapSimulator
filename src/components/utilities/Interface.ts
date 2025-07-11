@@ -100,6 +100,7 @@ declare global {
     key: string,
     direction: string,
     position: Vec2,
+    idleAnimate?: string,   //idle动画
     mesh?: THREE.Mesh,     //fbx数据有mesh
     skeletonData?: any     //spine数据有skeletonData
   }
