@@ -51,7 +51,7 @@ class MapModel{
     this.getEnemySpines();
 
     //获取fbc文件
-    await this.getTrapsFbx();
+    await this.getTrapDatas();
 
     //绑定route和enemydata
     this.enemyWaves.flat().forEach( wave => {
@@ -352,7 +352,7 @@ class MapModel{
 
   }
 
-  private async getTrapsFbx(){
+  private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
 
     if(tokenInsts){
@@ -372,8 +372,8 @@ class MapModel{
       })
       
       const res = await getTrapsKey(Array.from(trapKeys));
-      const fbxs = res.data?.fbx;
-      const spines = res.data?.spine;
+
+      const { fbx: fbxs, spine: spines, image: images } = res.data;
 
       if(fbxs){
         const meshs: { [key:string]: any}  = {};
@@ -417,7 +417,8 @@ class MapModel{
           })
 
         })
-      }else if(spines){
+      }
+      if(spines){
         const skelDatas: { [key:string]: any} = {};
         const skelNames = [];
         const atlasNames = [];
@@ -456,6 +457,16 @@ class MapModel{
           })
 
         })
+
+      }
+      if(images){
+        const textureReq = [];
+        images.forEach(image => {
+          textureReq.push(`trap/image/${image}.png`)
+        })
+        assetsManager.loadTexture(images).then(res => {
+          console.log(res);
+        });
 
       }
     }

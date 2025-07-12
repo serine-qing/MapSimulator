@@ -50,17 +50,33 @@ class AssetsManager{
     return spineOnload;
   }
 
-  loadTexture(){
+  loadStaticTexture(){
     const textures: {[key: string]: THREE.Texture} = {};
-    textures.texture1 = this.textureLoader.load(texture1);
+    this.loadTexture([texture1]).then(res => {
+      textures.texture1 = res[0];
+      parseTexture(textures);
+    })
+
+  }
+
+  loadTexture(textures: any[]){
+    //储存读取的textures
+    const resTextures = [];
+
+    textures.forEach(texture => {
+      resTextures.push(this.textureLoader.load(texture));
+    })
+
     const textureOnload = new Promise((resolve , reject)=>{
+
       this.loadManager.onLoad = () => {
-        parseTexture(textures);
-        resolve(0);
+        resolve(resTextures);
       };
     })
 
     this.addPromise(textureOnload);
+
+    return textureOnload;
   }
 
   loadFbx(fbxs: any[]): Promise<any>{
@@ -96,7 +112,7 @@ class AssetsManager{
 
 const assetsManager = new AssetsManager();
 //texture是静态数据，放这里读取就行
-assetsManager.loadTexture();
+assetsManager.loadStaticTexture();
 
 
 export default assetsManager;

@@ -81,7 +81,7 @@ eventBus.on("enemies_init", (res) => {
 });
 
 eventBus.on("enemy_index_change", (eIndex, wIndex) => {
-  console.log(eIndex)
+
   if(enemies.value?.length){
     enemyIndex.value = eIndex;
     waveIndex.value = wIndex;
