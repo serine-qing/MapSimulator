@@ -15,7 +15,6 @@ class Tile{
   height: number;
   margin: number;
   position: Vec2;
-  z: number;      //z轴高度
 
   passableMask: string;
   tileKey: string;
@@ -43,7 +42,6 @@ class Tile{
       x: 0,
       y: 0
     }
-    this.z = 0;
 
     this.defaultMat = {};
 
@@ -66,13 +64,11 @@ class Tile{
       case "tile_start":
       case "tile_end":
         this.height = 1;
-        this.z = 2/7;
         break;
 
       case "tile_fence":
       case "tile_fence_bound":
         this.height = 0;
-        this.z = -3/14;
         break;
       case "tile_passable_wall":
         this.defaultMat =  textMaterials["tile_wall"];
@@ -89,7 +85,6 @@ class Tile{
         }else if(this.heightType === "LOWLAND"){
           this.height = 0;
           this.defaultMat =  textMaterials["tile_road"];
-          this.z = -3/14;
           
         }
         break;
@@ -105,7 +100,7 @@ class Tile{
     this.object = new Object3D();
     this.object.position.x = this.gameManager.getPixelSize(this.position.x);
     this.object.position.y = this.gameManager.getPixelSize(this.position.y);
-    this.object.position.z = this.gameManager.getPixelSize(this.z);
+    this.object.position.z = this.gameManager.getPixelSize(this.height / 2);
 
     switch (this.tileKey) {
       //围栏
@@ -226,6 +221,10 @@ class Tile{
       this.object.add(this.border);
     }
 
+  }
+
+  public getPixelHeight(){
+    return this.gameManager.getPixelSize(this.height)
   }
 
   public destroy() {

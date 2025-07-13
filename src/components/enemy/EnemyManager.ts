@@ -56,7 +56,7 @@ class EnemyManager{
 
     //该波次最后一个怪进蓝门，就切换到下一波次
     if(this.isWaveFinished()){
-      this.nextWave();
+      this.changeNextWave();
     }
   }
 
@@ -68,12 +68,32 @@ class EnemyManager{
     return !this.currentWave().find(wave => !wave.isFinished);
   }
 
-  private nextWave(){
+  private changeNextWave(){
     this.waveIndex ++;
     this.enemyIndexInWave = -1;
 
     this.usedSecond = this.currentSecond;
-    if(this.currentWave() === undefined){
+  }
+
+  //检查是否游戏结束
+  private checkFinished(){
+    const nextWave = this.enemies[this.waveIndex + 1];
+    const currentWave = this.currentWave();
+
+    let finished = false;
+    if(currentWave === undefined){
+      finished = true;
+    }
+    else if(nextWave === undefined){
+      
+      finished = currentWave.every(enemy => {
+        //敌人结束 或者 敌人已经开始但是是非首要目标
+        return enemy.isFinished || (enemy.isStarted && enemy.notCountInTotal)
+      })
+
+    }
+
+    if(finished){
       this.allWaveFinished = true;
       this.gameManager.isFinished = true;
     }
@@ -123,6 +143,7 @@ class EnemyManager{
 
     this.currentSecond = currentSecond;
     this.removeEnemies();
+    this.checkFinished();
 
     if(this.allWaveFinished) return;
 

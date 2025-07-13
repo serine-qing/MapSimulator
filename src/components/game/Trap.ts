@@ -17,8 +17,12 @@ class Trap{
   
   object: THREE.Object3D;          //fbxMesh和skeletonMesh
   fbxMesh: THREE.Mesh;
+
   skeletonData: any;
   skeletonMesh: any;
+
+  textureMat: THREE.MeshBasicMaterial;
+  textureMesh: THREE.Mesh;
 
   constructor(gameManager: GameManager, data: trapData){
     this.gameManager = gameManager;
@@ -33,6 +37,7 @@ class Trap{
     this.object = new THREE.Object3D();
     GC_Add(this.object);
     this.skeletonData = this.data.skeletonData;
+    this.textureMat = this.data.textureMat;
 
     const localTile = this.mapTiles.get(this.position);
     const height = localTile.height? localTile.height : 0;
@@ -40,16 +45,17 @@ class Trap{
     if( this.data.mesh){
 
       this.initFbx();
-
-      //微调高台装置的高度
-      if(localTile.heightType === "HIGHLAND"){
-        this.object.position.z = 0.2;
-      }
+      
+      //调整高台装置的高度
+      this.object.position.z = localTile.getPixelHeight();    
 
     }else if(this.skeletonData){
 
       this.initSpine();
-      this.object.position.z = this.gameManager.getPixelSize(height) - 1;
+      this.object.position.z = this.gameManager.getPixelSize(height + 1/14) ;
+    }else if(this.textureMat){
+      this.initTexture()
+      this.object.position.z = this.gameManager.getPixelSize(height) + 0.1;
     }
 
     const coordinate = this.gameManager.getCoordinate(this.position);
@@ -63,7 +69,6 @@ class Trap{
     this.fbxMesh = this.data.mesh.clone();
     this.object.add(this.fbxMesh);
     //Math.PI 一个PI等于180度 Math.PI 乘以 1234分别对应 下左上右
-    this.fbxMesh.rotation.x = Math.PI / 2;
     
     const directions = {
       "UP": 0,
@@ -73,7 +78,14 @@ class Trap{
     }
 
     //逆时针
-    this.fbxMesh.rotation.y += Math.PI * directions[this.direction] / 2;
+    const eulerY = Math.PI * directions[this.direction] / 2;
+    const quatY = new THREE.Quaternion();
+    const meshQuat = this.fbxMesh.quaternion;
+
+    quatY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), eulerY);
+
+    //将四元数应用到对象上，通常是将其与对象的quaternion属性相乘。
+    meshQuat.multiplyQuaternions(meshQuat, quatY);
   }
 
   initSpine(){
@@ -81,7 +93,7 @@ class Trap{
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.object.add(this.skeletonMesh);
-    this.skeletonMesh.position.y = this.gameManager.getPixelSize(-1/4);
+    this.skeletonMesh.position.y = this.gameManager.getPixelSize(-1/9);
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
 
     this.skeletonMesh.state.setAnimation(
@@ -92,6 +104,15 @@ class Trap{
     
   }
 
+  initTexture(){
+    const textureSize = this.gameManager.getPixelSize(1);
+    const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
+    this.textureMesh = new THREE.Mesh(textureGeo, this.textureMat);
+    GC_Add(textureGeo);
+
+    this.object.add(this.textureMesh);
+    
+  }
 }
 
 export default Trap;

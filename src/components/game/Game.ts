@@ -17,9 +17,8 @@ class Game{
     
     const mapModel = new MapModel(mapData);
     await mapModel.init();
-
-    const simData = this.startSimulate(mapModel);
     
+    const simData = this.startSimulate(mapModel);
     this.gameManager = new GameManager(mapModel);
     this.gameManager.setSimulateData(simData);
   }

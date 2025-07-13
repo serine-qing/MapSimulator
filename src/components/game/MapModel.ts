@@ -47,6 +47,7 @@ class MapModel{
     this.parseEnemyWaves(this.sourceData.waves)
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
+
     //获取敌人spine
     this.getEnemySpines();
 
@@ -62,7 +63,7 @@ class MapModel{
       if(findRoute) wave.route = findRoute;
       if(findEnemyData) wave.enemyData = findEnemyData;
     })
-
+    
     //生成寻路地图
     this.generatepathMaps();  
     //平整化寻路地图
@@ -360,12 +361,11 @@ class MapModel{
 
       tokenInsts.forEach(data => {
         const {direction, position, inst} = data;
-
+        console.log(direction)
         this.trapDatas.push({
           key: inst.characterKey,
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
-          mesh: null,
         });
 
         trapKeys.add(inst.characterKey);
@@ -379,6 +379,7 @@ class MapModel{
         const meshs: { [key:string]: any}  = {};
         assetsManager.loadFbx( fbxs ).then(res => {
           res.forEach((group, index) => {
+
             let setObj: THREE.Object3D;
             group.traverse(object => {
 
@@ -386,9 +387,8 @@ class MapModel{
               if(object.name === fbxs[index].fbx){
                 setObj = object;
               }
-              const { material: oldMat } = object
+              let { material: oldMat } = object
               if(oldMat){
-
                 object.material =  new THREE.MeshMatcapMaterial({
                   color: oldMat.color,
                   map: oldMat.map
@@ -399,15 +399,10 @@ class MapModel{
               }
             })
 
-            setObj.scale.set(0.07,0.07,0.07)
-            setObj.position.z = -1.5;  //-1.5是地面高度
             
             GC_Add(setObj);
-            //让fbx对象的大小、方向统一化
-            unitizeFbx(setObj);
-            // let box:any = new THREE.Box3().setFromObject( mesh );
-            // let measure = new THREE.Vector3();
-            // let size = box.getSize(measure);
+            //让fbx对象的大小、方向、高度统一化
+            unitizeFbx(setObj, fbxs[index].name);
 
             meshs[fbxs[index].name] = setObj;
           })
@@ -461,11 +456,28 @@ class MapModel{
       }
       if(images){
         const textureReq = [];
-        images.forEach(image => {
-          textureReq.push(`trap/image/${image}.png`)
+        images.forEach(texture => {
+          textureReq.push(`${GameConfig.BASE_URL}trap/image/${texture.image}.png`)
         })
-        assetsManager.loadTexture(images).then(res => {
-          console.log(res);
+
+        const textureMats = {};
+        assetsManager.loadTexture(textureReq).then((res:THREE.Texture[]) => {
+
+          res.forEach((texture, index) => {
+            const currentImage = images[index];
+
+            const textureMat = new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true
+            })
+            GC_Add(textureMat);
+            textureMats[currentImage.name] = textureMat;
+
+          })
+
+          this.trapDatas.forEach(trapData => {
+            trapData.textureMat = textureMats[trapData.key];
+          })
         });
 
       }

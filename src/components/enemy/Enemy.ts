@@ -17,6 +17,7 @@ class Enemy{
   description: string;  
   actionType: string;      //敌人生成模式
   icon: string;            //敌人头像URL
+  notCountInTotal: boolean; //是否是费首要目标
 
   startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
@@ -66,7 +67,7 @@ class Enemy{
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, rangeRadius, icon, attributes
+      key, levelType, motion, name, description, rangeRadius, icon, attributes, notCountInTotal
     } = this.enemyData;
 
     this.key = key;
@@ -75,7 +76,7 @@ class Enemy{
     this.name = name;
     this.description = description;
     this.rangeRadius = rangeRadius;
-
+    this.notCountInTotal = notCountInTotal;
 
     this.icon = icon;
 
@@ -173,7 +174,8 @@ class Enemy{
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    this.skeletonMesh.position.z = this.motion === "WALK"? 0 : 10;
+    this.skeletonMesh.position.z = this.motion === "WALK"? 
+      this.gameManager.getPixelSize( 1/7) : this.gameManager.getPixelSize( 10/7);
     this.changeAnimation();
     //初始不可见的
     this.hide();

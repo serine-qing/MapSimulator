@@ -34,19 +34,17 @@ class GameManager{
   
   constructor(mapModel: MapModel, isSimulate?: boolean){
     this.isSimulate = isSimulate? isSimulate : false;
-
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
       mapModel.enemyWaves,
       this
     );
-    
+
     mapModel.trapDatas.forEach(trapData => {
       const trap = new Trap(this, trapData);
       trap.mapTiles = mapModel.mapTiles;
       this.traps.push(trap);
     })
-
     if(!this.isSimulate){
 
       assetsManager.allOnload.then( () => {

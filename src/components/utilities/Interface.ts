@@ -36,6 +36,7 @@ declare global {
     icon: string,           //敌人头像URL
     rangeRadius: number,    //攻击范围
     motion: string,         //移动motion
+    notCountInTotal: boolean,  //非首要目标
     skelUrl?: string,
     atlasUrl?: string,
     skeletonData: any,      //skel数据
@@ -102,10 +103,9 @@ declare global {
     position: Vec2,
     idleAnimate?: string,   //idle动画
     mesh?: THREE.Mesh,     //fbx数据有mesh
-    skeletonData?: any     //spine数据有skeletonData
+    skeletonData?: any,     //spine数据有skeletonData
+    textureMat?: THREE.MeshBasicMaterial  //texture数据才有
   }
 }
-
-
 
 export {Stage, Vec2, TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}

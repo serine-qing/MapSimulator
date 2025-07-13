@@ -10,10 +10,17 @@ const GC_Add = (object: any) => {
 
 const GC_Sweep = () => {
   collection.forEach(obj => {
-    obj.traverse(item => {
-      item.geometry?.dispose();
-      item.material?.dispose();
-    })
+    if(obj.traverse){
+      obj.traverse(item => {
+        item.geometry?.dispose();
+        item.material?.dispose();
+      })
+    }else if(obj.dispose){
+      obj.dispose();
+    }else{
+      console.error(`${obj.name} 释放资源失败`)
+    }
+
   })
 
   collection = [];
