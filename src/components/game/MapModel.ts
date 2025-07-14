@@ -13,6 +13,7 @@ import { unitizeFbx  } from "./FbxHelper";
 
 import { getTrapsKey } from "@/api/assets";
 import { GC_Add } from "./GC";
+import { parseTalent } from "./TalentHelper";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -253,6 +254,7 @@ class MapModel{
           }
         })
 
+        //覆盖属性
         Object.keys(overwrittenData["attributes"]).forEach(key => {
           const attr = overwrittenData["attributes"][key];
           if(attr.m_defined){
@@ -260,11 +262,26 @@ class MapModel{
           }
         })
 
+        //覆盖天赋
+        overwrittenData.talentBlackboard?.forEach(talent => {
+          const {key , value, valueStr} = talent;
+          const find = enemyData.talentBlackboard.find(t => t.key === key);
+          if(find){
+            find.value = value === null ? valueStr : value;
+          }else{
+            enemyData.talentBlackboard.push(talent);
+          }
+        })
       }
       
       enemyData.waveKey = enemyData.key;
       enemyData.icon = GameConfig.BASE_URL + "enemy_icon/" + enemyData.key + ".png";
+
+      this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
+
+      enemyData.talent = parseTalent(enemyData.talentBlackboard);
     })
+    
 
     //关卡魔改后的敌人
     extraEnemies.forEach((enemyDbRef: EnemyRef) => {
@@ -296,10 +313,6 @@ class MapModel{
 
     })
 
-    //应用地图runes效果
-    enemyDatas.forEach(enemy => {
-      this.runesHelper.checkEnemyAttribute(enemy["attributes"]);
-    })
 
     this.enemyDatas = enemyDatas;
   }
@@ -360,12 +373,13 @@ class MapModel{
       const trapKeys:Set<string> = new Set();
 
       tokenInsts.forEach(data => {
-        const {direction, position, inst} = data;
-        console.log(direction)
+        const {direction, position, inst, mainSkillLvl} = data;
+
         this.trapDatas.push({
           key: inst.characterKey,
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
+          mainSkillLvl
         });
 
         trapKeys.add(inst.characterKey);

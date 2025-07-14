@@ -38,4 +38,17 @@ fire_jiejing 能量聚合体
 linux 启动后端：
 ss -tlpn | grep 3000 查看进程pid
 kill 杀死刚刚找到的进程
+cd ../arknights/backend
 nohup npm run dev &  重新启动
+
+trap_182_sglink:纯净结晶需要贴图
+
+有部分3D敌人：克里斯滕球 15章弱化装置
+
+萨卡兹穿刺手 enemy_1072_dlancer 
+技能key rush.dlancer_t[trigger]
+move_speed interval trig_cnt predelay(延迟多久后执行)
+
+赏金猎人“骑士” enemy_1413_mmstck
+技能key Rush.enemy_mmstck_t[trigger]
+move_speed interval trig_cnt predelay

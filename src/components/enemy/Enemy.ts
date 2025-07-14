@@ -4,7 +4,7 @@ import spine from "@/assets/script/spine-threejs.js";
 import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components/utilities/Interface"
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
-import { getSkelOffset, getSpineSize } from "@/components/utilities/SpineHelper"
+import { getSkelOffset, getSpineSize, checkEnemyMotion } from "@/components/utilities/SpineHelper"
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
@@ -32,7 +32,9 @@ class Enemy{
   attackSpeed: number;
 
   position: THREE.Vector2;
-  velocity: Vec2;                //当前速度矢量
+  acceleration: THREE.Vector2;            //加速度
+  inertialVector: THREE.Vector2;          //惯性向量
+  velocity: THREE.Vector2;                //当前速度矢量
   faceTo: number = 1;                //1:右, -1:左
 
   route: EnemyRoute;
@@ -72,7 +74,7 @@ class Enemy{
 
     this.key = key;
     this.levelType = levelType;
-    this.motion = motion;
+    this.motion = checkEnemyMotion(this.key, motion);
     this.name = name;
     this.description = description;
     this.rangeRadius = rangeRadius;
@@ -92,10 +94,9 @@ class Enemy{
     this.checkpoints = this.route.checkpoints;
 
     this.position = new THREE.Vector2();
-    this.velocity = {
-      x: 0,
-      y: 0
-    }
+    this.acceleration = new THREE.Vector2(0, 0);
+    this.inertialVector = new THREE.Vector2(0, 0);
+    this.velocity = new THREE.Vector2(0, 0);
 
     this.targetNode = null;
   }
@@ -119,7 +120,7 @@ class Enemy{
     this.setSpinePosition(x, y);
   }
 
-  public setVelocity(velocity: Vec2){
+  public setVelocity(velocity: THREE.Vector2){
     this.velocity = velocity;
   }
   
@@ -199,6 +200,10 @@ class Enemy{
     
     switch (type) {
       case "MOVE":  
+        //部分0移速的怪也有移动指令，例如GO活动的装备
+        if(this.moveSpeed === 0){
+          return;
+        }
         const pathMap = checkPoint.pathMap?.map;
         const currentPosition = this.position;
 
@@ -218,7 +223,6 @@ class Enemy{
           
         }
         
-        // this.targetPosition.set( targetPosition.x, targetPosition.y );
         let {position, nextNode} = this.targetNode;
         let targetPos = { //深拷贝
           x: position.x,
@@ -241,12 +245,38 @@ class Enemy{
           targetPos.y - currentPosition.y
         ).normalize();
 
-        const moveDistancePerFrame = this.moveSpeed * this.gameManager.gameSpeed * 0.5/GameConfig.FPS;
+        //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
+        //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
+        //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
+        // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
+        // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
+        const isWalk = this.motion === "WALK";
+        const steeringFactor = isWalk? 8 : 20;
+        const maxSteeringForce = isWalk? 10 : 100;
+        //加速度
+        this.acceleration = unitVector
+          .clone()
+          .multiplyScalar(this.moveSpeed * 0.5 )
+          .addScaledVector(this.inertialVector, -1)
+          .multiplyScalar(steeringFactor * this.gameManager.gameSpeed)
+          .clampLength(0, maxSteeringForce * this.gameManager.gameSpeed)
 
-        const velocity: Vec2 = {
-          x: unitVector.x * moveDistancePerFrame,
-          y: unitVector.y * moveDistancePerFrame
-        } 
+        //再根据加速度计算本帧的移动速度向量：
+        //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
+        //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
+        //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
+        const moveSpeedVec = this.acceleration
+          .clone()
+          .multiplyScalar(1 / GameConfig.FPS )
+          .add(this.inertialVector)
+          .clampLength(0, this.moveSpeed)
+        
+        this.inertialVector = moveSpeedVec;
+        
+        //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
+        const velocity = moveSpeedVec
+          .clone()
+          .multiplyScalar( 1 / GameConfig.FPS * this.gameManager.gameSpeed);
 
         this.setVelocity(velocity);
         this.changeToward();
@@ -334,10 +364,11 @@ class Enemy{
 
   //根据移动方向更换spine方向
   private changeToward(){
-    if(this.velocity.x > 0){
+
+    if(this.acceleration.x > 0.01){
 
       this.faceTo = 1;
-    }else if(this.velocity.x < 0){
+    }else if(this.acceleration.x < -0.01){
 
       this.faceTo = -1;
     }
@@ -374,7 +405,7 @@ class Enemy{
     if(!this.spine) return;
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
-
+    
     if(animate){
       this.skeletonMesh.state.setAnimation(
         0, 
@@ -395,6 +426,8 @@ class Enemy{
     }
     const state = {
       position,
+      acceleration: this.acceleration,
+      inertialVector: this.inertialVector,
       checkPointIndex: this.checkPointIndex,
       targetNode: this.targetNode,
       targetWaitingSecond: this.targetWaitingSecond,
@@ -410,6 +443,8 @@ class Enemy{
   
   public set(state){
     const {position, 
+      acceleration,
+      inertialVector,
       checkPointIndex, 
       targetNode, 
       targetWaitingSecond, 
@@ -421,6 +456,8 @@ class Enemy{
     } = state;
 
     this.setPosition(position.x, position.y);
+    this.acceleration = acceleration;
+    this.inertialVector = inertialVector;
     this.checkPointIndex = checkPointIndex;
     this.targetNode = targetNode;
     this.targetWaitingSecond = targetWaitingSecond;

@@ -30,6 +30,8 @@ declare global {
     key: string,            //敌人id
     waveKey: string,       //敌人在波次数据中的id
     attributes: any,        //敌人属性
+    talentBlackboard: any[], //敌人天赋
+    talent: {[key: string]: any},   //解析后的敌人天赋
     description: string,    //
     levelType: string,      //敌人级别 普通/精英/领袖
     name: string,
@@ -101,6 +103,7 @@ declare global {
     key: string,
     direction: string,
     position: Vec2,
+    mainSkillLvl: number,   //技能等级
     idleAnimate?: string,   //idle动画
     mesh?: THREE.Mesh,     //fbx数据有mesh
     skeletonData?: any,     //spine数据有skeletonData

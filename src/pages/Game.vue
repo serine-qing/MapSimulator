@@ -25,6 +25,7 @@ export default{
       if(!this.game){
         this.game = new Game();
       }
+      console.log(this.mapData.levelId)
       this.loading = true;
       await this.game.startGame(this.mapData);
       this.reset();

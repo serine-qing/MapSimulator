@@ -78,8 +78,8 @@ const getTrapIdleAnimation = (key:string, animations: any) => {
   return;
 }
 
-export const getSkelOffset = (item:Enemy): Vec2 => {
-  switch (item.motion) {
+export const getSkelOffset = (enemy:Enemy): Vec2 => {
+  switch (enemy.motion) {
     case "WALK":
       return {
         x:0, 
@@ -113,4 +113,11 @@ const spineMap = {
     offset: null,
     size: 0.8
   },
+}
+
+export const checkEnemyMotion = (key: string, motion: string) => {
+  if(["enemy_10030_vtwand","enemy_10028_vtswd","enemy_10029_vtshld"].includes(key)){
+    return "WALK"
+  }
+  return motion;
 }

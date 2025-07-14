@@ -14,6 +14,7 @@ class Trap{
   direction: string;
   position: Vec2;
   idleAnimate: string;
+  mainSkillLvl: number;    //技能等级
   
   object: THREE.Object3D;          //fbxMesh和skeletonMesh
   fbxMesh: THREE.Mesh;
@@ -31,6 +32,8 @@ class Trap{
     this.key = data.key;
     this.direction = data.direction;
     this.position = data.position;
+    this.mainSkillLvl = data.mainSkillLvl;
+
   }
 
   initMesh(){
@@ -55,14 +58,15 @@ class Trap{
       this.object.position.z = this.gameManager.getPixelSize(height + 1/14) ;
     }else if(this.textureMat){
       this.initTexture()
-      this.object.position.z = this.gameManager.getPixelSize(height) + 0.1;
+      this.object.position.z = this.gameManager.getPixelSize(height) + 0.15;
     }
 
     const coordinate = this.gameManager.getCoordinate(this.position);
     this.object.position.x = coordinate.x;
     this.object.position.y = coordinate.y;
 
-    
+    //初始化技能（目前就是影响一些外观）
+    this.initSkill();
   }
 
   initFbx(){
@@ -86,6 +90,7 @@ class Trap{
 
     //将四元数应用到对象上，通常是将其与对象的quaternion属性相乘。
     meshQuat.multiplyQuaternions(meshQuat, quatY);
+
   }
 
   initSpine(){
@@ -112,6 +117,21 @@ class Trap{
 
     this.object.add(this.textureMesh);
     
+  }
+
+  initSkill(){
+    switch (this.key) {
+      //土石结构的壳
+      case "trap_032_mound":
+        if(this.mainSkillLvl === 1){
+          const skin = this.fbxMesh.children[1];
+          this.fbxMesh.remove(skin);
+          GC_Add(skin);
+        }
+        break;
+    
+    }
+
   }
 }
 

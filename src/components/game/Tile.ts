@@ -167,7 +167,7 @@ class Tile{
       const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
       const textureMat = texture.material;
       this.textureObj = new THREE.Mesh( textureGeo, textureMat );
-      this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.1);
+      this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.08);
       this.object.add(this.textureObj)
     }
 
