@@ -279,7 +279,7 @@ class MapModel{
 
       this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
 
-      enemyData.talent = parseTalent(enemyData.talentBlackboard);
+      enemyData.talents = parseTalent(enemyData.talentBlackboard);
     })
     
 

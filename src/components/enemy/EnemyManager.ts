@@ -148,7 +148,12 @@ class EnemyManager{
     if(this.allWaveFinished) return;
 
     this.getEnemiesInMap().forEach(
-      enemy => enemy.update(this.waveSecond(), this.usedSecond)
+      enemy => {
+        for(let i = 0; i< this.gameManager.gameSpeed; i++){
+          enemy.update(this.waveSecond(), this.usedSecond)
+        }
+      }
+        
     )
 
     this.spawnEnemy();

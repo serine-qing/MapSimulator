@@ -25,12 +25,14 @@ class Enemy{
 
   rangeRadius: number;   //攻击范围
   moveSpeed: number;
+  moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
   atk: number;
   def: number;
   magicResistance: number;
   maxHp: number;
   attackSpeed: number;
 
+  talents: any[];          //天赋
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
@@ -43,7 +45,10 @@ class Enemy{
 
   targetNode: PathNode | null;  //寻路目标点
   
-  currentSecond: number = 0;
+  startSecond: number = 0;      //进入地图的时间点
+  currentSecond: number;        //敌人进入地图后运行的当前时间
+
+  gameSecond: number = 0;
   targetWaitingSecond: number = 0;//等待到目标时间
 
   isStarted: boolean = false;
@@ -69,7 +74,8 @@ class Enemy{
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, rangeRadius, icon, attributes, notCountInTotal
+      key, levelType, motion, name, description, rangeRadius, icon, 
+      attributes, notCountInTotal, talents
     } = this.enemyData;
 
     this.key = key;
@@ -79,7 +85,7 @@ class Enemy{
     this.description = description;
     this.rangeRadius = rangeRadius;
     this.notCountInTotal = notCountInTotal;
-
+    this.talents = talents;
     this.icon = icon;
 
     this.moveSpeed = attributes.moveSpeed;
@@ -111,8 +117,7 @@ class Enemy{
     this.targetWaitingSecond = 0;
     this.targetNode = null;
     this.changeCheckPoint(0)
-    this.currentSecond = 0;
-    this.targetWaitingSecond = 0;
+    this.gameSecond = 0;
   }
 
   public setPosition(x:number, y: number){
@@ -186,13 +191,25 @@ class Enemy{
     if(!this.spine) return;
 
     const Vec2 = this.gameManager.getCoordinate(x, y);
-    
+
     this.spine.position.x = Vec2.x;
     this.spine.position.y = Vec2.y;
   }
 
-  public update(currentSecond: number, usedSecond: number){
-    this.currentSecond = currentSecond;
+  private getPathNode(x: number, y: number){
+    const pathMap = this.currentCheckPoint().pathMap?.map;
+    let currentNode = pathMap? pathMap[y]? pathMap[y][x] : null : null;
+    return currentNode;
+  }
+
+  public update(gameSecond: number, usedSecond: number){
+    if(this.isFinished) return;
+    
+    this.gameSecond = gameSecond;
+    if(!this.startSecond) this.startSecond = gameSecond;
+
+    this.currentSecond = gameSecond - this.startSecond;
+    this.handleTalents();
     if(this.isWaiting()) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
@@ -204,46 +221,63 @@ class Enemy{
         if(this.moveSpeed === 0){
           return;
         }
-        const pathMap = checkPoint.pathMap?.map;
-        const currentPosition = this.position;
 
-        if(this.targetNode === null){
-          //第一次执行move 添加targetNode
-          const intX = Math.floor(currentPosition.x + 0.5);
-          const intY = Math.floor(currentPosition.y + 0.5);
-          
-          let cnode = pathMap? pathMap[intY]? pathMap[intY][intX] : null : null;
-          
-          if(cnode){
-            //如果找不到nextNode，意味着目前就在检查点终点，那么设置目标为当前点cnode
-            this.targetNode = cnode.nextNode ? cnode.nextNode : cnode;
-          }else{
-            throw new Error("未获取到寻路Node");
-          }
-          
+        const currentPosition = this.position;
+        const intX = Math.floor(currentPosition.x + 0.5);
+        const intY = Math.floor(currentPosition.y + 0.5);
+
+        const currentNode = this.getPathNode(intX, intY);
+
+        //核心逻辑：目标地块一直是当前光标地块的nextNode，当前为终点目标地块则为光标地块
+        //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
+        if(
+          //兼容第一次执行的情况
+          this.targetNode === null ||
+          //是否到达新地块用this.targetNode !== currentNode.nextNode 判断，意思是当前目标node不是光标地块的nextNode
+          //到达新地块，并且新地块不是上个地块的nextNode：直接将targetNode切换为新地块的nextNode
+          (this.targetNode !== currentNode.nextNode && this.targetNode !== currentNode)
+        ){
+          //以防万一，如果currentNode没有nextNode就是检查点终点，直接指定
+          this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
         }
-        
+
         let {position, nextNode} = this.targetNode;
-        let targetPos = { //深拷贝
-          x: position.x,
-          y: position.y
-        }
+        let targetPos = new THREE.Vector2(position.x,position.y);
 
         let arrivalDistance = 0.05; //距离下个地块中心多少距离后才会更改方向
+        //当前地块没有nextnode，意为当前就是该检查点终点
         if(nextNode === null){
           //nextNode为null时，目前为检查点终点，这时候就要考虑偏移(reachOffset)了
           targetPos.x += reachOffset.x;
           targetPos.y += reachOffset.y;
         }else{
-          //还未到达此地块中心0.25半径范围内时，则目标仍然为当前光标坐标所在地块中心
+          //若自身光标坐标进入了经过的前一地块的nextNode,
+          //但还未到达此地块中心0.25半径范围内，则目标仍然为当前光标坐标所在地块中心
           arrivalDistance = 0.25;
         }
 
+        // const roundX = Math.round(currentPosition.x)
+        // const roundY = Math.round(currentPosition.y)
+
+        // //光标距离最近地块中心的长度
+        // const distanceToCenter = currentPosition.distanceTo(new THREE.Vector2(roundX, roundY))
+        // console.log(distanceToCenter)
+        
         //移动单位向量
         const unitVector = new THREE.Vector2(
           targetPos.x - currentPosition.x,
           targetPos.y - currentPosition.y
         ).normalize();
+
+        // const simulateDistance = unitVector
+        //   .clone()
+        //   .multiplyScalar(this.actualSpeed())
+        //   .add(currentPosition)
+        //   .distanceTo(targetPos)
+
+        // if(simulateDistance <= arrivalDistance){
+        //   console.log("能到达！")
+        // }
 
         //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
         //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
@@ -256,10 +290,10 @@ class Enemy{
         //加速度
         this.acceleration = unitVector
           .clone()
-          .multiplyScalar(this.moveSpeed * 0.5 )
+          .multiplyScalar(this.actualSpeed())
           .addScaledVector(this.inertialVector, -1)
-          .multiplyScalar(steeringFactor * this.gameManager.gameSpeed)
-          .clampLength(0, maxSteeringForce * this.gameManager.gameSpeed)
+          .multiplyScalar(steeringFactor)
+          .clampLength(0, maxSteeringForce)
 
         //再根据加速度计算本帧的移动速度向量：
         //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
@@ -269,28 +303,27 @@ class Enemy{
           .clone()
           .multiplyScalar(1 / GameConfig.FPS )
           .add(this.inertialVector)
-          .clampLength(0, this.moveSpeed)
+          .clampLength(0, this.actualSpeed())
         
         this.inertialVector = moveSpeedVec;
         
         //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
         const velocity = moveSpeedVec
           .clone()
-          .multiplyScalar( 1 / GameConfig.FPS * this.gameManager.gameSpeed);
+          .multiplyScalar( 1 / GameConfig.FPS );
 
         this.setVelocity(velocity);
         this.changeToward();
         this.move();
 
-        const distanceToTarget = currentPosition.distanceTo(
-          (targetPos) as THREE.Vector2
-        )
+        const distanceToTarget = currentPosition.distanceTo(targetPos);
 
-        //完成单个寻路点
+
+        //第二种切换targetNode的逻辑，进入目标点中心一定范围
         if( distanceToTarget <= arrivalDistance ){
           this.targetNode = this.targetNode?.nextNode;
           //完成最后一个寻路点
-          if( this.targetNode === null || undefined ){
+          if( this.targetNode === null || this.targetNode === undefined ){
             this.nextCheckPoint();
           }
         }
@@ -304,7 +337,7 @@ class Enemy{
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
         switch (type){
           case "WAIT_FOR_SECONDS":
-            this.waitingTo( time + this.currentSecond );
+            this.waitingTo( time + this.gameSecond );
             break;
           case "WAIT_FOR_PLAY_TIME":
             this.waitingTo( time + usedSecond);
@@ -322,7 +355,7 @@ class Enemy{
       case "DISAPPEAR":
         this.hide();
         this.nextCheckPoint();
-        this.update(this.currentSecond, usedSecond);
+        this.update(this.gameSecond, usedSecond);
         break;
       case "APPEAR_AT_POS":
         this.setPosition(
@@ -344,12 +377,51 @@ class Enemy{
 
   }
 
+  //移速倍率
+  public speedRate(): number{
+    let speedRate = 1;
+    const values = Object.values(this.moveSpeedAddons);
+    if(values.length > 0){
+      speedRate = Object.values(this.moveSpeedAddons).reduce((prev, key) => prev * key);
+    }
+    
+    return speedRate;
+  }
+
+  //实际移速
+  public actualSpeed(): number{
+    return this.moveSpeed * this.speedRate() * 0.5;
+  }
+
+  private handleTalents(){
+    this.talents?.forEach(talent => {
+      switch (talent.key) {
+        case "rush":
+          const rush = talent.value;
+          const {move_speed, interval, trig_cnt, predelay} = rush;
+          const trigNum = 
+          Math.min(
+            Math.max(
+              Math.round((this.currentSecond - (predelay||0)) /  interval), 
+              0
+            ), 
+            trig_cnt
+          );
+          this.moveSpeedAddons.rush = trigNum * move_speed + 1;
+
+          break;
+      
+      }
+
+    })
+  }
+
   private waitingTo(time: number){
     this.targetWaitingSecond = time;
   }
 
   private isWaiting(): boolean{
-    return this.currentSecond < this.targetWaitingSecond;
+    return this.gameSecond < this.targetWaitingSecond;
   }
 
   public show(){
@@ -365,10 +437,10 @@ class Enemy{
   //根据移动方向更换spine方向
   private changeToward(){
 
-    if(this.acceleration.x > 0.01){
+    if(this.velocity.x > 0.001){
 
       this.faceTo = 1;
-    }else if(this.acceleration.x < -0.01){
+    }else if(this.velocity.x < -0.001){
 
       this.faceTo = -1;
     }
@@ -432,6 +504,7 @@ class Enemy{
       targetNode: this.targetNode,
       targetWaitingSecond: this.targetWaitingSecond,
       isStarted: this.isStarted,
+      startSecond: this.startSecond,
       isFinished: this.isFinished,
       animateState: this.animateState,
       visible: this.visible,
@@ -452,7 +525,8 @@ class Enemy{
       isFinished, 
       animateState,
       visible,
-      faceTo
+      faceTo,
+      startSecond,
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -462,6 +536,7 @@ class Enemy{
     this.targetNode = targetNode;
     this.targetWaitingSecond = targetWaitingSecond;
     this.isStarted = isStarted;
+    this.startSecond = startSecond;
     this.isFinished = isFinished;
     this.faceTo = faceTo;
     this.animateState = animateState;

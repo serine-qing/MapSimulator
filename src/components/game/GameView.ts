@@ -67,7 +67,8 @@ class GameView{
     gameCanvas.render();
 
     this.enemyManager.getEnemiesInMap().forEach(
-      enemy => enemy.skeletonMesh.update(delta)
+      //TODO不同的敌人动画速率不同
+      enemy => enemy.skeletonMesh.update(delta * Math.min(enemy.speedRate(), 3))
     )
 
     this.traps.forEach(
