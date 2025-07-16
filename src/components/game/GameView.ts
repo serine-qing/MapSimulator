@@ -82,25 +82,6 @@ class GameView{
 
     this.mapTiles.tiles.flat().forEach(tile => tile.destroy());
     GC_Sweep();
-    // this.mapContainer?.traverse(object => {
-    //   if(object.type === "Mesh"){
-    //     const mesh = object as THREE.Mesh;
-    //     //Mesh无法调用 dispose()方法。只能将其从场景中移除。必须针对其geometry和material调用 dispose()方法。
-        
-    //     // console.log(mesh.geometry)
-    //     if(mesh.material instanceof Array){
-    //       mesh.material.forEach(material => {
-
-    //         if(material && material.dispose){
-    //           material.dispose()
-    //         }
-    //       })
-    //     }else{
-    //       mesh.material.dispose();
-    //     }
-    //     mesh.geometry.dispose();
-    //   }
-    // })
     
     this.mapContainer = null;
     this.mapTiles = null;

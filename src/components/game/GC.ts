@@ -11,9 +11,19 @@ const GC_Add = (object: any) => {
 const GC_Sweep = () => {
   collection.forEach(obj => {
     if(obj.traverse){
+
       obj.traverse(item => {
         item.geometry?.dispose();
-        item.material?.dispose();
+
+        if(Array.isArray(item.material)){
+
+          item.material.forEach(mat => {
+            mat?.dispose();
+          })
+        }else{
+          item.material?.dispose();
+        }
+        
       })
     }else if(obj.dispose){
       obj.dispose();

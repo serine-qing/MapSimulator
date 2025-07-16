@@ -19,7 +19,6 @@ class GameManager{
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
   private enemyManager: EnemyManager;
-  private traps: Trap[] = [];       //现在Trap只是静态图像，但是可能后续Trap会和敌人进行数据交换
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -36,15 +35,14 @@ class GameManager{
     this.isSimulate = isSimulate? isSimulate : false;
     //初始化敌人控制类
     this.enemyManager = new EnemyManager(
-      mapModel.enemyWaves,
+      mapModel,
       this
     );
 
-    mapModel.trapDatas.forEach(trapData => {
-      const trap = new Trap(this, trapData);
-      trap.mapTiles = mapModel.mapTiles;
-      this.traps.push(trap);
+    mapModel.traps.forEach(trap => {
+      trap.gameManager = this;
     })
+
     if(!this.isSimulate){
 
       assetsManager.allOnload.then( () => {
@@ -54,7 +52,7 @@ class GameManager{
         this.gameView = new GameView(
           this,
           mapModel.mapTiles,
-          this.traps,
+          mapModel.traps,
           this.enemyManager
         );
 

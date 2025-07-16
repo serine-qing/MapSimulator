@@ -4,6 +4,8 @@ import { textMaterials } from "./TextureHelper";
 import { isArray } from "element-plus/es/utils/types.mjs";
 import AliasHelper from "./AliasHelper";
 import GameManager from "./GameManager";
+import Trap from "./Trap";
+import { GC_Add } from "./GC";
 
 class Tile{
   static boxGeos = [];
@@ -29,6 +31,7 @@ class Tile{
   topMaterial: Material;
   defaultMat: any;    //默认材质
 
+  trap: Trap = null;   //当前地块上的装置
   constructor(tileData: TileData , position: Vec2){
     this.tileData = tileData;
     const {tileKey, heightType, passableMask} = tileData;
@@ -98,6 +101,8 @@ class Tile{
     if(!sideMaterial) sideMaterial = this.defaultMat.side;
     
     this.object = new Object3D();
+
+    GC_Add(this.object);
     this.object.position.x = this.gameManager.getPixelSize(this.position.x);
     this.object.position.y = this.gameManager.getPixelSize(this.position.y);
     this.object.position.z = this.gameManager.getPixelSize(this.height / 2);
@@ -191,7 +196,7 @@ class Tile{
       );
       Tile.boxGeos.push({
         width, height, margin,
-        geo:boxGeo
+        geo: boxGeo
       })
     }
     return boxGeo;
@@ -229,20 +234,8 @@ class Tile{
 
   public destroy() {
     //释放内存
-    
-    this.object.children.forEach((mesh:THREE.Mesh) => {
-      mesh.geometry.dispose();
-      
-      if(isArray(mesh.material)){
-
-        mesh.material.forEach(mat => {
-          if(mat) mat.dispose();
-        })
-
-      }else{
-        mesh.material.dispose();
-      }
-    })
+    this.object = null;
+    this.gameManager = null;
     
   }
 }

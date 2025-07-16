@@ -1,4 +1,4 @@
-import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
+import {RowColToVec2} from "@/components/utilities/utilities"
 import RunesHelper from "./RunesHelper";
 import MapTiles from "./MapTiles"
 import {getEnemiesData} from "@/api/stages"
@@ -14,6 +14,8 @@ import { unitizeFbx  } from "./FbxHelper";
 import { getTrapsKey } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseTalent } from "./TalentHelper";
+import SPFA from "./SPFA";
+import Trap from "./Trap";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -22,13 +24,14 @@ class MapModel{
   private runesHelper: RunesHelper;
 
   public mapTiles: MapTiles; //地图tiles
+  public trapDatas: trapData[] = [];
+  public traps: Trap[] = []; //地图装置
   public enemyWaves: EnemyWave[][] = [];
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
-  public trapDatas: trapData[] = [];
 
-  public pathMaps: PathMap[] = []; //寻路地图
 
+  public SPFA: SPFA;  //寻路对象
   constructor(data: any){
     this.sourceData = data;
     // console.log(this.enemyRoutes)
@@ -41,6 +44,10 @@ class MapModel{
     //解析地图
     this.mapTiles = new MapTiles(this.sourceData.mapData);
 
+    //获取trap数据
+    await this.getTrapDatas();
+
+    this.initTraps();
     //解析敌人路径
     this.parseEnemyRoutes();
 
@@ -52,9 +59,6 @@ class MapModel{
     //获取敌人spine
     this.getEnemySpines();
 
-    //获取fbc文件
-    await this.getTrapDatas();
-
     //绑定route和enemydata
     this.enemyWaves.flat().forEach( wave => {
       //route可能为null
@@ -65,14 +69,151 @@ class MapModel{
       if(findEnemyData) wave.enemyData = findEnemyData;
     })
     
-    //生成寻路地图
-    this.generatepathMaps();  
-    //平整化寻路地图
-    this.flatteningFindMaps();
-
-    this.bindWayFindToCheckPoints();
+    this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
 
     this.sourceData = null;
+  }
+
+  private async getTrapDatas(){
+    const tokenInsts = this.sourceData.predefines?.tokenInsts;
+
+    if(tokenInsts){
+      const trapKeys:Set<string> = new Set();
+
+      tokenInsts.forEach(data => {
+        const {direction, position, inst, mainSkillLvl} = data;
+
+        this.trapDatas.push({
+          key: inst.characterKey,
+          direction: AliasHelper(direction, "predefDirection"),
+          position: RowColToVec2(position),
+          mainSkillLvl
+        });
+
+        trapKeys.add(inst.characterKey);
+      })
+      
+      const res = await getTrapsKey(Array.from(trapKeys));
+
+      const { fbx: fbxs, spine: spines, image: images } = res.data;
+
+      if(fbxs){
+        const meshs: { [key:string]: any}  = {};
+        assetsManager.loadFbx( fbxs ).then(res => {
+          res.forEach((group, index) => {
+
+            let setObj: THREE.Object3D;
+            group.traverse(object => {
+
+              //需要添加到场景中的obj
+              if(object.name === fbxs[index].fbx){
+                setObj = object;
+              }
+              let { material: oldMat } = object
+              if(oldMat){
+                object.material =  new THREE.MeshMatcapMaterial({
+                  color: oldMat.color,
+                  map: oldMat.map
+                });
+
+                oldMat.dispose();
+
+              }
+            })
+
+            
+            GC_Add(setObj);
+            //让fbx对象的大小、方向、高度统一化
+            unitizeFbx(setObj, fbxs[index].name);
+
+            meshs[fbxs[index].name] = setObj;
+          })
+
+          this.trapDatas.forEach( trapData => {
+            trapData.mesh = meshs[trapData.key];
+          })
+
+        })
+      }
+      if(spines){
+        const skelDatas: { [key:string]: any} = {};
+        const skelNames = [];
+        const atlasNames = [];
+
+        spines.forEach(spine => {
+          const { skel, atlas } = spine;
+          skelNames.push(`trap/spine/${skel}/${skel}.skel`);
+          atlasNames.push(`trap/spine/${atlas}/${atlas}.atlas`);
+        })
+
+        assetsManager.loadSpines(skelNames, atlasNames).then( () => {
+
+          const spineManager = assetsManager.spineManager;
+          for (let i = 0; i< skelNames.length; i++){
+            const key = spines[i].skel;
+            const skelName = skelNames[i];
+            const atlasName = atlasNames[i];
+          
+            const atlas = spineManager.get(atlasName);
+            const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+            const skeletonJson = new spine.SkeletonBinary(atlasLoader);
+            skeletonJson.scale = 0.019;
+
+            const skeletonData = skeletonJson.readSkeletonData(
+              spineManager.get(skelName)
+            );
+            
+            skelDatas[key] = skeletonData;
+          }
+
+          this.trapDatas.forEach( trapData => {
+            const skelData = skelDatas[trapData.key];
+            trapData.skeletonData = skelData;
+            const idleAnimate = getAnimation(trapData.key, skelData.animations, "Trap_Idle");
+            trapData.idleAnimate = idleAnimate;
+          })
+
+        })
+
+      }
+      if(images){
+        const textureReq = [];
+        images.forEach(texture => {
+          textureReq.push(`${GameConfig.BASE_URL}trap/image/${texture.image}.png`)
+        })
+
+        const textureMats = {};
+        assetsManager.loadTexture(textureReq).then((res:THREE.Texture[]) => {
+
+          res.forEach((texture, index) => {
+            const currentImage = images[index];
+
+            const textureMat = new THREE.MeshBasicMaterial({
+              map: texture,
+              transparent: true
+            })
+            GC_Add(textureMat);
+            textureMats[currentImage.name] = textureMat;
+
+          })
+
+          this.trapDatas.forEach(trapData => {
+            trapData.textureMat = textureMats[trapData.key];
+          })
+        });
+
+      }
+    }
+
+  }
+
+  private initTraps(){
+    this.trapDatas.forEach(trapData => {
+      const trap = new Trap(trapData);
+      this.traps.push(trap);
+    });
+
+    this.mapTiles.bindTraps(this.traps);
   }
 
   private getRunes(){
@@ -366,345 +507,6 @@ class MapModel{
 
   }
 
-  private async getTrapDatas(){
-    const tokenInsts = this.sourceData.predefines?.tokenInsts;
-
-    if(tokenInsts){
-      const trapKeys:Set<string> = new Set();
-
-      tokenInsts.forEach(data => {
-        const {direction, position, inst, mainSkillLvl} = data;
-
-        this.trapDatas.push({
-          key: inst.characterKey,
-          direction: AliasHelper(direction, "predefDirection"),
-          position: RowColToVec2(position),
-          mainSkillLvl
-        });
-
-        trapKeys.add(inst.characterKey);
-      })
-      
-      const res = await getTrapsKey(Array.from(trapKeys));
-
-      const { fbx: fbxs, spine: spines, image: images } = res.data;
-
-      if(fbxs){
-        const meshs: { [key:string]: any}  = {};
-        assetsManager.loadFbx( fbxs ).then(res => {
-          res.forEach((group, index) => {
-
-            let setObj: THREE.Object3D;
-            group.traverse(object => {
-
-              //需要添加到场景中的obj
-              if(object.name === fbxs[index].fbx){
-                setObj = object;
-              }
-              let { material: oldMat } = object
-              if(oldMat){
-                object.material =  new THREE.MeshMatcapMaterial({
-                  color: oldMat.color,
-                  map: oldMat.map
-                });
-
-                oldMat.dispose();
-
-              }
-            })
-
-            
-            GC_Add(setObj);
-            //让fbx对象的大小、方向、高度统一化
-            unitizeFbx(setObj, fbxs[index].name);
-
-            meshs[fbxs[index].name] = setObj;
-          })
-
-          this.trapDatas.forEach( trapData => {
-            trapData.mesh = meshs[trapData.key];
-          })
-
-        })
-      }
-      if(spines){
-        const skelDatas: { [key:string]: any} = {};
-        const skelNames = [];
-        const atlasNames = [];
-
-        spines.forEach(spine => {
-          const { skel, atlas } = spine;
-          skelNames.push(`trap/spine/${skel}/${skel}.skel`);
-          atlasNames.push(`trap/spine/${atlas}/${atlas}.atlas`);
-        })
-
-        assetsManager.loadSpines(skelNames, atlasNames).then( () => {
-
-          const spineManager = assetsManager.spineManager;
-          for (let i = 0; i< skelNames.length; i++){
-            const key = spines[i].skel;
-            const skelName = skelNames[i];
-            const atlasName = atlasNames[i];
-          
-            const atlas = spineManager.get(atlasName);
-            const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-            const skeletonJson = new spine.SkeletonBinary(atlasLoader);
-            skeletonJson.scale = 0.019;
-
-            const skeletonData = skeletonJson.readSkeletonData(
-              spineManager.get(skelName)
-            );
-            
-            skelDatas[key] = skeletonData;
-          }
-
-          this.trapDatas.forEach( trapData => {
-            const skelData = skelDatas[trapData.key];
-            trapData.skeletonData = skelData;
-            const idleAnimate = getAnimation(trapData.key, skelData.animations, "Trap_Idle");
-            trapData.idleAnimate = idleAnimate;
-          })
-
-        })
-
-      }
-      if(images){
-        const textureReq = [];
-        images.forEach(texture => {
-          textureReq.push(`${GameConfig.BASE_URL}trap/image/${texture.image}.png`)
-        })
-
-        const textureMats = {};
-        assetsManager.loadTexture(textureReq).then((res:THREE.Texture[]) => {
-
-          res.forEach((texture, index) => {
-            const currentImage = images[index];
-
-            const textureMat = new THREE.MeshBasicMaterial({
-              map: texture,
-              transparent: true
-            })
-            GC_Add(textureMat);
-            textureMats[currentImage.name] = textureMat;
-
-          })
-
-          this.trapDatas.forEach(trapData => {
-            trapData.textureMat = textureMats[trapData.key];
-          })
-        });
-
-      }
-    }
-
-  }
-
-  //生成寻路地图需要用到的拷贝对象
-  private generateTileMapping(): PathNode[][]{
-    const mapping = [];
-    const y = this.mapTiles.height;
-    const x = this.mapTiles.width;
-
-    for(let i=0; i<y;i++){
-      mapping[i] = [];
-      for(let j=0; j<x; j++){
-        mapping[i][j] = null;
-      }
-    }
-    return mapping;
-  }
-
-
-
-  //生成所有routes的寻路地图
-  private generatepathMaps(){
-    this.enemyRoutes.forEach(route => {
-      const points: Vec2[]= [];
-      const motionMode = route.motionMode;
-
-      route.checkpoints.forEach(point =>{
-        //移动类检查点
-        if(point.type === "MOVE"){
-          points.push(point.position);
-        }
-      })
-
-      points.forEach(point => {
-
-        //如果发现之前创建过一张移动模式一致，目标地块一致的寻路地图，就会直接跳过生成
-        const find = this.pathMaps.find(item =>{
-          return item.motionMode === motionMode && 
-            item.targetPoint.x === point.x && 
-            item.targetPoint.y === point.y;
-        })
-        
-        if(find === undefined){ 
-          let findMap = this.generatepathMapsByVec(point,motionMode);
-
-          const pathMap: PathMap = {
-            motionMode: motionMode,
-            targetPoint:{x: point.x, y: point.y},
-            map : findMap
-          }
-          
-          this.pathMaps.push(pathMap)
-        }
-      })
-      
-    })
-
-  }
-
-  //给定目标地块生成寻路地图
-  /**
-   *
-   * @param {*} x X轴坐标（方向朝右）
-   * @param {*} y Y轴坐标（方向朝上）
-   * @param {*} motionMode 行动方式 "WALK"地面 "FLY"飞行
-   * @return {*} mapping
-   * @memberof mapParser
-   */
-  private generatepathMapsByVec(target: Vec2, motionMode: string): PathNode[][]{
-    const mapping: PathNode[][] = this.generateTileMapping();
-    const {x, y}= target;
-
-    const node: PathNode = {
-      position: {x, y},
-      distance: 0,
-      nextNode: null
-    };
-    mapping[y][x] = node;
-
-    const queue: PathNode[] = [];
-    queue.push(mapping[y][x]);
-
-    //nowTile是当前中心地块
-    for(let nowTile: PathNode | undefined; nowTile = queue.shift();){
-
-      //按上右下左的顺序扫描这个地块周围4个地块
-      let nowPostion = nowTile.position;
-      let scanList = [
-        [nowPostion.x,nowPostion.y + 1],
-        [nowPostion.x + 1,nowPostion.y],
-        [nowPostion.x,nowPostion.y - 1],
-        [nowPostion.x - 1,nowPostion.y]
-      ]
-
-      for(let i=0;i<scanList.length;i++){
-        let _x = scanList[i][0];
-        let _y = scanList[i][1];
-
-        //扫描地板是可通行地板
-        if(
-          motionMode === "WALK" && this.mapTiles.isTilePassable(_x,_y) || 
-          motionMode === "FLY" && this.mapTiles.isTileFlyable(_x,_y)
-        ){
-
-          if(mapping[_y][_x] === null){
-            mapping[_y][_x] = {
-              position: {x: _x, y: _y},
-              distance: -1,
-              nextNode: null,
-            }
-          }
-
-          //假定离目标的距离
-          let assumeDistance = nowTile.distance + 1;
-          let nowScan = mapping[_y][_x];
-
-          //如果此时的距离小于被记录的距离，或者还没有记录距离
-          //那么将这个假设的距离记录，将中心地块设置为被扫描地块的nextNode，将被扫描的地块添加到队列尾
-          if(nowScan.distance === -1 || assumeDistance < nowScan.distance){
-            nowScan.distance = assumeDistance;
-            nowScan.nextNode = nowTile;
-            queue.push(nowScan)
-          }
-        }
-      }
-    }
-
-    return mapping;
-  }
-
-  //平整化
-  private flatteningFindMaps(){
-    this.pathMaps.forEach(findMap => {
-      const {map, motionMode}  = findMap;
-
-      map.forEach(row => {
-        row.forEach(point => {
-
-          if(point !== null){
-            this.flatteningSinglePoint(point, motionMode)
-          }
-
-        })
-      })
-    })
-  }
-
-  //单点平整化
-  private flatteningSinglePoint(point: PathNode, motionMode: string){
-    const stack: PathNode[] = [];
-    let currentNode = point.nextNode;
-    let p1 = point.position;  //开始点坐标
-    let p2;  //结束点坐标
-    let endPoint: PathNode | undefined; //结束点
-    let points; //开始点与结束点之间经过Bresenham直线算法生成的点
-
-    while(currentNode){
-      stack.push(currentNode);
-      currentNode = currentNode.nextNode;
-    }
-
-    while(endPoint = stack.pop()){
-      p2 = endPoint.position;
-      points = bresenhamLine(p1.x,p1.y,p2.x,p2.y);
-
-      // if(p1[0] === 1 && p1[1] === 5  && p2[0] === 6  && p2[1] === 1){
-      //   console.log(points)
-      // }
-
-      //blocked 是否找到无法通行的格子
-      let blocked = points.find(p3 => {
-        if(motionMode === "FLY"){
-          return !this.mapTiles.isTileFlyable(p3[0],p3[1]);
-        }
-        else if(motionMode === "WALK"){
-          return !this.mapTiles.isTilePassable(p3[0],p3[1]);
-        }
-      })
-      if(!blocked){
-        point.nextNode = endPoint;
-        break;
-      }
-    }
-  }
-
-  //获取某个目标的寻路地图
-  private getPathMap(targetPoint: Vec2, motionMode: string) : PathMap | undefined{
-    return this.pathMaps.find(pathMap => {
-      return pathMap.motionMode === motionMode &&
-        pathMap.targetPoint.x === targetPoint.x &&
-        pathMap.targetPoint.y === targetPoint.y
-    })
-  }
-
-  //给移动检查点绑定寻路地图
-  private bindWayFindToCheckPoints(){
-    this.enemyRoutes.forEach(route => {
-      const motionMode = route.motionMode;
-      route.checkpoints.forEach(checkPoint => {
-
-        if(checkPoint.type === "MOVE"){
-
-          const pathMap: PathMap | undefined = this.getPathMap(checkPoint.position, motionMode)
-          checkPoint.pathMap = pathMap;
-        }
-
-      })
-    })
-  }
 }
 
 export default MapModel;

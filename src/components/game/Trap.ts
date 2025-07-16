@@ -1,13 +1,12 @@
 import * as THREE from "three";
 import GameManager from "./GameManager";
-import MapTiles from "./MapTiles";
 import GameConfig from "../utilities/GameConfig";
 import spine from "@/assets/script/spine-threejs.js";
 import { GC_Add } from "./GC";
+import Tile from "./Tile";
 
 class Trap{
   gameManager: GameManager;
-  mapTiles: MapTiles;
   data: trapData;  //原始数据
 
   key: string;
@@ -25,9 +24,8 @@ class Trap{
   textureMat: THREE.MeshBasicMaterial;
   textureMesh: THREE.Mesh;
 
-  constructor(gameManager: GameManager, data: trapData){
-    this.gameManager = gameManager;
-
+  tile: Tile;   //装置位于的地块
+  constructor(data: trapData){
     this.data = data;
     this.key = data.key;
     this.direction = data.direction;
@@ -42,15 +40,14 @@ class Trap{
     this.skeletonData = this.data.skeletonData;
     this.textureMat = this.data.textureMat;
 
-    const localTile = this.mapTiles.get(this.position);
-    const height = localTile.height? localTile.height : 0;
+    const height = this.tile.height? this.tile.height : 0;
 
     if( this.data.mesh){
 
       this.initFbx();
       
       //调整高台装置的高度
-      this.object.position.z = localTile.getPixelHeight();    
+      this.object.position.z = this.tile.getPixelHeight();    
 
     }else if(this.skeletonData){
 

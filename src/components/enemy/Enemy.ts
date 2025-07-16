@@ -5,6 +5,8 @@ import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
 import { getSkelOffset, getSpineSize, checkEnemyMotion } from "@/components/utilities/SpineHelper"
+import SPFA from "../game/SPFA";
+import { GC_Add } from "../game/GC";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
@@ -37,13 +39,14 @@ class Enemy{
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
   velocity: THREE.Vector2;                //当前速度矢量
-  faceTo: number = 1;                //1:右, -1:左
+  faceToward: number = 1;                //1:右, -1:左
 
   route: EnemyRoute;
   checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
 
-  targetNode: PathNode | null;  //寻路目标点
+  SPFA: SPFA;
+  targetNode: PathNode;  //寻路目标点
   
   startSecond: number = 0;      //进入地图的时间点
   currentSecond: number;        //敌人进入地图后运行的当前时间
@@ -166,6 +169,7 @@ class Enemy{
 
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
+    GC_Add(this.skeletonMesh);
     this.spine.add(this.skeletonMesh);
 
     const offset = getSkelOffset(this);
@@ -196,11 +200,7 @@ class Enemy{
     this.spine.position.y = Vec2.y;
   }
 
-  private getPathNode(x: number, y: number){
-    const pathMap = this.currentCheckPoint().pathMap?.map;
-    let currentNode = pathMap? pathMap[y]? pathMap[y][x] : null : null;
-    return currentNode;
-  }
+
 
   public update(gameSecond: number, usedSecond: number){
     if(this.isFinished) return;
@@ -223,10 +223,11 @@ class Enemy{
         }
 
         const currentPosition = this.position;
-        const intX = Math.floor(currentPosition.x + 0.5);
-        const intY = Math.floor(currentPosition.y + 0.5);
-
-        const currentNode = this.getPathNode(intX, intY);
+        const currentNode = this.SPFA.getPathNode(
+          this.currentCheckPoint().position,
+          this.route.motionMode,
+          currentPosition
+        );
 
         //核心逻辑：目标地块一直是当前光标地块的nextNode，当前为终点目标地块则为光标地块
         //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
@@ -237,7 +238,8 @@ class Enemy{
           //到达新地块，并且新地块不是上个地块的nextNode：直接将targetNode切换为新地块的nextNode
           (this.targetNode !== currentNode.nextNode && this.targetNode !== currentNode)
         ){
-          //以防万一，如果currentNode没有nextNode就是检查点终点，直接指定
+          
+          //如果currentNode没有nextNode，就是检查点终点
           this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
         }
 
@@ -292,8 +294,8 @@ class Enemy{
           .clone()
           .multiplyScalar(this.actualSpeed())
           .addScaledVector(this.inertialVector, -1)
-          .multiplyScalar(steeringFactor)
-          .clampLength(0, maxSteeringForce)
+          .multiplyScalar(steeringFactor * this.gameManager.gameSpeed)
+          .clampLength(0, maxSteeringForce * this.gameManager.gameSpeed)
 
         //再根据加速度计算本帧的移动速度向量：
         //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
@@ -310,18 +312,19 @@ class Enemy{
         //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
         const velocity = moveSpeedVec
           .clone()
-          .multiplyScalar( 1 / GameConfig.FPS );
+          .multiplyScalar( 1 / GameConfig.FPS * this.gameManager.gameSpeed);
 
         this.setVelocity(velocity);
-        this.changeToward();
         this.move();
-
+        this.changeFaceToward()
+;
         const distanceToTarget = currentPosition.distanceTo(targetPos);
 
 
         //第二种切换targetNode的逻辑，进入目标点中心一定范围
         if( distanceToTarget <= arrivalDistance ){
           this.targetNode = this.targetNode?.nextNode;
+
           //完成最后一个寻路点
           if( this.targetNode === null || this.targetNode === undefined ){
             this.nextCheckPoint();
@@ -434,18 +437,14 @@ class Enemy{
     if(this.spine) this.skeletonMesh.visible = this.visible;
   }
 
-  //根据移动方向更换spine方向
-  private changeToward(){
 
-    if(this.velocity.x > 0.001){
+  //根据速度方向更换spine方向
+  private changeFaceToward(){
+    if(this.velocity.x > 0.001) this.faceToward = 1;
+    if(this.velocity.x < -0.001) this.faceToward = -1;
+    
 
-      this.faceTo = 1;
-    }else if(this.velocity.x < -0.001){
-
-      this.faceTo = -1;
-    }
-
-    if(this.spine) this.skeletonMesh.scale.x = this.faceTo;
+    if(this.spine) this.skeletonMesh.scale.x = this.faceToward;
   }
 
   private idle(){
@@ -501,6 +500,7 @@ class Enemy{
       acceleration: this.acceleration,
       inertialVector: this.inertialVector,
       checkPointIndex: this.checkPointIndex,
+      faceToward: this.faceToward,
       targetNode: this.targetNode,
       targetWaitingSecond: this.targetWaitingSecond,
       isStarted: this.isStarted,
@@ -508,7 +508,6 @@ class Enemy{
       isFinished: this.isFinished,
       animateState: this.animateState,
       visible: this.visible,
-      faceTo: this.faceTo
     }
 
     return state;
@@ -519,13 +518,13 @@ class Enemy{
       acceleration,
       inertialVector,
       checkPointIndex, 
+      faceToward,
       targetNode, 
       targetWaitingSecond, 
       isStarted, 
       isFinished, 
       animateState,
       visible,
-      faceTo,
       startSecond,
     } = state;
 
@@ -533,19 +532,19 @@ class Enemy{
     this.acceleration = acceleration;
     this.inertialVector = inertialVector;
     this.checkPointIndex = checkPointIndex;
+    this.faceToward = faceToward;
     this.targetNode = targetNode;
     this.targetWaitingSecond = targetWaitingSecond;
     this.isStarted = isStarted;
     this.startSecond = startSecond;
     this.isFinished = isFinished;
-    this.faceTo = faceTo;
     this.animateState = animateState;
     if(animateState){
       this.changeAnimation();
     }
 
     visible? this.show() : this.hide();
-    this.changeToward();
+    this.changeFaceToward();
   }
 
   public destroy(){
@@ -558,9 +557,6 @@ class Enemy{
     if(this.spine){
       this.spine?.remove(this.skeletonMesh);
       this.spine = null;
-
-      this.skeletonMesh?.dispose();
-      this.skeletonMesh = null;
     }
 
   }

@@ -1,5 +1,6 @@
 import AliasHelper from "./AliasHelper";
 import Tile from "./Tile";
+import Trap from "./Trap";
 
 class MapTiles{
   public tiles: Tile[][] = [];
@@ -42,6 +43,7 @@ class MapTiles{
         
       })
     })
+
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
@@ -68,6 +70,19 @@ class MapTiles{
   isTileFlyable(x: number, y: number): boolean{
     const tile = this.get(x, y);
     return tile !== null && (tile.passableMask === "FLY_ONLY" || tile.passableMask === "ALL");
+  }
+
+  bindTraps(traps: Trap[]){
+    traps.forEach(trap => {
+      const tile = this.get(trap.position);
+      if(tile){
+        tile.trap = trap;
+        trap.tile = tile;
+      }else{
+        console.error(`${trap.key} 获取tile出错！`)
+      }
+    })
+
   }
 }
 

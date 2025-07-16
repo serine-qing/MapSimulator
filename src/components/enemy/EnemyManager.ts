@@ -1,10 +1,12 @@
 import GameManager from "../game/GameManager";
+import MapModel from "../game/MapModel";
 import Enemy from "./Enemy"
 import eventBus from "@/components/utilities/EventBus";
 
 //敌人状态管理
 class EnemyManager{
   public gameManager: GameManager;
+  public mapModel: MapModel;
 
   public enemies: Enemy[][] = []; //敌人对象数组
   public flatEnemies: Enemy[] = []; //一维敌人对象数组，方便读取
@@ -16,14 +18,15 @@ class EnemyManager{
   private usedSecond:number = 0;     //之前波次已经使用掉的时间
   public allWaveFinished: boolean = false;  //全部波次已经结束
   
-  constructor(enemyWaves: EnemyWave[][], gameManager: GameManager,){
+  constructor(mapModel: MapModel, gameManager: GameManager,){
     this.gameManager = gameManager;
-    this.initEnemies(enemyWaves);
+    this.mapModel = mapModel;
+    this.initEnemies();
   }
 
-  public initEnemies(enemyWaves: EnemyWave[][]){
+  public initEnemies(){
     let index = 0;
-    enemyWaves.forEach(innerWaves =>{
+    this.mapModel.enemyWaves.forEach(innerWaves =>{
 
       const innerEnemies: Enemy[] = [];
       
@@ -31,6 +34,7 @@ class EnemyManager{
         const enemy = new Enemy(wave);
         enemy.id = index++;
         enemy.gameManager = this.gameManager;
+        enemy.SPFA = this.mapModel.SPFA;
         innerEnemies.push(enemy);
       })
 
@@ -149,9 +153,7 @@ class EnemyManager{
 
     this.getEnemiesInMap().forEach(
       enemy => {
-        for(let i = 0; i< this.gameManager.gameSpeed; i++){
           enemy.update(this.waveSecond(), this.usedSecond)
-        }
       }
         
     )
@@ -210,6 +212,7 @@ class EnemyManager{
     this.flatEnemies = null; 
     this.enemiesInMap = null;
     this.gameManager = null;
+    this.mapModel = null;
   }
 }
 
