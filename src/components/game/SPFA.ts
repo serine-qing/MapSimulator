@@ -177,6 +177,7 @@ class SPFA{
       case "trap_077_rmtarmn":
       case "trap_078_rmtarms":
       case "trap_080_garage":
+      case "trap_111_wdfarm":
       case "trap_156_dsshell":
       case "trap_163_foolcrate":
       case "trap_405_xbroadblock":

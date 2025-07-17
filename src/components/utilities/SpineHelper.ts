@@ -94,10 +94,10 @@ export const getSkelOffset = (enemy:Enemy): Vec2 => {
   }
 }
 
-export const getSpineSize = (inst: any): number => {
+export const getspineScale = (inst: any): number => {
   // console.log(enemy.name +" : "+ enemy.key)
   const size = spineMap[inst.key]?.size
-  return size? size : 1;
+  return size? size : 0.9;
 }
 
 const spineMap = {

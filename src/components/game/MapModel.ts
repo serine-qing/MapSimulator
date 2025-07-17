@@ -348,7 +348,7 @@ class MapModel{
   private async initEnemyData(enemyDbRefs: EnemyRef[]){
 
     const waves = this.enemyWaves.flat();
-    const enemyDataKeys = ["description","levelType","name","rangeRadius","motion"];
+    const enemyDataKeys = ["description","levelType","name","applyWay", "rangeRadius","motion"];
 
     //波次中会出现的敌人对应的enemyDbRef数组
     //使用Set防止重复

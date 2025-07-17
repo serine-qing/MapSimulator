@@ -36,6 +36,7 @@ declare global {
     levelType: string,      //敌人级别 普通/精英/领袖
     name: string,
     icon: string,           //敌人头像URL
+    applyWay: string,       //是否是远程
     rangeRadius: number,    //攻击范围
     motion: string,         //移动motion
     notCountInTotal: boolean,  //非首要目标

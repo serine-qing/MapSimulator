@@ -1,15 +1,16 @@
 import * as THREE from "three";
 import spine from "@/assets/script/spine-threejs.js";
 
-import {EnemyWave, CheckPoint, PathMap, EnemyRoute, PathNode} from "@/components/utilities/Interface"
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
-import { getSkelOffset, getSpineSize, checkEnemyMotion } from "@/components/utilities/SpineHelper"
+import { getSkelOffset, getspineScale, checkEnemyMotion } from "@/components/utilities/SpineHelper"
 import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
+import MapTiles from "../game/MapTiles";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
+  mapTiles: MapTiles;
 
   id: number;    //EnemyManager中使用的id
   key: string;
@@ -25,6 +26,7 @@ class Enemy{
   fragmentTime: number;  //分支开始时间
   waveTime: number;      //大波次开始时间
 
+  applyWay: string;      //是否是远程
   rangeRadius: number;   //攻击范围
   moveSpeed: number;
   moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
@@ -40,6 +42,11 @@ class Enemy{
   inertialVector: THREE.Vector2;          //惯性向量
   velocity: THREE.Vector2;                //当前速度矢量
   faceToward: number = 1;                //1:右, -1:左
+
+  feetOffset: Vec2 = {
+    x: 0,
+    y: -0.2
+  };   //足坐标偏移
 
   route: EnemyRoute;
   checkpoints: CheckPoint[];
@@ -59,16 +66,20 @@ class Enemy{
 
   public spawnTime;             //模拟数据中的出生时间
 
-  private visible: boolean = false;
+  public visible: boolean = false;
   private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
   public spine: THREE.Object3D;
+  public shadow: THREE.Mesh;
+  public shadowHeight: number = 0.2;
+  public attackRangeCircle: THREE.Line;         //攻击范围的圈
 
   private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
   private idleAnimate: string;   //skel 站立的动画名
 
   public gameManager: GameManager;
+
   constructor(wave: EnemyWave){
     this.enemyData = wave.enemyData;
     this.actionType = wave.actionType;
@@ -77,7 +88,7 @@ class Enemy{
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, rangeRadius, icon, 
+      key, levelType, motion, name, description, rangeRadius, icon, applyWay,
       attributes, notCountInTotal, talents
     } = this.enemyData;
 
@@ -86,6 +97,7 @@ class Enemy{
     this.motion = checkEnemyMotion(this.key, motion);
     this.name = name;
     this.description = description;
+    this.applyWay = applyWay;
     this.rangeRadius = rangeRadius;
     this.notCountInTotal = notCountInTotal;
     this.talents = talents;
@@ -178,17 +190,21 @@ class Enemy{
     this.skeletonMesh.position.x = coordinateOffset.x;
     this.skeletonMesh.position.y = coordinateOffset.y;
 
-    const spineSize = getSpineSize(this);
-    this.spine.scale.set(spineSize,spineSize,1);
+    const spineScale = getspineScale(this);
+    this.spine.scale.set(spineScale,spineScale,1);
 
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     this.skeletonMesh.position.z = this.motion === "WALK"? 
       this.gameManager.getPixelSize( 1/7) : this.gameManager.getPixelSize( 10/7);
+    
+    this.initShadow();
+    this.initAttackRangeCircle();
     this.changeAnimation();
     //初始不可见的
     this.hide();
+
   }
 
   public setSpinePosition(x: number, y: number){
@@ -200,7 +216,77 @@ class Enemy{
     this.spine.position.y = Vec2.y;
   }
 
+  initShadow(){
+    const path = new THREE.Shape();
+    path.absellipse(
+      0,0,
+      this.gameManager.getPixelSize(0.35), this.gameManager.getPixelSize(0.09),
+      0, Math.PI*2, 
+      false,
+      0
+    );
 
+    const geometry = new THREE.ShapeBufferGeometry( path );
+    const material = new THREE.MeshBasicMaterial( { 
+      color: "#000000",
+      transparent: true, // 启用透明度
+      opacity: 0.4 // 设置透明度
+    } );
+    const shadow = new THREE.Mesh( geometry, material );
+
+    this.shadow = shadow;
+    shadow.position.z = this.shadowHeight;
+    
+    //(0, -0.2)足坐标位置
+    const feetOffset = this.gameManager.getCoordinate(this.feetOffset);
+    shadow.position.x = feetOffset.x;
+    shadow.position.y = feetOffset.y;
+    this.spine.add(shadow)
+  }
+
+  initAttackRangeCircle(){
+    if(this.applyWay === "RANGED"){
+      const radius = this.gameManager.getPixelSize(this.rangeRadius);
+      const curve = new THREE.EllipseCurve(
+        0,  0,            // ax, aY
+        radius, radius,           // xRadius, yRadius
+        0,  2 * Math.PI,  // aStartAngle, aEndAngle
+        false,            // aClockwise
+        0                 // aRotation
+      );
+
+      const points = curve.getPoints( 50 );
+      const geometry = new THREE.BufferGeometry().setFromPoints( points );
+      const material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+
+      this.attackRangeCircle = new THREE.Line( geometry, material );
+
+      this.attackRangeCircle.position.z = this.gameManager.getPixelSize(GameConfig.TILE_HEIGHT) + 0.2;
+      this.attackRangeCircle.visible = false;
+      this.spine.add(this.attackRangeCircle)
+    }
+
+  }
+
+  //根据是否在高台，修改阴影高度
+  updateShadowHeight(){
+    if(!this.spine) return;
+
+    const x = Math.round(this.position.x);
+    const y = Math.round(this.position.y);
+    const currentTile = this.mapTiles.get(x, y);
+    if( currentTile.passableMask === "ALL" ){
+      //地面
+      this.shadowHeight = 0.2;
+      
+    }else{
+      //高台
+      this.shadowHeight = currentTile.getPixelHeight() + 0.2;
+      
+    }
+
+    this.shadow.position.z = this.shadowHeight;
+  }
 
   public update(gameSecond: number, usedSecond: number){
     if(this.isFinished) return;
@@ -210,7 +296,7 @@ class Enemy{
 
     this.currentSecond = gameSecond - this.startSecond;
     this.handleTalents();
-    if(this.isWaiting()) return;
+    if(this.waitingTime() > 0) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
     const {type, time, reachOffset} = checkPoint;
@@ -316,7 +402,8 @@ class Enemy{
 
         this.setVelocity(velocity);
         this.move();
-        this.changeFaceToward()
+        this.changeFaceToward();
+        this.updateShadowHeight();
 ;
         const distanceToTarget = currentPosition.distanceTo(targetPos);
 
@@ -423,18 +510,18 @@ class Enemy{
     this.targetWaitingSecond = time;
   }
 
-  private isWaiting(): boolean{
-    return this.gameSecond < this.targetWaitingSecond;
+  public waitingTime(): number{
+    return this.targetWaitingSecond - this.gameSecond;
   }
 
   public show(){
     this.visible = true;
-    if(this.spine) this.skeletonMesh.visible = this.visible;
+    if(this.spine) this.spine.visible = this.visible;
   }
 
   public hide(){  
     this.visible = false;
-    if(this.spine) this.skeletonMesh.visible = this.visible;
+    if(this.spine) this.spine.visible = this.visible;
   }
 
 
@@ -507,6 +594,7 @@ class Enemy{
       startSecond: this.startSecond,
       isFinished: this.isFinished,
       animateState: this.animateState,
+      shadowHeight: this.shadowHeight,
       visible: this.visible,
     }
 
@@ -524,6 +612,7 @@ class Enemy{
       isStarted, 
       isFinished, 
       animateState,
+      shadowHeight,
       visible,
       startSecond,
     } = state;
@@ -538,11 +627,13 @@ class Enemy{
     this.isStarted = isStarted;
     this.startSecond = startSecond;
     this.isFinished = isFinished;
+    this.shadowHeight = shadowHeight;
     this.animateState = animateState;
     if(animateState){
       this.changeAnimation();
     }
 
+    this.shadow.position.z = this.shadowHeight;
     visible? this.show() : this.hide();
     this.changeFaceToward();
   }

@@ -34,6 +34,7 @@ class EnemyManager{
         const enemy = new Enemy(wave);
         enemy.id = index++;
         enemy.gameManager = this.gameManager;
+        enemy.mapTiles = this.mapModel.mapTiles;
         enemy.SPFA = this.mapModel.SPFA;
         innerEnemies.push(enemy);
       })
@@ -160,6 +161,16 @@ class EnemyManager{
 
     this.spawnEnemy();
     
+  }
+
+  public updateAttackRangeVisible(val: boolean){
+    this.flatEnemies.forEach(enemy => {
+      if(enemy.attackRangeCircle){
+        enemy.attackRangeCircle.visible = val;
+      }
+
+    })
+
   }
 
   public get(){

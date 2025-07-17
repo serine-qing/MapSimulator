@@ -6,6 +6,7 @@ import AliasHelper from "./AliasHelper";
 import GameManager from "./GameManager";
 import Trap from "./Trap";
 import { GC_Add } from "./GC";
+import GameConfig from "../utilities/GameConfig";
 
 class Tile{
   static boxGeos = [];
@@ -75,14 +76,14 @@ class Tile{
         break;
       case "tile_passable_wall":
         this.defaultMat =  textMaterials["tile_wall"];
-        this.height = 3/7;
+        this.height = GameConfig.TILE_HEIGHT;
         this.margin = 0.15; //高台有间隔
         break;
       default:
         if(this.heightType === "HIGHLAND"){
 
           this.defaultMat =  textMaterials["tile_wall"];
-          this.height = 3/7;
+          this.height = GameConfig.TILE_HEIGHT;
           this.margin = 0.15; //高台有间隔
 
         }else if(this.heightType === "LOWLAND"){

@@ -104,6 +104,7 @@ const jumpToEnemyIndex = (index: number) => {
   background-color: #545c64;
   padding: 6px 10px 6px 12px;
   align-items: center;
+  user-select: none;
   .menu{
     border: none;
     .cards{

@@ -4,7 +4,7 @@ import {setupCanvas} from '@/components/game/GameCanvas.ts';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { timeFormat } from "@/components/utilities/utilities";
-
+import Container from "@/pages/Container.vue"
 
 export default{
   data(){
@@ -14,12 +14,14 @@ export default{
       sliderValue: Number,   //时间滑块的数值
       currentSecond: Number, //当前时间(秒)
       pause: Boolean,
+      attackRangeVisible: false, //远程敌人攻击范围是否可见
       cachePauseState: Boolean,
       isSliding: false,
       loading: false
     }
   },
   props:["mapData"],
+  components:{ Container },
   watch:{
     async mapData(){
       if(!this.game){
@@ -31,9 +33,13 @@ export default{
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = this.game.maxSecond;
+      this.$refs["container"].changeGameManager(this.game.gameManager);
     },
     pause(){
       this.game?.gameManager?.changePause(this.pause);
+    },
+    attackRangeVisible(){
+      this.game.gameManager.updateAttackRangeVisible(this.attackRangeVisible);
     }
   },
   created(){
@@ -54,6 +60,7 @@ export default{
       this.pause = false;
       this.isSliding = false;
       this.sliderValue = 0;
+      this.attackRangeVisible = false;
     },
     changeGameSpeed(){
       this.gameSpeed = this.gameSpeed === 4? 1 : this.gameSpeed * 2;
@@ -114,11 +121,20 @@ export default{
       >
         {{pause?"播放":"暂停"}}
       </button>
+      <button 
+        @click="attackRangeVisible = !attackRangeVisible"
+        class="play"
+      >
+        {{attackRangeVisible?"显示":"不显示"}}
+      </button>
     </div>
 
   </div>
   <div class="wrapper" ref="wrapper">
     <canvas id="c"></canvas>
+    <Container 
+      ref = "container"
+    ></Container>
   </div>
 </div>
 </template>
@@ -144,21 +160,20 @@ export default{
       margin-left: 40px;
     }
     .buttons{
-      width: 160px;
+      width: 240px;
       display: flex;
       padding-right: 10%;
-      margin-left: 60px;
+      margin-left: 40px;
       
       button{
         font-size: 30px;
         cursor: pointer;
         height: 60px;
-        width: 60px;
         background-color: white;
       }
       .play{
         line-height: 0px;
-        margin-left: 40px;
+        margin-left: 20px;
         font-size: 20px;
       }
     }

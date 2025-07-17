@@ -18,7 +18,7 @@ class GameManager{
   private simulateData: any;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
-  private enemyManager: EnemyManager;
+  public enemyManager: EnemyManager;
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -30,7 +30,9 @@ class GameManager{
   public currentSecond: number = 0;    //当前游戏时间
 
   public isFinished: boolean = false;
-  
+
+  private updateCallbacks: Function[] = [];
+
   constructor(mapModel: MapModel, isSimulate?: boolean){
     this.isSimulate = isSimulate? isSimulate : false;
     //初始化敌人控制类
@@ -67,7 +69,7 @@ class GameManager{
     return x * GameConfig.TILE_SIZE;
   }
 
-  public getCoordinate(x:number | Vec2, y?:number): Vec2{
+  public getCoordinate(x:number | Vec2 | THREE.Vector2, y?:number): Vec2{
     if(typeof x === "number" && y !== undefined){
       return {
         x: x * GameConfig.TILE_SIZE,
@@ -129,13 +131,28 @@ class GameManager{
     this.currentSecond += this.singleFrameTime * this.gameSpeed;
   }
 
+  public updateAttackRangeVisible(val: boolean){
+    this.enemyManager.updateAttackRangeVisible(val);
+    if(this.pause){
+      this.render();
+    }
+  }
+
   private update(){
     this.enemyManager.update(this.currentSecond);
+    this.updateCallbacks.forEach(callback => {
+      callback();
+    })
   }
 
   private render(){
     this.gameView.render(this.singleFrameTime * this.gameSpeed);
   }
+
+  public addUpdateCallback(callback){
+    this.updateCallbacks.push(callback);
+  }
+
 
   public setSimulateData(simulateData: any){
     this.simulateData = simulateData;
@@ -205,6 +222,7 @@ class GameManager{
     this.gameView = null;
     this.enemyManager = null;
     this.simulateData = null;
+    this.updateCallbacks = [];
   }
 }
 
