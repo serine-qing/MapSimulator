@@ -56,9 +56,8 @@ class Enemy{
   targetNode: PathNode;  //寻路目标点
   
   startSecond: number = 0;      //进入地图的时间点
-  currentSecond: number;        //敌人进入地图后运行的当前时间
+  waveSecond: number = 0;       //波次开始后过了多久（update传进来）
 
-  gameSecond: number = 0;
   targetWaitingSecond: number = 0;//等待到目标时间
 
   isStarted: boolean = false;
@@ -142,7 +141,7 @@ class Enemy{
     this.targetWaitingSecond = 0;
     this.targetNode = null;
     this.changeCheckPoint(0)
-    this.gameSecond = 0;
+    this.waveSecond = 0;
   }
 
   public setPosition(x:number, y: number){
@@ -276,7 +275,7 @@ class Enemy{
 
       this.attackRangeCircle = new THREE.Line( geometry, material );
 
-      this.attackRangeCircle.position.z = this.gameManager.getPixelSize(GameConfig.TILE_HEIGHT) + 0.2;
+      this.attackRangeCircle.position.z = this.gameManager.getPixelSize(GameConfig.TILE_HEIGHT) + 0.8;
       this.attackRangeCircle.visible = false;
       this.spine.add(this.attackRangeCircle)
     }
@@ -307,14 +306,13 @@ class Enemy{
     this.shadow.position.z = this.shadowHeight;
   }
 
-  public update(gameSecond: number, usedSecond: number){
+  public update(waveSecond: number, usedSecond: number){
 
     if(this.isFinished) return;
     
-    this.gameSecond = gameSecond;
-    if(!this.startSecond) this.startSecond = gameSecond;
+    this.waveSecond = waveSecond;
+    if(!this.startSecond) this.startSecond = waveSecond;
 
-    this.currentSecond = gameSecond - this.startSecond;
     this.handleTalents();
     if(this.countDown() > 0) return;
 
@@ -447,10 +445,10 @@ class Enemy{
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
         switch (type){
           case "WAIT_FOR_SECONDS":
-            this.waitingTo( time + this.gameSecond );
+            this.waitingTo( time + this.waveSecond );
             break;
           case "WAIT_FOR_PLAY_TIME":
-            this.waitingTo( time + usedSecond);
+            this.waitingTo( time - usedSecond);  //存疑，不过几乎没有用过WAIT_FOR_PLAY_TIME
             break;
           case "WAIT_CURRENT_FRAGMENT_TIME":
             this.waitingTo( time + this.fragmentTime );
@@ -465,7 +463,7 @@ class Enemy{
       case "DISAPPEAR":
         this.hide();
         this.nextCheckPoint();
-        this.update(this.gameSecond, usedSecond);
+        this.update(this.waveSecond, usedSecond);
         break;
       case "APPEAR_AT_POS":
         this.setPosition(
@@ -538,7 +536,7 @@ class Enemy{
           const trigNum = 
           Math.min(
             Math.max(
-              Math.round((this.currentSecond - (predelay||0)) /  interval), 
+              Math.round((this.currentSecond() - (predelay||0)) /  interval), 
               0
             ), 
             trig_cnt
@@ -552,12 +550,18 @@ class Enemy{
     })
   }
 
+  //出生后过了多久
+  private currentSecond(): number{
+    return this.waveSecond - this.startSecond;
+  }
+
   private waitingTo(time: number){
     this.targetWaitingSecond = time;
+    
   }
 
   public countDown(): number{
-    return this.targetWaitingSecond - this.gameManager.currentSecond;
+    return this.targetWaitingSecond - this.waveSecond;
   }
 
   public show(){
@@ -638,6 +642,7 @@ class Enemy{
       targetWaitingSecond: this.targetWaitingSecond,
       isStarted: this.isStarted,
       startSecond: this.startSecond,
+      waveSecond: this.waveSecond,
       isFinished: this.isFinished,
       animateState: this.animateState,
       shadowHeight: this.shadowHeight,
@@ -661,6 +666,7 @@ class Enemy{
       shadowHeight,
       visible,
       startSecond,
+      waveSecond
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -672,6 +678,7 @@ class Enemy{
     this.targetWaitingSecond = targetWaitingSecond;
     this.isStarted = isStarted;
     this.startSecond = startSecond;
+    this.waveSecond = waveSecond;
     this.isFinished = isFinished;
     this.shadowHeight = shadowHeight;
     this.animateState = animateState;

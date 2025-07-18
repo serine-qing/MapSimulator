@@ -95,7 +95,6 @@ eventBus.on("enemy_index_change", (eIndex, wIndex) => {
 });
 
 const jumpToEnemyIndex = (index: number) => {
-  console.log(index)
   eventBus.emit("jump_to_enemy_index", index);
 }
 
