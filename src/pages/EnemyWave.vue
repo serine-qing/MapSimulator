@@ -73,7 +73,12 @@ watch(() => active, () => {
 })
 
 watch(waveIndex, () => {
-  menu.value.open(waveIndex.value.toString());
+  try{
+    menu.value.open(waveIndex.value.toString());
+  }catch{
+    
+  }
+  
 })
 
 eventBus.on("enemies_init", (res) => {

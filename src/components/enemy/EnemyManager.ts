@@ -163,16 +163,6 @@ class EnemyManager{
     
   }
 
-  public updateAttackRangeVisible(val: boolean){
-    this.flatEnemies.forEach(enemy => {
-      if(enemy.attackRangeCircle){
-        enemy.attackRangeCircle.visible = val;
-      }
-
-    })
-
-  }
-
   public get(){
     const enemyStates = [];
     this.flatEnemies.forEach(enemy => {
@@ -213,8 +203,8 @@ class EnemyManager{
 
       enemy.set(eState);
     }
-
-    eventBus.emit("enemy_index_change", this.enemyIndexInWave, this.waveIndex)
+    
+    eventBus.emit("enemy_index_change")
   }
 
   public destroy(){

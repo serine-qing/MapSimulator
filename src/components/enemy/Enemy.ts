@@ -26,7 +26,7 @@ class Enemy{
   fragmentTime: number;  //分支开始时间
   waveTime: number;      //大波次开始时间
 
-  applyWay: string;      //是否是远程
+  applyWay: string;      //是否是远程 RANGED:远程
   rangeRadius: number;   //攻击范围
   moveSpeed: number;
   moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
@@ -73,6 +73,15 @@ class Enemy{
   public shadow: THREE.Mesh;
   public shadowHeight: number = 0.2;
   public attackRangeCircle: THREE.Line;         //攻击范围的圈
+  
+  //视图层面会修改到的选项
+  public options = {
+    _attackRangeVisible: false,
+    _countDownVisible: true
+  }
+
+  public skelHeight: number;                //模型高度
+  public skelWidth: number;                //模型宽度
 
   private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
@@ -118,8 +127,9 @@ class Enemy{
     this.acceleration = new THREE.Vector2(0, 0);
     this.inertialVector = new THREE.Vector2(0, 0);
     this.velocity = new THREE.Vector2(0, 0);
-
     this.targetNode = null;
+
+    this.initOptions();
   }
 
   public reset(){
@@ -174,14 +184,18 @@ class Enemy{
     const {skeletonData, moveAnimate, idleAnimate} = this.enemyData;
 
     this.skeletonData = skeletonData;
+
+    this.skelHeight = skeletonData.height;
+    this.skelWidth = skeletonData.width;
+
     this.moveAnimate = moveAnimate;
     this.idleAnimate = idleAnimate;
 
     this.spine = new THREE.Object3D();
-
+    GC_Add(this.spine);
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
-    GC_Add(this.skeletonMesh);
+    
     this.spine.add(this.skeletonMesh);
 
     const offset = getSkelOffset(this);
@@ -201,6 +215,7 @@ class Enemy{
     
     this.initShadow();
     this.initAttackRangeCircle();
+
     this.changeAnimation();
     //初始不可见的
     this.hide();
@@ -245,7 +260,7 @@ class Enemy{
   }
 
   initAttackRangeCircle(){
-    if(this.applyWay === "RANGED"){
+    if(this.isRanged()){
       const radius = this.gameManager.getPixelSize(this.rangeRadius);
       const curve = new THREE.EllipseCurve(
         0,  0,            // ax, aY
@@ -266,6 +281,10 @@ class Enemy{
       this.spine.add(this.attackRangeCircle)
     }
 
+  }
+
+  public isRanged(): boolean{
+    return this.applyWay === "RANGED";
   }
 
   //根据是否在高台，修改阴影高度
@@ -289,6 +308,7 @@ class Enemy{
   }
 
   public update(gameSecond: number, usedSecond: number){
+
     if(this.isFinished) return;
     
     this.gameSecond = gameSecond;
@@ -296,7 +316,7 @@ class Enemy{
 
     this.currentSecond = gameSecond - this.startSecond;
     this.handleTalents();
-    if(this.waitingTime() > 0) return;
+    if(this.countDown() > 0) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
     const {type, time, reachOffset} = checkPoint;
@@ -467,6 +487,32 @@ class Enemy{
 
   }
 
+  //视图层面的设置
+  private initOptions(){
+
+    Object.defineProperty(this.options, 'attackRangeVisible', {
+      get: () => {
+        return this.options._attackRangeVisible;
+      },
+      set: (value) => {
+        if(this.attackRangeCircle){
+          this.options._attackRangeVisible = value;
+          this.attackRangeCircle.visible = value;
+        }
+      }
+    });
+
+    Object.defineProperty(this.options, 'countDownVisible', {
+      get: () => {
+        return this.options._countDownVisible;
+      },
+      set: (value) => {
+        this.options._countDownVisible = value;
+      }
+    });
+
+  }
+
   //移速倍率
   public speedRate(): number{
     let speedRate = 1;
@@ -510,8 +556,8 @@ class Enemy{
     this.targetWaitingSecond = time;
   }
 
-  public waitingTime(): number{
-    return this.targetWaitingSecond - this.gameSecond;
+  public countDown(): number{
+    return this.targetWaitingSecond - this.gameManager.currentSecond;
   }
 
   public show(){

@@ -31,8 +31,6 @@ class GameManager{
 
   public isFinished: boolean = false;
 
-  private updateCallbacks: Function[] = [];
-
   constructor(mapModel: MapModel, isSimulate?: boolean){
     this.isSimulate = isSimulate? isSimulate : false;
     //初始化敌人控制类
@@ -114,45 +112,39 @@ class GameManager{
   }
 
   public gameLoop(){
-    if(this.pause) return; //暂停
+    let delta = 0;
 
-    if(this.setData){
-      this.set(this.setData);
-    }
-
-    this.update();
-
-    if( !this.isSimulate ){
+    if(!this.pause){
       
-      eventBus.emit("second_change", this.currentSecond);
-      this.render();
+      if(this.setData){
+        this.set(this.setData);
+      }
+
+      this.update();
+
+      if(!this.isSimulate ) eventBus.emit("second_change", this.currentSecond);
+      
+      delta = this.singleFrameTime * this.gameSpeed;
+      this.currentSecond += delta;
     }
 
-    this.currentSecond += this.singleFrameTime * this.gameSpeed;
-  }
-
-  public updateAttackRangeVisible(val: boolean){
-    this.enemyManager.updateAttackRangeVisible(val);
-    if(this.pause){
-      this.render();
+    if(!this.isSimulate ){
+      
+      this.render(delta);
     }
+
   }
 
   private update(){
     this.enemyManager.update(this.currentSecond);
-    this.updateCallbacks.forEach(callback => {
-      callback();
-    })
   }
 
-  private render(){
-    this.gameView.render(this.singleFrameTime * this.gameSpeed);
+  private render(delta: number){
+    if(!this.isSimulate ){
+      this.gameView.render(delta);
+    }
+    
   }
-
-  public addUpdateCallback(callback){
-    this.updateCallbacks.push(callback);
-  }
-
 
   public setSimulateData(simulateData: any){
     this.simulateData = simulateData;
@@ -204,10 +196,6 @@ class GameManager{
     if(isFinished){
       this.animate();
     }
-    //如果暂停，那么设置完数据之后view需要渲染一次
-    if(this.pause){
-      this.render();
-    }
 
   }
 
@@ -222,7 +210,6 @@ class GameManager{
     this.gameView = null;
     this.enemyManager = null;
     this.simulateData = null;
-    this.updateCallbacks = [];
   }
 }
 

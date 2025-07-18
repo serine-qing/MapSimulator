@@ -502,7 +502,8 @@ class MapModel{
       data.skeletonData = skeletonData;
       data.moveAnimate = moveAnimate;
       data.idleAnimate = idleAnimate;
-      
+
+      // console.log(`${key} height:${skeletonData.height} width:${skeletonData.width}`)
     })
 
   }

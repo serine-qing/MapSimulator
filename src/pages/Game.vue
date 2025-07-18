@@ -13,11 +13,17 @@ export default{
       maxSecond: Number,
       sliderValue: Number,   //时间滑块的数值
       currentSecond: Number, //当前时间(秒)
-      pause: Boolean,
+      pause: false,
       attackRangeVisible: false, //远程敌人攻击范围是否可见
       cachePauseState: Boolean,
       isSliding: false,
-      loading: false
+      loading: false,
+
+      attackRangeCheckAll: false,
+      attackRangeIndet: false,
+
+      countDownCheckAll: true,
+      countDownIndet: false,
     }
   },
   props:["mapData"],
@@ -28,6 +34,8 @@ export default{
         this.game = new Game();
       }
       console.log(this.mapData.levelId)
+
+      this.$refs["container"].changeGameManager(null);
       this.loading = true;
       await this.game.startGame(this.mapData);
       this.reset();
@@ -38,9 +46,6 @@ export default{
     pause(){
       this.game?.gameManager?.changePause(this.pause);
     },
-    attackRangeVisible(){
-      this.game.gameManager.updateAttackRangeVisible(this.attackRangeVisible);
-    }
   },
   created(){
     this.reset();
@@ -88,7 +93,7 @@ export default{
     endSlider(){
       this.isSliding = false;
       this.pause = this.cachePauseState;
-    }
+    },
   },
   computed:{
     //分秒
@@ -101,7 +106,7 @@ export default{
 
 <template>
 <div class="game" v-loading="loading">
-  <div class="top">
+  <div class="toolbar">
     <span class="ms">{{ MS }}</span>
     <div class="time-slider">
       <el-slider 
@@ -121,19 +126,35 @@ export default{
       >
         {{pause?"播放":"暂停"}}
       </button>
-      <button 
-        @click="attackRangeVisible = !attackRangeVisible"
-        class="play"
-      >
-        {{attackRangeVisible?"显示":"不显示"}}
-      </button>
     </div>
 
+    <div class="checkboxs">
+      <el-checkbox
+        v-model="attackRangeCheckAll"
+        :indeterminate="attackRangeIndet"
+        @change = "attackRangeIndet = false"
+      >
+        显示攻击距离
+      </el-checkbox>
+
+      <el-checkbox
+        v-model="countDownCheckAll"
+        :indeterminate="countDownIndet"
+        @change = "countDownIndet = false"
+      >
+        显示等待时间
+      </el-checkbox>
+    </div>
   </div>
   <div class="wrapper" ref="wrapper">
     <canvas id="c"></canvas>
     <Container 
       ref = "container"
+      @pause = "pause = true"
+      :attackRangeCheckAll = "attackRangeCheckAll"
+      :countDownCheckAll = "countDownCheckAll"
+      @update:attackRangeIndet = "val => attackRangeIndet = val"
+      @update:countDownIndet = "val => countDownIndet = val"
     ></Container>
   </div>
 </div>
@@ -145,7 +166,7 @@ export default{
   flex-direction: column;
   flex: 1;
   height: 100%;
-  .top{
+  .toolbar{
     display: flex;
     align-items: center;
     justify-content: center;
@@ -159,30 +180,37 @@ export default{
       width: 600px;
       margin-left: 40px;
     }
-    .buttons{
-      width: 240px;
-      display: flex;
-      padding-right: 10%;
-      margin-left: 40px;
-      
-      button{
-        font-size: 30px;
-        cursor: pointer;
-        height: 60px;
-        background-color: white;
-      }
-      .play{
-        line-height: 0px;
-        margin-left: 20px;
-        font-size: 20px;
-      }
-    }
+
   }
   .wrapper{
     flex: 1;
     height: 100%;
     width: 100%;
   }
+}
+
+.buttons{
+  width: 140px;
+  display: flex;
+  margin-left: 40px;
+  
+  button{
+    font-size: 30px;
+    cursor: pointer;
+    height: 60px;
+    background-color: white;
+  }
+  .play{
+    line-height: 0px;
+    margin-left: 20px;
+    font-size: 20px;
+  }
+}
+
+.checkboxs{
+  width: 160px;
+  background-color: white;
+  padding-left: 10px;
 }
 
 canvas{
