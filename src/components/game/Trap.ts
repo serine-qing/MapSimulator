@@ -95,13 +95,13 @@ class Trap{
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.object.add(this.skeletonMesh);
-    this.skeletonMesh.position.y = this.gameManager.getPixelSize(-1/9);
+    this.skeletonMesh.position.y = this.gameManager.getPixelSize(-1/4);
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-
+    
     this.skeletonMesh.state.setAnimation(
       0, 
       this.idleAnimate, 
-      false
+      true
     );
     
   }

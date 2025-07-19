@@ -166,11 +166,19 @@ class MapModel{
             skelDatas[key] = skeletonData;
           }
 
-          this.trapDatas.forEach( trapData => {
-            const skelData = skelDatas[trapData.key];
-            trapData.skeletonData = skelData;
-            const idleAnimate = getAnimation(trapData.key, skelData.animations, "Trap_Idle");
-            trapData.idleAnimate = idleAnimate;
+          spines.forEach(spine => {
+            const skelData = skelDatas[spine.name];
+
+            this.trapDatas.forEach(trapData => {
+              
+              if(trapData.key === spine.name){
+                trapData.skeletonData = skelData;
+                const idleAnimate = getAnimation(trapData.key, skelData.animations, "Trap_Idle");
+                trapData.idleAnimate = idleAnimate;
+              }
+            })
+
+          
           })
 
         })
@@ -235,8 +243,13 @@ class MapModel{
 
   //解析波次
   private parseEnemyWaves(waves: any[]){ 
+
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
     waves.forEach((wave: any) => {
+
+      //有时候会有空的wave 例如圣徒boss战
+      if(wave.fragments.length === 0) return;
+
       let currentTime = 0;
       
       const innerWaves: EnemyWave[] = [];
@@ -406,10 +419,11 @@ class MapModel{
         //覆盖天赋
         overwrittenData.talentBlackboard?.forEach(talent => {
           const {key , value, valueStr} = talent;
-          const find = enemyData.talentBlackboard.find(t => t.key === key);
+          const find = enemyData.talentBlackboard?.find(t => t.key === key);
           if(find){
             find.value = value === null ? valueStr : value;
           }else{
+            if(!enemyData.talentBlackboard) enemyData.talentBlackboard = [];
             enemyData.talentBlackboard.push(talent);
           }
         })
@@ -502,8 +516,6 @@ class MapModel{
       data.skeletonData = skeletonData;
       data.moveAnimate = moveAnimate;
       data.idleAnimate = idleAnimate;
-
-      // console.log(`${key} height:${skeletonData.height} width:${skeletonData.width}`)
     })
 
   }

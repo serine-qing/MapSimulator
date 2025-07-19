@@ -6,7 +6,7 @@ const specialIdle = {
 }
 
 export const getAnimation = (key: string, animations: any, state: string) => {
-
+  
   let animation;
   switch (state) {
     case "Move":
@@ -62,7 +62,8 @@ const getIdleAnimation = (key:string, animations: any) => {
 }
 
 const getTrapIdleAnimation = (key:string, animations: any) => {
-  const idleStates = ["Idle", "Default"];
+
+  const idleStates = ["Idle","Sleep", "Default"];
 
   for(let i=0; i<idleStates.length; i++){
     const stateName = idleStates[i];
@@ -79,22 +80,21 @@ const getTrapIdleAnimation = (key:string, animations: any) => {
 }
 
 export const getSkelOffset = (enemy:Enemy): Vec2 => {
-  switch (enemy.motion) {
-    case "WALK":
-      return {
-        x:0, 
-        y:-1/4
-      }
-  
-    case "FLY":
-      return {
-        x:0, 
-        y:0
-      }
+  const offset = {
+    x: 0,
+    y: 0
+  };
+
+  switch (enemy.key) {
+    case "enemy_1321_wdarft":
+    case "enemy_1321_wdarft_2":
+      offset.y = - 50;
+      break;
   }
+  return offset;
 }
 
-export const getspineScale = (inst: any): number => {
+export const getSpineScale = (inst: any): number => {
   // console.log(enemy.name +" : "+ enemy.key)
   const size = spineMap[inst.key]?.size
   return size? size : 0.9;
@@ -105,13 +105,26 @@ const spineMap = {
     offset: null,
     size: 0.8
   },
+  //威龙
   "enemy_1005_yokai_3":{
     offset: null,
-    size: 0.7
+    size: 0.65
+  },
+  "enemy_1112_emppnt":{
+    offset: null,
+    size: 0.8
   },
   "enemy_1112_emppnt_2":{
     offset: null,
     size: 0.8
+  },
+  "enemy_1321_wdarft":{
+    offset: null,
+    size: 1.1
+  },
+  "enemy_1321_wdarft_2":{
+    offset: null,
+    size: 1.1
   },
 }
 
@@ -120,4 +133,17 @@ export const checkEnemyMotion = (key: string, motion: string) => {
     return "WALK"
   }
   return motion;
+}
+
+
+const spineAnimationSpeed = {
+  "enemy_1072_dlancer" : 0.3,
+  "enemy_1072_dlancer_2" : 0.3,
+  "enemy_1413_mmstck" : 0.3,
+  "enemy_1413_mmstck_2" : 0.3
+}
+
+export const getAnimationSpeed = (key) => {
+  const speed = spineAnimationSpeed[key];
+  return speed? speed : 1;
 }

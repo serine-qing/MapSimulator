@@ -43,8 +43,10 @@ declare global {
     skelUrl?: string,
     atlasUrl?: string,
     skeletonData: any,      //skel数据
+    skelHeight: number,
+    skelWidth: number,
     moveAnimate: string,    //移动时的skel动画名
-    idleAnimate: string     //不动时的skel动画名
+    idleAnimate: string,     //不动时的skel动画名
   }
 
   //敌人路径检查点

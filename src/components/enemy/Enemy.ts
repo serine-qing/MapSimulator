@@ -3,7 +3,7 @@ import spine from "@/assets/script/spine-threejs.js";
 
 import GameConfig from "@/components/utilities/GameConfig"
 import GameManager from "../game/GameManager";
-import { getSkelOffset, getspineScale, checkEnemyMotion } from "@/components/utilities/SpineHelper"
+import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } from "@/components/utilities/SpineHelper"
 import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
 import MapTiles from "../game/MapTiles";
@@ -26,7 +26,7 @@ class Enemy{
   fragmentTime: number;  //分支开始时间
   waveTime: number;      //大波次开始时间
 
-  applyWay: string;      //是否是远程 RANGED:远程
+  applyWay: string;      //是否是远程 RANGED:远程 ALL:全部
   rangeRadius: number;   //攻击范围
   moveSpeed: number;
   moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
@@ -43,10 +43,7 @@ class Enemy{
   velocity: THREE.Vector2;                //当前速度矢量
   faceToward: number = 1;                //1:右, -1:左
 
-  feetOffset: Vec2 = {
-    x: 0,
-    y: -0.2
-  };   //足坐标偏移
+  shadowOffset: Vec2;   //足坐标偏移
 
   route: EnemyRoute;
   checkpoints: CheckPoint[];
@@ -79,8 +76,8 @@ class Enemy{
     _countDownVisible: true
   }
 
-  public skelHeight: number;                //模型高度
-  public skelWidth: number;                //模型宽度
+  public skelOffset: Vec2;                //模型偏移
+  public skelSize: Vec2;                //模型宽高
 
   private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
@@ -127,6 +124,12 @@ class Enemy{
     this.inertialVector = new THREE.Vector2(0, 0);
     this.velocity = new THREE.Vector2(0, 0);
     this.targetNode = null;
+
+    //敌人阴影往下偏移
+    this.shadowOffset  = {
+      x: 0,
+      y: -0.15
+    };
 
     this.initOptions();
   }
@@ -184,26 +187,23 @@ class Enemy{
 
     this.skeletonData = skeletonData;
 
-    this.skelHeight = skeletonData.height;
-    this.skelWidth = skeletonData.width;
-
     this.moveAnimate = moveAnimate;
     this.idleAnimate = idleAnimate;
 
     this.spine = new THREE.Object3D();
     GC_Add(this.spine);
     //从数据创建SkeletonMesh并将其附着到场景
-    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
-    
-    this.spine.add(this.skeletonMesh);
+    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData); 
 
-    const offset = getSkelOffset(this);
-    const coordinateOffset = this.gameManager.getCoordinate(offset.x, offset.y)
+    this.spine.add(this.skeletonMesh);
+    
+    const offsetY = this.motion === "WALK"? -1/4 : 0;
+    const coordinateOffset = this.gameManager.getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
     this.skeletonMesh.position.y = coordinateOffset.y;
 
-    const spineScale = getspineScale(this);
+    const spineScale = getSpineScale(this);
     this.spine.scale.set(spineScale,spineScale,1);
 
     this.idle();
@@ -211,7 +211,8 @@ class Enemy{
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     this.skeletonMesh.position.z = this.motion === "WALK"? 
       this.gameManager.getPixelSize( 1/7) : this.gameManager.getPixelSize( 10/7);
-    
+
+    this.getSkelSize();
     this.initShadow();
     this.initAttackRangeCircle();
 
@@ -228,13 +229,36 @@ class Enemy{
 
     this.spine.position.x = Vec2.x;
     this.spine.position.y = Vec2.y;
+    //todo
+    // this.skeletonMesh.zOffset = 0.1;
+  }
+
+  //获取skel的大小，是实时运算出来的
+  getSkelSize(){ 
+    const skelSize = new THREE.Vector2();
+
+    this.skeletonMesh.skeleton.updateWorldTransform();
+    this.changeAnimation();
+    this.skeletonMesh.state.apply(this.skeletonMesh.skeleton);
+    this.skeletonMesh.skeleton.getBounds(new THREE.Vector2(), skelSize, [])
+
+    this.skelOffset = getSkelOffset(this);
+    this.skelSize = skelSize.multiplyScalar(getSpineScale(this));
+
+    // console.log(this.name)
+    // console.log(`动态边界尺寸: ${this.skelSize.x} x ${this.skelSize.y}`);
+    // console.log(`边界偏移量: (${this.skelOffset.x}, ${this.skelOffset.y})`);
+
   }
 
   initShadow(){
+    const majorAxis = this.gameManager.getPixelSize(0.35); //椭圆长轴
+    const minorAxis = this.gameManager.getPixelSize(0.08); //椭圆短轴
+
     const path = new THREE.Shape();
     path.absellipse(
       0,0,
-      this.gameManager.getPixelSize(0.35), this.gameManager.getPixelSize(0.09),
+      majorAxis, minorAxis,
       0, Math.PI*2, 
       false,
       0
@@ -251,10 +275,9 @@ class Enemy{
     this.shadow = shadow;
     shadow.position.z = this.shadowHeight;
     
-    //(0, -0.2)足坐标位置
-    const feetOffset = this.gameManager.getCoordinate(this.feetOffset);
-    shadow.position.x = feetOffset.x;
-    shadow.position.y = feetOffset.y;
+    const shadowOffset = this.gameManager.getCoordinate(this.shadowOffset);
+    shadow.position.x = shadowOffset.x;
+    shadow.position.y = shadowOffset.y;
     this.spine.add(shadow)
   }
 
@@ -283,31 +306,33 @@ class Enemy{
   }
 
   public isRanged(): boolean{
-    return this.applyWay === "RANGED";
+    return this.applyWay === "RANGED" || this.applyWay === "ALL";
   }
 
-  //根据是否在高台，修改阴影高度
-  updateShadowHeight(){
-    if(!this.spine) return;
+  public isFly(): boolean{
+    return this.motion === "FLY";
+  }
 
+  //飞行单位根据是否在高台，修改阴影高度
+  updateShadowHeight(){
+    if(!this.spine || !this.isFly()) return;
+    
     const x = Math.round(this.position.x);
     const y = Math.round(this.position.y);
     const currentTile = this.mapTiles.get(x, y);
     if( currentTile.passableMask === "ALL" ){
       //地面
-      this.shadowHeight = 0.2;
+      this.shadow.position.z = this.shadowHeight
       
     }else{
       //高台
-      this.shadowHeight = currentTile.getPixelHeight() + 0.2;
-      
+      this.shadow.position.z = this.shadowHeight + currentTile.getPixelHeight();
+
     }
 
-    this.shadow.position.z = this.shadowHeight;
   }
 
   public update(waveSecond: number, usedSecond: number){
-
     if(this.isFinished) return;
     
     this.waveSecond = waveSecond;
@@ -483,6 +508,16 @@ class Enemy{
     this.velocity.x = 0;
     this.velocity.y = 0;
 
+  }
+
+  //视图相关的更新
+  public render(delta: number){
+
+    this.skeletonMesh.update(
+      delta * 
+      Math.min(this.speedRate(), 4) * 
+      getAnimationSpeed(this.key)
+    )
   }
 
   //视图层面的设置
@@ -689,6 +724,7 @@ class Enemy{
     this.shadow.position.z = this.shadowHeight;
     visible? this.show() : this.hide();
     this.changeFaceToward();
+    this.updateShadowHeight();
   }
 
   public destroy(){

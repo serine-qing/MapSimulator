@@ -14,6 +14,7 @@
           :style = "label.style"
           v-show="label.visible"
           class="label"
+          @click="handleLabelClick(index)"
         >
           <div  
             class="countdown"
@@ -21,7 +22,7 @@
             :style="{
               fontSize: label.countDown >= 100? '10px' : '14px'
             }"
-            @click="handleLabelClick(index)"
+            
           >{{ label.countDown > -1 ? label.countDown : "" }}
           </div>
         </div>
@@ -74,12 +75,16 @@ const updateLabelVisible = () => {
 const updateLabelPosAndSize = () => {
 
   const scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
+  
+  //todo 基本都可以了，就是部分offset有问题
   enemyManager.getEnemiesInMap().forEach(enemy => {
-    const {skelHeight, skelWidth} = enemy;
-    const height = skelHeight/10;
-    const width = skelWidth/10;
+    const {skelSize, skelOffset} = enemy;
+    
+    const height = skelSize.y * 5.5;
+    const width = skelSize.x * 5.5;
+
     const tempV = new THREE.Vector3();
-    enemy.spine.getWorldPosition(tempV);
+    enemy.skeletonMesh.getWorldPosition(tempV);
     tempV.project(gameCanvas.camera);
     const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
     const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
@@ -89,8 +94,8 @@ const updateLabelPosAndSize = () => {
     label.style = {
       height: height + 'px',
       width: width + 'px',
-      left: x - width / 2 + 'px',
-      top: y - height / 2 - height * scale * 0.2 + 'px',
+      left: x - width / 2 + 'px', 
+      top: y - height / 2 + scale * (skelOffset.y - 18) + 'px',
       transform: `scale(${scale})`
     }
 
