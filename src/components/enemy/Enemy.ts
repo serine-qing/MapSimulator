@@ -82,6 +82,7 @@ class Enemy{
   private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
   private idleAnimate: string;   //skel 站立的动画名
+  public simulateTrackTime: number;      //动画执行time
 
   public gameManager: GameManager;
 
@@ -94,7 +95,7 @@ class Enemy{
 
     const {
       key, levelType, motion, name, description, rangeRadius, icon, applyWay,
-      attributes, notCountInTotal, talents
+      attributes, notCountInTotal, talentBlackboard
     } = this.enemyData;
 
     this.key = key;
@@ -105,7 +106,7 @@ class Enemy{
     this.applyWay = applyWay;
     this.rangeRadius = rangeRadius;
     this.notCountInTotal = notCountInTotal;
-    this.talents = talents;
+    this.talents = talentBlackboard;
     this.icon = icon;
 
     this.moveSpeed = attributes.moveSpeed;
@@ -134,6 +135,12 @@ class Enemy{
     this.initOptions();
   }
 
+  public start(){
+    this.reset();
+    this.isStarted = true;
+    this.show();
+  }
+
   public reset(){
     this.setPosition(
       this.route.startPosition.x,
@@ -143,6 +150,8 @@ class Enemy{
     this.isFinished = false;
     this.targetWaitingSecond = 0;
     this.targetNode = null;
+    this.animateState = 'idle';
+    this.changeAnimation();
     this.changeCheckPoint(0)
     this.waveSecond = 0;
   }
@@ -220,6 +229,12 @@ class Enemy{
     //初始不可见的
     this.hide();
 
+    //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
+    //重叠时显示哪个用mesh的renderOrder属性控制
+    this.skeletonMesh.children.forEach(mesh => {
+      mesh.material.depthTest = false; 
+    })
+
   }
 
   public setSpinePosition(x: number, y: number){
@@ -229,25 +244,38 @@ class Enemy{
 
     this.spine.position.x = Vec2.x;
     this.spine.position.y = Vec2.y;
+
+    this.skeletonMesh.renderOrder = -y;
+
     //todo
     // this.skeletonMesh.zOffset = 0.1;
   }
 
   //获取skel的大小，是实时运算出来的
   getSkelSize(){ 
+    this.skelOffset = getSkelOffset(this);
     const skelSize = new THREE.Vector2();
+    const skelOffset = new THREE.Vector2();
 
     this.skeletonMesh.skeleton.updateWorldTransform();
     this.changeAnimation();
+    this.skeletonMesh.update(1)
     this.skeletonMesh.state.apply(this.skeletonMesh.skeleton);
-    this.skeletonMesh.skeleton.getBounds(new THREE.Vector2(), skelSize, [])
+    this.skeletonMesh.skeleton.getBounds(skelOffset, skelSize, [])
 
-    this.skelOffset = getSkelOffset(this);
+    const offsetX = -(skelOffset.x + skelSize.x / 2);
+    const offsetY = -(skelOffset.y + skelSize.y / 2);
+
+    this.skelOffset.y += offsetY * 6;
     this.skelSize = skelSize.multiplyScalar(getSpineScale(this));
+
+    //恢复track的动画帧
+    const track = this.skeletonMesh.state.getCurrent(0);
+    track.trackTime = 0;
 
     // console.log(this.name)
     // console.log(`动态边界尺寸: ${this.skelSize.x} x ${this.skelSize.y}`);
-    // console.log(`边界偏移量: (${this.skelOffset.x}, ${this.skelOffset.y})`);
+    // console.log(`边界偏移量: (${offsetX}, ${offsetY})`);
 
   }
 
@@ -332,8 +360,10 @@ class Enemy{
 
   }
 
-  public update(waveSecond: number, usedSecond: number){
+  public update(delta: number, waveSecond: number, usedSecond: number){
+    
     if(this.isFinished) return;
+    //模拟动画时间
     
     this.waveSecond = waveSecond;
     if(!this.startSecond) this.startSecond = waveSecond;
@@ -447,7 +477,7 @@ class Enemy{
         this.move();
         this.changeFaceToward();
         this.updateShadowHeight();
-;
+
         const distanceToTarget = currentPosition.distanceTo(targetPos);
 
 
@@ -488,7 +518,7 @@ class Enemy{
       case "DISAPPEAR":
         this.hide();
         this.nextCheckPoint();
-        this.update(this.waveSecond, usedSecond);
+        this.update(delta, this.waveSecond, usedSecond);
         break;
       case "APPEAR_AT_POS":
         this.setPosition(
@@ -508,16 +538,22 @@ class Enemy{
     this.velocity.x = 0;
     this.velocity.y = 0;
 
+    this.simulateTrackTime += this.deltaTrackTime(delta);
   }
 
   //视图相关的更新
   public render(delta: number){
 
     this.skeletonMesh.update(
-      delta * 
-      Math.min(this.speedRate(), 4) * 
-      getAnimationSpeed(this.key)
+      this.deltaTrackTime(delta)
     )
+
+  }
+
+  private deltaTrackTime(delta: number): number{
+    return  delta * 
+      Math.min(this.speedRate(), 4) * 
+      getAnimationSpeed(this.key);
   }
 
   //视图层面的设置
@@ -645,6 +681,7 @@ class Enemy{
 
   //更改动画
   private changeAnimation(){
+    this.simulateTrackTime = 0;
     if(!this.spine) return;
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
@@ -682,6 +719,7 @@ class Enemy{
       animateState: this.animateState,
       shadowHeight: this.shadowHeight,
       visible: this.visible,
+      simulateTrackTime: this.simulateTrackTime
     }
 
     return state;
@@ -701,7 +739,8 @@ class Enemy{
       shadowHeight,
       visible,
       startSecond,
-      waveSecond
+      waveSecond,
+      simulateTrackTime
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -717,14 +756,25 @@ class Enemy{
     this.isFinished = isFinished;
     this.shadowHeight = shadowHeight;
     this.animateState = animateState;
+    this.simulateTrackTime = simulateTrackTime;
+    
+    //恢复当前动画状态
     if(animateState){
       this.changeAnimation();
+    }
+    
+    //恢复当前动画帧
+    if(simulateTrackTime && this.skeletonMesh){
+      const track = this.skeletonMesh.state.getCurrent(0);
+      track.trackTime = simulateTrackTime;
     }
 
     this.shadow.position.z = this.shadowHeight;
     visible? this.show() : this.hide();
     this.changeFaceToward();
     this.updateShadowHeight();
+
+
   }
 
   public destroy(){

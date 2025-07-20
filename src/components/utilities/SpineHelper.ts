@@ -88,7 +88,7 @@ export const getSkelOffset = (enemy:Enemy): Vec2 => {
   switch (enemy.key) {
     case "enemy_1321_wdarft":
     case "enemy_1321_wdarft_2":
-      offset.y = - 50;
+      offset.y = - 38;
       break;
   }
   return offset;

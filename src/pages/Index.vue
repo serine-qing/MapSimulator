@@ -12,7 +12,7 @@ const handleChangeStage = (map: any) => {
 
 <template>
 <div class="index">
-  <Menu @changeStage = "handleChangeStage"/>
+  <Menu  @changeStage = "handleChangeStage"/>
   <Game :mapData = "mapData"/>
 </div>
   

@@ -119,24 +119,21 @@ class GameManager{
       if(this.setData){
         this.set(this.setData);
       }
+      delta = this.singleFrameTime * this.gameSpeed;
 
-      this.update();
+      this.update(delta);
 
       if(!this.isSimulate ) eventBus.emit("second_change", this.currentSecond);
       
-      delta = this.singleFrameTime * this.gameSpeed;
       this.currentSecond += delta;
     }
 
-    if(!this.isSimulate ){
-      
-      this.render(delta);
-    }
+    this.render(delta);
 
   }
 
-  private update(){
-    this.enemyManager.update(this.currentSecond);
+  private update(delta: number){
+    this.enemyManager.update(delta, this.currentSecond);
   }
 
   private render(delta: number){

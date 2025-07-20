@@ -72,25 +72,44 @@ class MapModel{
     this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
 
     this.sourceData = null;
+    console.log(this.enemyDatas)
   }
 
   private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
 
     if(tokenInsts){
+
       const trapKeys:Set<string> = new Set();
 
       tokenInsts.forEach(data => {
         const {direction, position, inst, mainSkillLvl} = data;
 
+        let key;
+
+        switch (inst.characterKey) {
+          //天桩需要从enemyDbRefs获取种类
+          case "trap_146_dhdcr":
+            const find = this.sourceData.enemyDbRefs.find(ref => {
+              return ref.id.includes("enemy_1398_dhdcr")
+            })
+
+            key = find.id;
+            break;
+          default:
+            key = inst.characterKey;
+            break;
+
+        }
+
         this.trapDatas.push({
-          key: inst.characterKey,
+          key,
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
           mainSkillLvl
         });
 
-        trapKeys.add(inst.characterKey);
+        trapKeys.add(key);
       })
       
       const res = await getTrapsKey(Array.from(trapKeys));
@@ -352,6 +371,40 @@ class MapModel{
 
   }
 
+  //覆盖数据
+  private overwriteData(rawData, overwrittenData){
+    Object.keys(rawData).forEach(key => {
+      if(overwrittenData[key]?.m_defined){
+        rawData[key] = overwrittenData[key].m_value;
+      }
+    })
+
+    //覆盖属性
+    Object.keys(overwrittenData["attributes"]).forEach(key => {
+      const attr = overwrittenData["attributes"][key];
+      if(attr.m_defined){
+        rawData["attributes"][key] = attr.m_value;
+      }
+    })
+
+    
+    //覆盖天赋
+    overwrittenData.talentBlackboard?.forEach(talent => {
+      const {key , value, valueStr} = talent;
+      const find = rawData.talentBlackboard?.find(t => t.key === key);
+      if(find){
+        if(value === null){
+          find.valueStr = valueStr;
+        }else{
+          find.value = value;
+        }
+      }else{
+        if(!rawData.talentBlackboard) rawData.talentBlackboard = [];
+        rawData.talentBlackboard.push({...talent});
+      }
+    })
+
+  }
 
   /**
    * 初始化敌人数据
@@ -361,7 +414,6 @@ class MapModel{
   private async initEnemyData(enemyDbRefs: EnemyRef[]){
 
     const waves = this.enemyWaves.flat();
-    const enemyDataKeys = ["description","levelType","name","applyWay", "rangeRadius","motion"];
 
     //波次中会出现的敌人对应的enemyDbRef数组
     //使用Set防止重复
@@ -391,6 +443,7 @@ class MapModel{
     enemies.forEach((enemyDbRef: EnemyRef) => {
 
       let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
+
       if(!enemyData) return;
 
       const overwrittenData = enemyDbRef.overwrittenData;
@@ -402,31 +455,7 @@ class MapModel{
           this.enemyDatas.push(enemyData);
         }
 
-        enemyDataKeys.forEach(key =>{
-          if(overwrittenData[key]?.m_defined){
-            enemyData[key] = overwrittenData[key].m_value;
-          }
-        })
-
-        //覆盖属性
-        Object.keys(overwrittenData["attributes"]).forEach(key => {
-          const attr = overwrittenData["attributes"][key];
-          if(attr.m_defined){
-            enemyData["attributes"][key] = attr.m_value;
-          }
-        })
-
-        //覆盖天赋
-        overwrittenData.talentBlackboard?.forEach(talent => {
-          const {key , value, valueStr} = talent;
-          const find = enemyData.talentBlackboard?.find(t => t.key === key);
-          if(find){
-            find.value = value === null ? valueStr : value;
-          }else{
-            if(!enemyData.talentBlackboard) enemyData.talentBlackboard = [];
-            enemyData.talentBlackboard.push(talent);
-          }
-        })
+        this.overwriteData(enemyData, overwrittenData);
       }
       
       enemyData.waveKey = enemyData.key;
@@ -434,7 +463,6 @@ class MapModel{
 
       this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
 
-      enemyData.talents = parseTalent(enemyData.talentBlackboard);
     })
     
 
@@ -447,27 +475,27 @@ class MapModel{
       const baseEnemy: EnemyData = enemyDatas.find(e => e.key === extraKey);
 
       const extraEnemy = { ...baseEnemy };
+      const { attributes, talentBlackboard } = baseEnemy;
 
-      extraEnemy.attributes = {...baseEnemy.attributes};
+      //深拷贝
+      extraEnemy.attributes = {...attributes};
+      extraEnemy.talentBlackboard = [...talentBlackboard];
+      talentBlackboard.forEach((talent, index) => {
+        console.log(talent)
+        extraEnemy.talentBlackboard[index] = {...talent};
+      })
+
       extraEnemy.waveKey = enemyDbRef.id;
 
-      enemyDataKeys.forEach(k => {
-        if(overwrittenData[k].m_defined){
-          extraEnemy[k] = overwrittenData[k].m_value;
-        }
-      });
-
-      Object.keys(overwrittenData["attributes"]).forEach(key => {
-        const attr = overwrittenData["attributes"][key];
-        if(attr.m_defined){
-          extraEnemy["attributes"][key] = attr.m_value;
-        }
-      })
+      this.overwriteData(extraEnemy, overwrittenData);
 
       enemyDatas.push(extraEnemy);
 
     })
 
+    enemyDatas.forEach(enemyData => {
+      enemyData.talentBlackboard = parseTalent(enemyData.talentBlackboard);
+    })
 
     this.enemyDatas = enemyDatas;
   }

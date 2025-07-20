@@ -29,6 +29,7 @@
       </template>
 
       <div>
+        <span class="enemy-key">{{ label.key }}</span>
         <el-checkbox 
           :disabled="!enemies[index].isRanged()" 
           v-model="label.options.attackRangeVisible" label="显示攻击范围" 
@@ -76,7 +77,6 @@ const updateLabelPosAndSize = () => {
 
   const scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
   
-  //todo 基本都可以了，就是部分offset有问题
   enemyManager.getEnemiesInMap().forEach(enemy => {
     const {skelSize, skelOffset} = enemy;
     
@@ -95,7 +95,7 @@ const updateLabelPosAndSize = () => {
       height: height + 'px',
       width: width + 'px',
       left: x - width / 2 + 'px', 
-      top: y - height / 2 + scale * (skelOffset.y - 18) + 'px',
+      top: y - height / 2 + scale * skelOffset.y + 'px',
       transform: `scale(${scale})`
     }
 
@@ -125,6 +125,7 @@ const update = () => {
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
     enemyLabels.value.push({
+      key: enemy.key,
       name: enemy.name,
       options: enemy.options,
       style: {}
@@ -262,5 +263,12 @@ defineExpose({
     border-radius: 13px;
     border: 1px solid black;
   }
+
+}
+
+.enemy-key{
+  display: block;
+  font-size: 12px;
+  margin-bottom: 7px;
 }
 </style>

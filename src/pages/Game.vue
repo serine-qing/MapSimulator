@@ -106,7 +106,7 @@ export default{
 
 <template>
 <div class="game" v-loading="loading">
-  <div class="toolbar">
+  <div class="toolbar" v-show="mapData">
     <span class="ms">{{ MS }}</span>
     <div class="time-slider">
       <el-slider 
@@ -195,6 +195,7 @@ export default{
   margin-left: 40px;
   
   button{
+    user-select: none;
     font-size: 30px;
     cursor: pointer;
     height: 60px;

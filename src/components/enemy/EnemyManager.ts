@@ -117,12 +117,8 @@ class EnemyManager{
       const enemy: Enemy = waves[i];
 
       if(!enemy.isStarted && enemy.startTime <= this.waveSecond()){
+        enemy.start();
 
-        enemy.reset();
-        enemy.isStarted = true;
-        enemy.show();
-        //重置
-        
         this.enemiesInMap.push(enemy.id);
         this.enemyIndexInWave ++;
 
@@ -143,7 +139,7 @@ class EnemyManager{
     return enemies;
   }
 
-  public update(currentSecond: number){
+  public update(delta: number, currentSecond: number){
     if(this.allWaveFinished) return;
 
     this.currentSecond = currentSecond;
@@ -154,7 +150,7 @@ class EnemyManager{
 
     this.getEnemiesInMap().forEach(
       enemy => {
-          enemy.update(this.waveSecond(), this.usedSecond)
+          enemy.update(delta, this.waveSecond(), this.usedSecond)
       }
         
     )
