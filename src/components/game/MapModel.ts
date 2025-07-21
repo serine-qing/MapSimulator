@@ -13,7 +13,7 @@ import { unitizeFbx  } from "./FbxHelper";
 
 import { getTrapsKey } from "@/api/assets";
 import { GC_Add } from "./GC";
-import { parseTalent } from "./TalentHelper";
+import { parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
 import Trap from "./Trap";
 
@@ -42,8 +42,10 @@ class MapModel{
 
     this.getRunes();
     //解析地图
-    this.mapTiles = new MapTiles(this.sourceData.mapData);
 
+    this.mapTiles = new MapTiles(this.sourceData.mapData);
+    this.runesHelper.checkBannedTiles(this.mapTiles);
+    
     //获取trap数据
     await this.getTrapDatas();
 
@@ -72,7 +74,6 @@ class MapModel{
     this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
 
     this.sourceData = null;
-    console.log(this.enemyDatas)
   }
 
   private async getTrapDatas(){
@@ -481,7 +482,6 @@ class MapModel{
       extraEnemy.attributes = {...attributes};
       extraEnemy.talentBlackboard = [...talentBlackboard];
       talentBlackboard.forEach((talent, index) => {
-        console.log(talent)
         extraEnemy.talentBlackboard[index] = {...talent};
       })
 
@@ -494,7 +494,7 @@ class MapModel{
     })
 
     enemyDatas.forEach(enemyData => {
-      enemyData.talentBlackboard = parseTalent(enemyData.talentBlackboard);
+      enemyData.skills = parseTalent(enemyData.talentBlackboard);
     })
 
     this.enemyDatas = enemyDatas;

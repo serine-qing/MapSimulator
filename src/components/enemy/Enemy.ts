@@ -36,7 +36,7 @@ class Enemy{
   maxHp: number;
   attackSpeed: number;
 
-  talents: any[];          //天赋
+  skills: any[];          //天赋
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
@@ -59,10 +59,13 @@ class Enemy{
 
   isStarted: boolean = false;
   isFinished: boolean = false;
+  exitCountDown: number = 0;   //隐藏spine的渐变倒计时
+
+  private rush;
 
   public spawnTime;             //模拟数据中的出生时间
 
-  public visible: boolean = false;
+  public exit: boolean = false;
   private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
   public spine: THREE.Object3D;
@@ -86,6 +89,7 @@ class Enemy{
 
   public gameManager: GameManager;
 
+  
   constructor(wave: EnemyWave){
     this.enemyData = wave.enemyData;
     this.actionType = wave.actionType;
@@ -95,7 +99,7 @@ class Enemy{
 
     const {
       key, levelType, motion, name, description, rangeRadius, icon, applyWay,
-      attributes, notCountInTotal, talentBlackboard
+      attributes, notCountInTotal, skills
     } = this.enemyData;
 
     this.key = key;
@@ -106,7 +110,7 @@ class Enemy{
     this.applyWay = applyWay;
     this.rangeRadius = rangeRadius;
     this.notCountInTotal = notCountInTotal;
-    this.talents = talentBlackboard;
+    this.skills = skills;
     this.icon = icon;
 
     this.moveSpeed = attributes.moveSpeed;
@@ -118,7 +122,7 @@ class Enemy{
     this.attackSpeed = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = wave.route;
-    this.checkpoints = this.route.checkpoints;
+    this.checkpoints = [...this.route.checkpoints];
 
     this.position = new THREE.Vector2();
     this.acceleration = new THREE.Vector2(0, 0);
@@ -133,6 +137,7 @@ class Enemy{
     };
 
     this.initOptions();
+    this.handleSkill();
   }
 
   public start(){
@@ -185,7 +190,12 @@ class Enemy{
   //到达终点，退出地图
   public finishedMap(){
     this.isFinished = true;
-    this.hide();
+    if(this.spine){
+      //敌人退出地图的渐变
+      this.gradientHide();
+    }else{
+      this.hide();
+    }
   }
 
   //初始化spine小人
@@ -202,7 +212,11 @@ class Enemy{
     this.spine = new THREE.Object3D();
     GC_Add(this.spine);
     //从数据创建SkeletonMesh并将其附着到场景
-    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData); 
+    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData, function(parameters) {
+      //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
+      //重叠时显示哪个用mesh的renderOrder属性控制
+			parameters.depthTest = false;
+		}); 
 
     this.spine.add(this.skeletonMesh);
     
@@ -228,12 +242,6 @@ class Enemy{
     this.changeAnimation();
     //初始不可见的
     this.hide();
-
-    //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
-    //重叠时显示哪个用mesh的renderOrder属性控制
-    this.skeletonMesh.children.forEach(mesh => {
-      mesh.material.depthTest = false; 
-    })
 
   }
 
@@ -322,11 +330,23 @@ class Enemy{
 
       const points = curve.getPoints( 50 );
       const geometry = new THREE.BufferGeometry().setFromPoints( points );
-      const material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+
+      // 具有较高`renderOrder`的物体会在较低之后渲染（即后渲染，覆盖先渲染的）。
+      // 但是，如果两个物体都在同一个场景中，并且使用同一个渲染调用，那么`renderOrder`是有效的。
+      // 然而，如果平面Mesh的材质是透明的（即使是一点点透明），那么它会被归类到透明物体队列中，
+      // 而线条即使设置了`renderOrder`也可能因为不透明和透明物体的分开渲染顺序而出现问题。
+      // 所以这里需要设置transparent，不然会被具有透明度的tile texture给挡住
+      const material = new THREE.LineBasicMaterial( { 
+        color: 0xff0000,
+        depthTest: false,
+        transparent: true
+      } );
 
       this.attackRangeCircle = new THREE.Line( geometry, material );
 
-      this.attackRangeCircle.position.z = this.gameManager.getPixelSize(GameConfig.TILE_HEIGHT) + 0.8;
+      //显示优先级最高
+      this.attackRangeCircle.renderOrder = 100;
+      this.attackRangeCircle.position.z = 0;
       this.attackRangeCircle.visible = false;
       this.spine.add(this.attackRangeCircle)
     }
@@ -368,7 +388,7 @@ class Enemy{
     this.waveSecond = waveSecond;
     if(!this.startSecond) this.startSecond = waveSecond;
 
-    this.handleTalents();
+    this.handleRush();
     if(this.countDown() > 0) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
@@ -516,7 +536,7 @@ class Enemy{
         break;
 
       case "DISAPPEAR":
-        this.hide();
+        this.gradientHide();
         this.nextCheckPoint();
         this.update(delta, this.waveSecond, usedSecond);
         break;
@@ -544,9 +564,14 @@ class Enemy{
   //视图相关的更新
   public render(delta: number){
 
-    this.skeletonMesh.update(
-      this.deltaTrackTime(delta)
-    )
+    this.handleGradient();
+
+    if(this.isStarted && !this.isFinished){
+      this.skeletonMesh.update(
+        this.deltaTrackTime(delta)
+      )
+    }
+
 
   }
 
@@ -598,27 +623,48 @@ class Enemy{
     return this.moveSpeed * this.speedRate() * 0.5;
   }
 
-  private handleTalents(){
-    this.talents?.forEach(talent => {
-      switch (talent.key) {
+  private handleSkill(){
+    // console.log(this.skills)
+    this.skills?.forEach(skill => {
+      switch (skill.key) {
         case "rush":
-          const rush = talent.value;
-          const {move_speed, interval, trig_cnt, predelay} = rush;
-          const trigNum = 
-          Math.min(
-            Math.max(
-              Math.round((this.currentSecond() - (predelay||0)) /  interval), 
-              0
-            ), 
-            trig_cnt
-          );
-          this.moveSpeedAddons.rush = trigNum * move_speed + 1;
+          const {move_speed, interval, trig_cnt} = skill.value;
+          if(move_speed && interval && trig_cnt){
+            this.rush = skill.value;
+          }
+          
+          break;
+        case "revive":   //萨卡兹魔剑士、恶咒者
+        case "sleepwalking": //钵海收割者
+          const { unmove_duration } = skill.value;
+          if( unmove_duration ){
+            this.checkpoints.unshift({
+              position: null,
+              reachOffset: null,
+              randomizeReachOffset: null,
+              time: unmove_duration,
+              type: "WAIT_FOR_SECONDS"
+            })
+          }
 
           break;
-      
       }
-
     })
+  }
+
+  private handleRush(){
+    if(this.rush){
+      const {move_speed, interval, trig_cnt, predelay} = this.rush;
+      const trigNum = 
+      Math.min(
+        Math.max(
+          Math.round((this.currentSecond() - (predelay||0)) /  interval), 
+          0
+        ), 
+        trig_cnt
+      );
+      this.moveSpeedAddons.rush = trigNum * move_speed + 1;
+    }
   }
 
   //出生后过了多久
@@ -636,13 +682,52 @@ class Enemy{
   }
 
   public show(){
-    this.visible = true;
-    if(this.spine) this.spine.visible = this.visible;
+    this.exit = false;
+    if(this.spine) this.spine.visible = true;
   }
 
   public hide(){  
-    this.visible = false;
-    if(this.spine) this.spine.visible = this.visible;
+    this.exit = true;
+    if(this.spine) this.spine.visible = false;
+  }
+
+  //渐变退出
+  private gradientHide(){  
+    this.exit = true;
+    if(this.spine) {
+      this.exitCountDown = 1;
+    }
+  }
+
+  public visible(): boolean{
+    return this.isStarted && !this.exit;
+  }
+
+  private handleGradient(){
+    const color = this.skeletonMesh.skeleton.color;
+    if(this.exit){
+      //退出渐变处理
+      if(this.exitCountDown > 0){
+        color.r = 0;
+        color.g = 0;
+        color.b = 0;
+        color.a = this.exitCountDown;
+        this.exitCountDown -= 0.1;
+        
+        this.skeletonMesh.update(0)
+      }else{
+        this.hide();
+        color.r = 1;
+        color.g = 1;
+        color.b = 1;
+        color.a = 1;
+      }
+    }else{
+      color.r = 1;
+      color.g = 1;
+      color.b = 1;
+      color.a = 1;
+    }
   }
 
 
@@ -718,7 +803,7 @@ class Enemy{
       isFinished: this.isFinished,
       animateState: this.animateState,
       shadowHeight: this.shadowHeight,
-      visible: this.visible,
+      exit: this.exit,
       simulateTrackTime: this.simulateTrackTime
     }
 
@@ -737,7 +822,7 @@ class Enemy{
       isFinished, 
       animateState,
       shadowHeight,
-      visible,
+      exit,
       startSecond,
       waveSecond,
       simulateTrackTime
@@ -751,6 +836,7 @@ class Enemy{
     this.targetNode = targetNode;
     this.targetWaitingSecond = targetWaitingSecond;
     this.isStarted = isStarted;
+    this.exit = exit;
     this.startSecond = startSecond;
     this.waveSecond = waveSecond;
     this.isFinished = isFinished;
@@ -770,10 +856,9 @@ class Enemy{
     }
 
     this.shadow.position.z = this.shadowHeight;
-    visible? this.show() : this.hide();
+    this.visible()? this.show() : this.hide();
     this.changeFaceToward();
     this.updateShadowHeight();
-
 
   }
 

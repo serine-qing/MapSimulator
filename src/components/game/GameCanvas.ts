@@ -61,7 +61,7 @@ class GameCanvas{
       this.height
     ); //设置宽高
     
-    new OrbitControls(this.camera, this.renderer.domElement)
+    // new OrbitControls(this.camera, this.renderer.domElement)
 
   }
   //循环执行

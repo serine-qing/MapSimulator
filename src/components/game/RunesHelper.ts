@@ -1,4 +1,6 @@
 import { toCamelCase } from "@/components/utilities/utilities"
+import MapTiles from "./MapTiles";
+import Tile from "./Tile";
 
 class RunesHelper{
   private runes: any[];
@@ -6,6 +8,7 @@ class RunesHelper{
   private enemyGroupDisable: string[] = [];      //移除某组敌人
   private enemyChanges: { [ key:string ] : string } = {};      //移除某组敌人
   private enemyAttributeChanges: { [ key:string ] : number } = {};     //敌人属性提升
+  private bannedTiles: Vec2[] = [];
   constructor(runes: any){
     this.runes = runes;
 
@@ -50,6 +53,23 @@ class RunesHelper{
 
           })
           break;
+        
+        case "global_forbid_location":
+          blackboard.forEach( item => {
+            const vecArr = item.valueStr.split("|");
+            vecArr.forEach(_vec => {
+              const vec = _vec
+                .replace("(","")
+                .replace(")","")
+                .split(",")
+              this.bannedTiles.push({
+                x: vec[1],
+                y: vec[0],
+              })
+            })
+
+          })
+          break;
       }
 
     })
@@ -81,6 +101,16 @@ class RunesHelper{
       
     })
 
+  }
+
+  //检查ban格子
+  public checkBannedTiles(mapTiles: MapTiles){
+    this.bannedTiles.forEach(vec2 => {
+      const tile: Tile = mapTiles.get(vec2);
+      if(tile){
+        tile.isBanned = true;
+      }
+    })
   }
 }
 

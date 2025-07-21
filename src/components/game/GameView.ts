@@ -66,7 +66,7 @@ class GameView{
   public render(delta: number){
     gameCanvas.render();
 
-    this.enemyManager.getEnemiesInMap().forEach(
+    this.enemyManager.flatEnemies.forEach(
       //TODO不同的敌人动画速率不同
       enemy => enemy.render( delta )
     )

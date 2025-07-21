@@ -88,7 +88,7 @@ export const getSkelOffset = (enemy:Enemy): Vec2 => {
   switch (enemy.key) {
     case "enemy_1321_wdarft":
     case "enemy_1321_wdarft_2":
-      offset.y = - 38;
+      offset.y = - 20;
       break;
   }
   return offset;
@@ -140,7 +140,9 @@ const spineAnimationSpeed = {
   "enemy_1072_dlancer" : 0.3,
   "enemy_1072_dlancer_2" : 0.3,
   "enemy_1413_mmstck" : 0.3,
-  "enemy_1413_mmstck_2" : 0.3
+  "enemy_1413_mmstck_2" : 0.3,
+  "enemy_1309_mhboar": 0.3,
+  "enemy_1309_mhboar_2": 0.3
 }
 
 export const getAnimationSpeed = (key) => {

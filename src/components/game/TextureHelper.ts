@@ -25,7 +25,7 @@ dark.color.convertSRGBToLinear();
 pureWhite.color.convertSRGBToLinear();
 pureBlack.color.convertSRGBToLinear();
 
-const textMaterials = {
+const tileTextures = {
 
   //wall和road是高台地面默认的材质，很多tile都会用到
   tile_wall:{
@@ -35,7 +35,12 @@ const textMaterials = {
   tile_road:{
     top: gray,
   },
-
+  tile_start:{
+    ground: gray,
+  },
+  tile_end:{
+    ground: gray,
+  },
   tile_forbidden:{
     top: dark,
     side: deepGray
@@ -66,7 +71,10 @@ const textMaterials = {
     yang: pureWhite
   },
 }
-textMaterials["tile_fence_bound"] = textMaterials["tile_fence"];
+
+tileTextures["tile_fence_bound"] = tileTextures["tile_fence"];
+
+
 
 const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
   const width = GameConfig.SPRITE_SIZE[0];
@@ -85,37 +93,40 @@ const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
   return clone;
 }
 
+const textureMats = {};
 const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
-  const {texture1, texture2} = textures;
+  const {texture1} = textures;
   texture1.encoding = THREE.sRGBEncoding;
   const keyArr = [
     "tile_bigforce","tile_corrosion","tile_defup","tile_gazebo","tile_grass",
     "tile_telout","tile_smog","tile_healing","tile_infection","tile_bigforce2",
-    "tile_flystart","tile_floor","tile_volcano",null,"tile_telin"
+    "tile_flystart","tile_banned","tile_floor","tile_volcano","tile_telin"
   ]
-
-  const sizeMap = new Map([
-    ["tile_floor", 0.85],
-  ]);
 
   keyArr.forEach( (key, index) => {
     if(!key) return;
 
-    const size = sizeMap.get(key);
-
-    textMaterials[key] = {
-      texture: {
-        size: size ? size : 0.9,
-        material: new THREE.MeshBasicMaterial({
-          map: getClone(texture1, index)
-        })
-      }
-    };
-
+    const texture = getClone(texture1, index);
+    textureMats[key] = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true   //矢量图能透明
+    })
   })
 
-  // tile_defbreak 腐蚀地面2
 
 }
 
-export{parseTexture, textMaterials}
+const getTexture = (name:string, size:number) => {
+  const textureMat = textureMats[name];
+  if(textureMat){
+    const textureGeo = new THREE.PlaneGeometry( size, size );
+    const textureObj = new THREE.Mesh( textureGeo, textureMat );
+    return textureObj;
+  }else{
+    return null;
+  }
+
+
+}
+
+export{parseTexture, tileTextures, getTexture}

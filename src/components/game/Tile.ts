@@ -1,6 +1,6 @@
 import {Object3D, BoxGeometry, BoxHelper, Mesh, Material, MeshBasicMaterial, TextureLoader, Vector2} from "three"
 import * as THREE from "three"
-import { textMaterials } from "./TextureHelper";
+import { getTexture, tileTextures } from "./TextureHelper";
 import { isArray } from "element-plus/es/utils/types.mjs";
 import AliasHelper from "./AliasHelper";
 import GameManager from "./GameManager";
@@ -32,6 +32,8 @@ class Tile{
   topMaterial: Material;
   defaultMat: any;    //默认材质
 
+  isBanned: boolean = false;    //该格子是否被ban了
+
   trap: Trap = null;   //当前地块上的装置
   constructor(tileData: TileData , position: Vec2){
     this.tileData = tileData;
@@ -60,6 +62,7 @@ class Tile{
   public initMeshs(){
     this.initSize();
     this.createMesh();
+    this.createTexture();
     this.addBorder();
   }
 
@@ -75,28 +78,28 @@ class Tile{
         this.height = 0;
         break;
       case "tile_passable_wall":
-        this.defaultMat =  textMaterials["tile_wall"];
+        this.defaultMat =  tileTextures["tile_wall"];
         this.height = GameConfig.TILE_HEIGHT;
         this.margin = 0.15; //高台有间隔
         break;
       default:
         if(this.heightType === "HIGHLAND"){
 
-          this.defaultMat =  textMaterials["tile_wall"];
+          this.defaultMat =  tileTextures["tile_wall"];
           this.height = GameConfig.TILE_HEIGHT;
           this.margin = 0.15; //高台有间隔
 
         }else if(this.heightType === "LOWLAND"){
           this.height = 0;
-          this.defaultMat =  textMaterials["tile_road"];
+          this.defaultMat =  tileTextures["tile_road"];
           
         }
         break;
     }
   }
   private createMesh(){
-    const material = textMaterials[this.tileKey]? textMaterials[this.tileKey] : this.defaultMat;
-    let {top : topMaterial, side : sideMaterial, texture} = material;
+    const tileTexture = tileTextures[this.tileKey]? tileTextures[this.tileKey] : this.defaultMat;
+    let {top : topMaterial, side : sideMaterial} = tileTexture;
 
     if(!topMaterial) topMaterial = this.defaultMat.top;
     if(!sideMaterial) sideMaterial = this.defaultMat.side;
@@ -109,6 +112,17 @@ class Tile{
     this.object.position.z = this.gameManager.getPixelSize(this.height / 2);
 
     switch (this.tileKey) {
+      //给红蓝门添加地面，因为没有设置默认材质所以红蓝门本身是透明的
+      case "tile_start":
+      case "tile_end":
+        const groundGe0 = this.getBoxGeo(this.width, 0, 0);
+        const { ground } = tileTexture;
+        const groundMesh = new Mesh( groundGe0, [
+          null, null, null, null, ground, ground
+        ]); 
+        groundMesh.position.z = this.gameManager.getPixelSize(- this.height / 2)
+        this.object.add(groundMesh);
+        break;
       //围栏
       case "tile_fence":
       case "tile_fence_bound":
@@ -119,7 +133,7 @@ class Tile{
           this.gameManager.getPixelSize(2/7),
         );
 
-        const fenceTop = material.fenceTop;
+        const fenceTop = tileTexture.fenceTop;
         const fenceMaterials = [
           sideMaterial, sideMaterial, sideMaterial, sideMaterial, fenceTop, fenceTop
         ];
@@ -146,7 +160,7 @@ class Tile{
       case "tile_yinyang_wall":
         const geometry = new THREE.CircleGeometry( this.gameManager.getPixelSize(this.width / 8),64);
 
-        const {yin, yang}  = material;
+        const {yin, yang}  = tileTexture;
         const dynamic = this.tileData?.blackboard?.find(arr => arr.key === "dynamic");
 
         const huimingMat = dynamic?.value === 0? yin : yang;
@@ -166,17 +180,33 @@ class Tile{
     ]); 
 
     this.object.add(this.cube);
+  }
 
+  //生成地块上的图像
+  private createTexture(){
+    const textureScale = this.tileKey === "tile_floor"? 0.85 : 0.9;
+    const textureSize = this.gameManager.getPixelSize(this.width * textureScale);
+    const texture = getTexture(
+      this.tileKey, 
+      textureSize
+    );
+    
     if(texture){
-
-      const textureSize = this.gameManager.getPixelSize(texture.size? texture.size : 0.85);
-      const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
-      const textureMat = texture.material;
-      this.textureObj = new THREE.Mesh( textureGeo, textureMat );
+      this.textureObj = texture;
       this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.08);
       this.object.add(this.textureObj)
     }
 
+    if(this.isBanned){
+      const bannedSize = this.gameManager.getPixelSize(this.width * 0.9);
+      const bannedTexture = getTexture(
+        "tile_banned", 
+        bannedSize
+      );
+
+      bannedTexture.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.15);
+      this.object.add(bannedTexture)
+    }
   }
 
   //重复的geo直接读取缓存

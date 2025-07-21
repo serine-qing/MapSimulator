@@ -31,6 +31,7 @@ declare global {
     waveKey: string,       //敌人在波次数据中的id
     attributes: any,        //敌人属性
     talentBlackboard: any[], //敌人天赋
+    skills: any,           //敌人技能（合并了天赋和技能）
     description: string,    //
     levelType: string,      //敌人级别 普通/精英/领袖
     name: string,

@@ -69,7 +69,7 @@ let enemies: Enemy[];
 const updateLabelVisible = () => {
   enemies.forEach(enemy => {
     const label = enemyLabels.value[enemy.id];
-    label.visible = enemy.visible;
+    label.visible = enemy.visible();
   });
 }
 
@@ -245,7 +245,7 @@ defineExpose({
   user-select: none;
   font-size: 14px;
   position: absolute;
-  // background-color: aqua;
+  //background-color: aqua;
   color: white;
   cursor: pointer;
   transform-origin: center center;
