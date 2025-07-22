@@ -10,13 +10,10 @@ class Game{
   constructor(){
   }
 
-  async startGame(mapData: any){
+  async startGame(mapModel: MapModel){
     if(this.gameManager){
       this.gameManager.destroy();
     }
-    
-    const mapModel = new MapModel(mapData);
-    await mapModel.init();
     
     const simData = this.startSimulate(mapModel);
     this.gameManager = new GameManager(mapModel);

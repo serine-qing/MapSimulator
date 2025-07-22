@@ -82,6 +82,7 @@ getStorys().then((res) => {
 
   const queue: any = [];
   queue.push( {childNodes:storys.value} );
+  console.log(storys.value)
   let item;
   while(item = queue.shift()){
     if(item.childNodes){

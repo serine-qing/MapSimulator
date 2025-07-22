@@ -5,6 +5,11 @@ import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { timeFormat } from "@/components/utilities/utilities";
 import Container from "@/pages/Container.vue"
+import DataTable from "@/pages/DataTable.vue"
+import MapModel from "@/components/game/MapModel";
+
+let mapModel: MapModel;
+let game: Game = new Game();
 
 export default{
   data(){
@@ -24,27 +29,32 @@ export default{
 
       countDownCheckAll: true,
       countDownIndet: false,
+
+      enemyDatas: null,
     }
   },
   props:["mapData"],
-  components:{ Container },
+  components:{ Container, DataTable },
   watch:{
     async mapData(){
-      if(!this.game){
-        this.game = new Game();
-      }
       console.log(this.mapData.levelId)
 
       this.$refs["container"].changeGameManager(null);
       this.loading = true;
-      await this.game.startGame(this.mapData);
+
+      mapModel = new MapModel(this.mapData);
+
+      await mapModel.init();
+      await game.startGame(mapModel);
+
+      this.enemyDatas = mapModel.enemyDatas;
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
-      this.maxSecond = this.game.maxSecond;
-      this.$refs["container"].changeGameManager(this.game.gameManager);
+      this.maxSecond = game.maxSecond;
+      this.$refs["container"].changeGameManager(game.gameManager);
     },
     pause(){
-      this.game?.gameManager?.changePause(this.pause);
+      game?.gameManager?.changePause(this.pause);
     },
   },
   created(){
@@ -69,7 +79,7 @@ export default{
     },
     changeGameSpeed(){
       this.gameSpeed = this.gameSpeed === 4? 1 : this.gameSpeed * 2;
-      this.game.gameManager.changeGameSpeed(this.gameSpeed);
+      game.gameManager.changeGameSpeed(this.gameSpeed);
     },
     changePause(){
       this.pause = !this.pause;
@@ -105,67 +115,81 @@ export default{
 </script>
 
 <template>
-<div class="game" v-loading="loading">
-  <div class="toolbar" v-show="mapData">
-    <span class="ms">{{ MS }}</span>
-    <div class="time-slider">
-      <el-slider 
-        v-model = "sliderValue" 
-        :max = "maxSecond"
-        :format-tooltip = "formatTooltip"
-        @input = "changeSecond"
-        @change = "endSlider"
-      />
+<div class="main">
+
+  <div class="game" v-loading="loading">
+    <div class="toolbar" v-show="mapData">
+      <span class="ms">{{ MS }}</span>
+      <div class="time-slider">
+        <el-slider 
+          v-model = "sliderValue" 
+          :max = "maxSecond"
+          :format-tooltip = "formatTooltip"
+          @input = "changeSecond"
+          @change = "endSlider"
+        />
+      </div>
+
+      <div class="buttons">
+        <button @click="changeGameSpeed()">{{gameSpeed}}X</button>
+        <button 
+          @click="changePause()"
+          class="play"
+        >
+          {{pause?"播放":"暂停"}}
+        </button>
+      </div>
+
+      <div class="checkboxs">
+        <el-checkbox
+          v-model="attackRangeCheckAll"
+          :indeterminate="attackRangeIndet"
+          @change = "attackRangeIndet = false"
+        >
+          显示攻击距离
+        </el-checkbox>
+
+        <el-checkbox
+          v-model="countDownCheckAll"
+          :indeterminate="countDownIndet"
+          @change = "countDownIndet = false"
+        >
+          显示等待时间
+        </el-checkbox>
+      </div>
     </div>
-
-    <div class="buttons">
-      <button @click="changeGameSpeed()">{{gameSpeed}}X</button>
-      <button 
-        @click="changePause()"
-        class="play"
-      >
-        {{pause?"播放":"暂停"}}
-      </button>
-    </div>
-
-    <div class="checkboxs">
-      <el-checkbox
-        v-model="attackRangeCheckAll"
-        :indeterminate="attackRangeIndet"
-        @change = "attackRangeIndet = false"
-      >
-        显示攻击距离
-      </el-checkbox>
-
-      <el-checkbox
-        v-model="countDownCheckAll"
-        :indeterminate="countDownIndet"
-        @change = "countDownIndet = false"
-      >
-        显示等待时间
-      </el-checkbox>
+    <div class="game-wrapper" ref="wrapper">
+      <canvas id="c"></canvas>
+      <Container 
+        ref = "container"
+        @pause = "pause = true"
+        :attackRangeCheckAll = "attackRangeCheckAll"
+        :countDownCheckAll = "countDownCheckAll"
+        @update:attackRangeIndet = "val => attackRangeIndet = val"
+        @update:countDownIndet = "val => countDownIndet = val"
+      ></Container>
     </div>
   </div>
-  <div class="wrapper" ref="wrapper">
-    <canvas id="c"></canvas>
-    <Container 
-      ref = "container"
-      @pause = "pause = true"
-      :attackRangeCheckAll = "attackRangeCheckAll"
-      :countDownCheckAll = "countDownCheckAll"
-      @update:attackRangeIndet = "val => attackRangeIndet = val"
-      @update:countDownIndet = "val => countDownIndet = val"
-    ></Container>
-  </div>
+
+  <DataTable
+    :enemyDatas = "enemyDatas"
+  >
+  </DataTable>
 </div>
+
+
 </template>
 
 <style scoped lang="scss">
+.main{
+  width: 100%;
+  flex-direction: column;
+  overflow-y: auto;
+}
 .game{
   display: flex;
   flex-direction: column;
-  flex: 1;
-  height: 100%;
+  height: 100vh;
   .toolbar{
     display: flex;
     align-items: center;
@@ -182,9 +206,9 @@ export default{
     }
 
   }
-  .wrapper{
+  .game-wrapper{
     flex: 1;
-    height: 100%;
+    position: relative;
     width: 100%;
   }
 }
@@ -216,7 +240,11 @@ export default{
 
 canvas{
   display: block;
-  position: fixed;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 }
 
 select {

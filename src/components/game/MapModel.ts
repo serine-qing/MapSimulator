@@ -68,7 +68,10 @@ class MapModel{
       const findEnemyData = this.enemyDatas.find(e => e.waveKey === wave.key);
 
       if(findRoute) wave.route = findRoute;
-      if(findEnemyData) wave.enemyData = findEnemyData;
+      if(findEnemyData) {
+        wave.enemyData = findEnemyData
+        findEnemyData.count ++;
+      };
     })
     
     this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
@@ -461,8 +464,9 @@ class MapModel{
       
       enemyData.waveKey = enemyData.key;
       enemyData.icon = GameConfig.BASE_URL + "enemy_icon/" + enemyData.key + ".png";
-
-      this.runesHelper.checkEnemyAttribute(enemyData["attributes"]);
+      
+      enemyData.count = 0;
+      this.runesHelper.checkEnemyAttribute(enemyData);
 
     })
     

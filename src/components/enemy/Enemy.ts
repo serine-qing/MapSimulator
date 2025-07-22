@@ -27,14 +27,10 @@ class Enemy{
   waveTime: number;      //大波次开始时间
 
   applyWay: string;      //是否是远程 RANGED:远程 ALL:全部
-  rangeRadius: number;   //攻击范围
-  moveSpeed: number;
   moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
-  atk: number;
-  def: number;
-  magicResistance: number;
-  maxHp: number;
+  attributes: {[key: string]: number} = {};    //属性
   attackSpeed: number;
+  attrChanges: {[key: string]: any[]}    //属性加成
 
   skills: any[];          //天赋
   position: THREE.Vector2;
@@ -98,8 +94,8 @@ class Enemy{
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, rangeRadius, icon, applyWay,
-      attributes, notCountInTotal, skills
+      key, levelType, motion, name, description, icon, applyWay,
+      attributes, notCountInTotal, skills, attrChanges
     } = this.enemyData;
 
     this.key = key;
@@ -108,18 +104,15 @@ class Enemy{
     this.name = name;
     this.description = description;
     this.applyWay = applyWay;
-    this.rangeRadius = rangeRadius;
     this.notCountInTotal = notCountInTotal;
     this.skills = skills;
     this.icon = icon;
 
-    this.moveSpeed = attributes.moveSpeed;
-    this.atk = attributes.atk;
-    this.def = attributes.def;
-    this.magicResistance = attributes.magicResistance;
-    this.maxHp = attributes.maxHp;
+    this.attrChanges = attrChanges;
+    
+    this.attributes = attributes;
 
-    this.attackSpeed = attributes.baseAttackTime * 100 / attributes.attackSpeed;
+    this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = wave.route;
     this.checkpoints = [...this.route.checkpoints];
@@ -242,7 +235,6 @@ class Enemy{
     this.changeAnimation();
     //初始不可见的
     this.hide();
-
   }
 
   public setSpinePosition(x: number, y: number){
@@ -319,7 +311,7 @@ class Enemy{
 
   initAttackRangeCircle(){
     if(this.isRanged()){
-      const radius = this.gameManager.getPixelSize(this.rangeRadius);
+      const radius = this.gameManager.getPixelSize(this.attributes.rangeRadius);
       const curve = new THREE.EllipseCurve(
         0,  0,            // ax, aY
         radius, radius,           // xRadius, yRadius
@@ -397,7 +389,7 @@ class Enemy{
     switch (type) {
       case "MOVE":  
         //部分0移速的怪也有移动指令，例如GO活动的装备
-        if(this.moveSpeed === 0){
+        if(this.attributes.moveSpeed === 0){
           return;
         }
 
@@ -620,7 +612,7 @@ class Enemy{
 
   //实际移速
   public actualSpeed(): number{
-    return this.moveSpeed * this.speedRate() * 0.5;
+    return this.attributes.moveSpeed * this.speedRate() * 0.5;
   }
 
   private handleSkill(){

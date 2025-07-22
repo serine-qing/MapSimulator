@@ -29,6 +29,8 @@ declare global {
   interface EnemyData{
     key: string,            //敌人id
     waveKey: string,       //敌人在波次数据中的id
+    count: number,         //敌人数量
+    level: number,         //敌人级别
     attributes: any,        //敌人属性
     talentBlackboard: any[], //敌人天赋
     skills: any,           //敌人技能（合并了天赋和技能）
@@ -37,6 +39,7 @@ declare global {
     name: string,
     icon: string,           //敌人头像URL
     applyWay: string,       //是否是远程
+    attrChanges: any,       //属性更改
     rangeRadius: number,    //攻击范围
     motion: string,         //移动motion
     notCountInTotal: boolean,  //非首要目标

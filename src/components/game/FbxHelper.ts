@@ -216,7 +216,6 @@ const changeZ = (object: THREE.Object3D, name: string) => {
 }
 
 const unitizeFbx = (object: THREE.Object3D, name: string) => {
-  console.log(name)
   changeDirection(object, name);
   changeScale(object, name)
   changeZ(object, name)

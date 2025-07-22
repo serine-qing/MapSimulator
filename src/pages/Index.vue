@@ -23,6 +23,7 @@ const handleChangeStage = (map: any) => {
   height: 100vh;
   width: 100vw;
   display: flex;
+  overflow: hidden;
 }
 #c{
   display: block;

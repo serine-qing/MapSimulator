@@ -15,6 +15,8 @@ const dark = new THREE.MeshBasicMaterial( {color: "#191919"} );  //深黑
 const pureWhite = new THREE.MeshBasicMaterial( {color: "#ffffff"} );
 const pureBlack = new THREE.MeshBasicMaterial( {color: "#000000"} );
 
+const darkYellow = new THREE.MeshBasicMaterial( {color: "#B8860B"} );
+
 //https://discourse.threejs.org/t/fbxloader-loaded-models-with-attached-textures-have-become-darker/9300/4
 sea.color.convertSRGBToLinear();
 gray.color.convertSRGBToLinear();
@@ -24,6 +26,7 @@ white.color.convertSRGBToLinear();
 dark.color.convertSRGBToLinear();
 pureWhite.color.convertSRGBToLinear();
 pureBlack.color.convertSRGBToLinear();
+darkYellow.color.convertSRGBToLinear();
 
 const tileTextures = {
 
@@ -50,6 +53,9 @@ const tileTextures = {
   },
   tile_deepwater:{
     top: sea
+  },
+  tile_quicksand:{
+    top: darkYellow
   },
   tile_fence:{
     top: gray,
