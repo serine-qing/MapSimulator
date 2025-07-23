@@ -45,7 +45,7 @@ declare global {
     notCountInTotal: boolean,  //非首要目标
     skelUrl?: string,
     atlasUrl?: string,
-    skeletonData: any,      //skel数据
+    skeletonData?: any,      //skel数据
     skelHeight: number,
     skelWidth: number,
     moveAnimate: string,    //移动时的skel动画名

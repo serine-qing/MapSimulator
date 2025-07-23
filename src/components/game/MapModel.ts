@@ -11,7 +11,7 @@ import assetsManager from "@/components/assetManager/assetsManager"
 import * as THREE from "three"
 import { unitizeFbx  } from "./FbxHelper";
 
-import { getTrapsKey } from "@/api/assets";
+import { getTrapsKey, getSpinesKey } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
@@ -41,7 +41,6 @@ class MapModel{
   public async init(){
 
     this.getRunes();
-    //解析地图
 
     this.mapTiles = new MapTiles(this.sourceData.mapData);
     this.runesHelper.checkBannedTiles(this.mapTiles);
@@ -55,11 +54,12 @@ class MapModel{
 
     //解析波次数据
     this.parseEnemyWaves(this.sourceData.waves)
-
+    
     await this.initEnemyData(this.sourceData.enemyDbRefs);
-
+    //获取哪些敌人的spine是可用的
+    const spineUrls = await this.getEnemySpineUrls();
     //获取敌人spine
-    this.getEnemySpines();
+    this.getEnemySpines(spineUrls);
 
     //绑定route和enemydata
     this.enemyWaves.flat().forEach( wave => {
@@ -77,17 +77,21 @@ class MapModel{
     this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
 
     this.sourceData = null;
+
   }
 
   private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
 
+    this.runesHelper.checkPredefines(tokenInsts);
     if(tokenInsts){
 
       const trapKeys:Set<string> = new Set();
 
       tokenInsts.forEach(data => {
-        const {direction, position, inst, mainSkillLvl} = data;
+        const {direction, hidden, position, inst, mainSkillLvl} = data;
+
+        if(hidden) return;
 
         let key;
 
@@ -504,50 +508,60 @@ class MapModel{
     this.enemyDatas = enemyDatas;
   }
 
-  private async getEnemySpines(){
+  private async getEnemySpineUrls(){
+    const sNames = this.enemyDatas.map(data => data.key.replace("enemy_", ""));
+    const res = await getSpinesKey(sNames);
+    return res.data;
+  }
 
+  private async getEnemySpines(spineUrls){
+
+    const urls = [];
     const skelNames = [];
     const atlasNames = [];
-    this.enemyDatas.forEach(data => {
-      const sName = data.key.replace("enemy_", "");
-      const skelName = `spine/${sName}/${data.key}.skel`;
-      const atlasName = `spine/${sName}/${data.key}.atlas`;
-      data.skelUrl = skelName;
-      data.atlasUrl = atlasName;
+    Object.keys(spineUrls).forEach(key => {
+      const val = spineUrls[key];
+      const { skel, atlas } = val;
 
-      skelNames.push(skelName);
-      atlasNames.push(atlasName);
-    });
+      const skelUrl = `spine/${key}/${skel}`;
+      const atlasUrl = `spine/${key}/${atlas}`;
+      urls.push({
+        key, skelUrl, atlasUrl
+      })
+      skelNames.push(skelUrl);
+      atlasNames.push(atlasUrl);
+    })
 
     //设置敌人spine
     await assetsManager.loadSpines(skelNames, atlasNames);
     const spineManager = assetsManager.spineManager;
     this.enemyDatas.forEach(data => {
       const {key} = data;
+      const find = urls.find(url => url.key === key.replace("enemy_", ""));
+      if(find){
 
-      const atlasName = data.atlasUrl;
-      const skelName = data.skelUrl;
-  
-      //使用AssetManager中的name.atlas和name.png加载纹理图集。
-      //传递给TextureAtlas的函数用于解析相对路径。
-      const atlas = spineManager.get(atlasName);
-  
-      //创建一个AtlasAttachmentLoader，用于解析区域、网格、边界框和路径附件
-      const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
-      //创建一个SkeletonJson实例来解析文件
-      const skeletonJson = new spine.SkeletonBinary(atlasLoader);
-      //设置在解析过程中应用的比例，解析文件，并创建新的骨架。
-      skeletonJson.scale = 0.019;
-      const skeletonData = skeletonJson.readSkeletonData(
-        spineManager.get(skelName)
-      );
+        const {atlasUrl, skelUrl} = find;
+        //使用AssetManager中的name.atlas和name.png加载纹理图集。
+        //传递给TextureAtlas的函数用于解析相对路径。
+        const atlas = spineManager.get(atlasUrl);
 
-      const moveAnimate = getAnimation(key, skeletonData.animations, "Move");
-      const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
+        //创建一个AtlasAttachmentLoader，用于解析区域、网格、边界框和路径附件
+        const atlasLoader = new spine.AtlasAttachmentLoader(atlas);
+        //创建一个SkeletonJson实例来解析文件
+        const skeletonJson = new spine.SkeletonBinary(atlasLoader);
+        //设置在解析过程中应用的比例，解析文件，并创建新的骨架。
+        skeletonJson.scale = 0.019;
+        const skeletonData = skeletonJson.readSkeletonData(
+          spineManager.get(skelUrl)
+        );
 
-      data.skeletonData = skeletonData;
-      data.moveAnimate = moveAnimate;
-      data.idleAnimate = idleAnimate;
+        const moveAnimate = getAnimation(key, skeletonData.animations, "Move");
+        const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
+
+        data.skeletonData = skeletonData;
+        data.moveAnimate = moveAnimate;
+        data.idleAnimate = idleAnimate;
+      }
     })
 
   }

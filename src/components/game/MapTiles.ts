@@ -17,10 +17,10 @@ class MapTiles{
         const tileData: TileData = {
           tileKey: tile.tileKey,
           passableMask: AliasHelper(tile.passableMask, "passableMask"),
-          heightType: tile.heightType,
+          heightType: AliasHelper(tile.heightType, "heightType"),
           playerSideMask: tile.playerSideMask,
           blackboard: tile.blackboard,  
-          buildableType: tile.buildableType,  
+          buildableType: AliasHelper(tile.buildableType, "buildableType"),  
           effects: tile.effects,  
         }
 

@@ -63,7 +63,6 @@ class AssetsManager{
     //储存读取的textures
     const resTextures = [];
     textures.forEach(texture => {
-
       
       resTextures.push(this.textureLoader.load(texture));
     })

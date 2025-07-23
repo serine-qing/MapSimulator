@@ -24,6 +24,12 @@ const AliasMap = {
     0: "LOWLAND",
     1: "HIGHLAND",
   },
+  buildableType:{
+    0: "NONE",
+    1: "MELEE",
+    2: "RANGED",
+    3: "ALL",
+  },
   predefDirection:{
     0: "UP",
     1: "RIGHT",

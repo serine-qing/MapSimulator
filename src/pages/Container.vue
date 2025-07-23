@@ -78,6 +78,7 @@ const updateLabelPosAndSize = () => {
   const scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
   
   enemyManager.getEnemiesInMap().forEach(enemy => {
+    if(!enemy.spine) return;
     const {skelSize, skelOffset} = enemy;
     
     const height = skelSize.y * 5.5;
@@ -104,6 +105,7 @@ const updateLabelPosAndSize = () => {
 
 const updateDatas = () => {
   enemyManager.getEnemiesInMap().forEach(enemy => {
+    if(!enemy.spine) return;
     const label = enemyLabels.value[enemy.id];
     const countDown = enemy.countDown();
     

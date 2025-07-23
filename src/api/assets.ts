@@ -11,5 +11,15 @@ const getTrapsKey = (keys) => {
   })
 }
 
+//获取敌人skel名
+const getSpinesKey = (keys) => {
+  return request({
+    method: "post",
+    url: "/assets/getSpinesKey",
+    data: {
+      keys
+    }
+  })
+} 
 
-export { getTrapsKey };
+export { getTrapsKey, getSpinesKey };

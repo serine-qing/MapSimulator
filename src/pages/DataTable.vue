@@ -59,6 +59,36 @@
       </template>
     </el-table-column>
 
+    <el-table-column 
+      align="center" 
+      label="攻击间隔"
+    >
+
+      <template #default="scope">
+        <el-tooltip
+          v-if="!!scope.row.attrChanges['attackSpeed']"
+          effect="dark"
+          :content="getAttrChange( '攻击速度', scope.row.attrChanges['attackSpeed'])"
+          placement="top"
+          raw-content
+        >
+          <div class="active">
+            {{ 
+              parseFloat( 
+                (scope.row.attributes['baseAttackTime'] * 100 /  scope.row.attributes['attackSpeed']).toFixed(3) 
+              )
+            }}
+          </div>
+        </el-tooltip>
+        
+        <div v-else>
+          {{ 
+            scope.row.attributes['baseAttackTime']
+          }}
+        </div>
+      </template>
+    </el-table-column>
+
     <el-table-column align="center" prop="lifePointReduce" label="目标价值"/>
   </el-table>
 </div>
@@ -85,9 +115,6 @@ const attrColumns = {
 
 const {enemyDatas} = defineProps(["enemyDatas"]);
 
-watch(() => enemyDatas, () => {
-  console.log(enemyDatas);
-})
 
 const getAttrChange = (name, attrChange): string => {
   let res = "";

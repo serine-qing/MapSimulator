@@ -196,6 +196,7 @@ class Enemy{
     //TODO 不同角度会导致spine看起来很奇怪，看能不能通过改mesh方向修复它
     //显示相关的数据为异步加载数据，会晚于构造函数调用
     const {skeletonData, moveAnimate, idleAnimate} = this.enemyData;
+    if(!skeletonData) return;
 
     this.skeletonData = skeletonData;
 
@@ -203,6 +204,7 @@ class Enemy{
     this.idleAnimate = idleAnimate;
 
     this.spine = new THREE.Object3D();
+
     GC_Add(this.spine);
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData, function(parameters) {
@@ -296,7 +298,7 @@ class Enemy{
     const material = new THREE.MeshBasicMaterial( { 
       color: "#000000",
       transparent: true, // 启用透明度
-      opacity: 0.4 // 设置透明度
+      opacity: 0.8 // 设置透明度
     } );
     const shadow = new THREE.Mesh( geometry, material );
 
@@ -556,14 +558,15 @@ class Enemy{
   //视图相关的更新
   public render(delta: number){
 
-    this.handleGradient();
+    if(this.spine){
+      this.handleGradient();
 
-    if(this.isStarted && !this.isFinished){
-      this.skeletonMesh.update(
-        this.deltaTrackTime(delta)
-      )
+      if(this.isStarted && !this.isFinished){
+        this.skeletonMesh.update(
+          this.deltaTrackTime(delta)
+        )
+      }
     }
-
 
   }
 
@@ -836,21 +839,23 @@ class Enemy{
     this.animateState = animateState;
     this.simulateTrackTime = simulateTrackTime;
     
-    //恢复当前动画状态
-    if(animateState){
-      this.changeAnimation();
-    }
-    
-    //恢复当前动画帧
-    if(simulateTrackTime && this.skeletonMesh){
-      const track = this.skeletonMesh.state.getCurrent(0);
-      track.trackTime = simulateTrackTime;
-    }
+    if(this.spine){
+      //恢复当前动画状态
+      if(animateState){
+        this.changeAnimation();
+      }
+      
+      //恢复当前动画帧
+      if(simulateTrackTime && this.skeletonMesh){
+        const track = this.skeletonMesh.state.getCurrent(0);
+        track.trackTime = simulateTrackTime;
+      }
 
-    this.shadow.position.z = this.shadowHeight;
-    this.visible()? this.show() : this.hide();
-    this.changeFaceToward();
-    this.updateShadowHeight();
+      this.shadow.position.z = this.shadowHeight;
+      this.visible()? this.show() : this.hide();
+      this.changeFaceToward();
+      this.updateShadowHeight();
+    }
 
   }
 

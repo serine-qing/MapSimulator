@@ -30,7 +30,7 @@ darkYellow.color.convertSRGBToLinear();
 
 const tileTextures = {
 
-  //wall和road是高台地面默认的材质，很多tile都会用到
+  //wall、road、floor、forbidden是高台地面默认的材质，很多tile都会用到
   tile_wall:{
     top: white,
     side: darkGray
@@ -38,15 +38,19 @@ const tileTextures = {
   tile_road:{
     top: gray,
   },
+  tile_floor:{
+    top: gray,
+  },
+  tile_forbidden:{
+    top: dark,
+    side: deepGray
+  },
+  
   tile_start:{
     ground: gray,
   },
   tile_end:{
     ground: gray,
-  },
-  tile_forbidden:{
-    top: dark,
-    side: deepGray
   },
   tile_deepsea:{
     top: sea
@@ -63,8 +67,9 @@ const tileTextures = {
     side: white
   },
   tile_hole:{
-    texture: {
-      size: 0.73,
+    top: gray,
+    hole: {
+      scale: 0.73,
       material: pureBlack
     }
   },
@@ -79,8 +84,6 @@ const tileTextures = {
 }
 
 tileTextures["tile_fence_bound"] = tileTextures["tile_fence"];
-
-
 
 const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
   const width = GameConfig.SPRITE_SIZE[0];
@@ -119,15 +122,45 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
     })
   })
 
+  //不可部署的源石污染区
+  textureMats["tile_toxic"] = textureMats["tile_floor"];
 
 }
 
-const getTexture = (name:string, size:number) => {
+const getTile = (key: string, buildableType: string, heightType: string): any => {
+  let defaultMat = {};
+
+  //tileTextures里没有key就用默认材质
+  if(buildableType === "NONE") {
+    if(heightType === "HIGHLAND"){
+      //高台不可部署使用tile_forbidden
+      defaultMat = tileTextures["tile_forbidden"];
+    }else if(heightType === "LOWLAND"){
+      //地面不可部署使用tile_road
+      defaultMat = tileTextures["tile_road"];
+    }
+  }else{
+    if(heightType === "HIGHLAND"){
+      //高台可部署使用tile_wall
+      defaultMat = tileTextures["tile_wall"];
+    }else if(heightType === "LOWLAND"){
+      //地面可部署使用tile_road
+      defaultMat = tileTextures["tile_road"];
+    }
+  }
+  const tileTexture = tileTextures[key]? tileTextures[key] : defaultMat;
+
+  return tileTexture;
+}
+
+
+//获取单位size的texture
+const getTexture = (name:string) => {
   const textureMat = textureMats[name];
   if(textureMat){
-    const textureGeo = new THREE.PlaneGeometry( size, size );
-    const textureObj = new THREE.Mesh( textureGeo, textureMat );
-    return textureObj;
+    const textureGeo = new THREE.PlaneGeometry( 1, 1 );
+    const textureMesh = new THREE.Mesh( textureGeo, textureMat );
+    return textureMesh;
   }else{
     return null;
   }
@@ -135,4 +168,4 @@ const getTexture = (name:string, size:number) => {
 
 }
 
-export{parseTexture, tileTextures, getTexture}
+export{parseTexture, getTexture, getTile}

@@ -8,6 +8,7 @@ class RunesHelper{
   private enemyGroupDisable: string[] = [];      //移除某组敌人
   private enemyChanges: { [ key:string ] : string } = {};      //移除某组敌人
   private attrChanges: { [ key:string ] : any } = {};     //敌人属性提升
+  private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
   private bannedTiles: Vec2[] = [];
   constructor(runes: any){
     this.runes = runes;
@@ -42,7 +43,9 @@ class RunesHelper{
         case "ebuff_attribute":
         case "enemy_attribute_add":
         case "enemy_attackradius_mul":
+        case "ebuff_attack_radius":     //全体攻击范围改变
         case "enemy_weight_add":
+        case "ebuff_weight":   //全体重量改变
           if(!this.attrChanges[difficultyMask]){
             this.attrChanges[difficultyMask] = [];
           }
@@ -55,10 +58,16 @@ class RunesHelper{
             const { key, value, valueStr } = item;
             let camelKey = toCamelCase(key); 
 
-            if(rune.key === "enemy_attackradius_mul" && key === "scale"){
+            if(
+              (rune.key === "ebuff_attack_radius" && key === "range_scale") ||
+              (rune.key === "enemy_attackradius_mul" && key === "scale")
+            ){
               //攻击范围
               camelKey = "rangeRadius"
-            }else if (rune.key === "enemy_weight_add" && key === "value"){
+            }else if (
+              (rune.key === "ebuff_weight" && key === "value") ||
+              (rune.key === "enemy_weight_add" && key === "value")
+            ){
               ///重量
               camelKey = "massLevel"
             }
@@ -84,6 +93,7 @@ class RunesHelper{
 
           break;
         
+        //ban格子
         case "global_forbid_location":
           blackboard.forEach( item => {
             const vecArr = item.valueStr.split("|");
@@ -101,8 +111,15 @@ class RunesHelper{
           })
           break;
 
-          //攻击范围改变
-        case "enemy_attackradius_mul":
+        //地图装置修改
+        case "level_predefines_enable":
+          blackboard.forEach( item => {
+            this.predefinesEnable[item.key] = !!item.value;
+          })
+          break;
+        
+        //todo tile修改
+        case "map_tile_blackb_add":
           break;
       }
 
@@ -195,6 +212,17 @@ class RunesHelper{
       const tile: Tile = mapTiles.get(vec2);
       if(tile){
         tile.isBanned = true;
+      }
+    })
+  }
+
+  public checkPredefines(traps){
+    traps.forEach(trap => {
+      const enable = this.predefinesEnable[trap.alias];
+      if(enable === true){
+        trap.hidden = false;
+      }else if(enable === false){
+        trap.hidden = true;
       }
     })
   }

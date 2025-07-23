@@ -55,10 +55,12 @@ class GameView{
 
   public initEnemys(){
     const enemies = this.enemyManager.flatEnemies;
-
     enemies.forEach(enemy => {
       enemy.initSpine();
-      this.mapContainer.add(enemy.spine);
+      if(enemy.spine){
+        this.mapContainer.add(enemy.spine);
+      }
+      
     })
 
   }

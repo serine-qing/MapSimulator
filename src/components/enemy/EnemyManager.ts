@@ -121,7 +121,6 @@ class EnemyManager{
 
         this.enemiesInMap.push(enemy.id);
         this.enemyIndexInWave ++;
-
         eventBus.emit("enemy_index_change", this.enemyIndexInWave, this.waveIndex)
       }
     }
@@ -200,7 +199,7 @@ class EnemyManager{
       enemy.set(eState);
     }
     
-    eventBus.emit("enemy_index_change")
+    eventBus.emit("enemy_index_change", enemyIndexInWave, waveIndex);
   }
 
   public destroy(){

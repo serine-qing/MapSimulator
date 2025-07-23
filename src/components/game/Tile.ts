@@ -1,6 +1,6 @@
 import {Object3D, BoxGeometry, BoxHelper, Mesh, Material, MeshBasicMaterial, TextureLoader, Vector2} from "three"
 import * as THREE from "three"
-import { getTexture, tileTextures } from "./TextureHelper";
+import { getTexture, getTile } from "./TextureHelper";
 import { isArray } from "element-plus/es/utils/types.mjs";
 import AliasHelper from "./AliasHelper";
 import GameManager from "./GameManager";
@@ -20,6 +20,7 @@ class Tile{
   position: Vec2;
 
   passableMask: string;
+  buildableType: string;  //可供部署类型
   tileKey: string;
   heightType: string;
 
@@ -30,16 +31,16 @@ class Tile{
 
   sideMaterial: Material;
   topMaterial: Material;
-  defaultMat: any;    //默认材质
 
   isBanned: boolean = false;    //该格子是否被ban了
 
   trap: Trap = null;   //当前地块上的装置
   constructor(tileData: TileData , position: Vec2){
     this.tileData = tileData;
-    const {tileKey, heightType, passableMask} = tileData;
+    const {tileKey, heightType, buildableType, passableMask} = tileData;
 
     this.passableMask = passableMask;
+    this.buildableType = buildableType;
 
     this.width = 1;
     this.height = 0;
@@ -49,14 +50,12 @@ class Tile{
       y: 0
     }
 
-    this.defaultMat = {};
-
     this.position.x = position.x ? position.x : 0;
     this.position.y = position.y ? position.y : 0;
 
 
     this.tileKey = tileKey;
-    this.heightType = AliasHelper(heightType, "heightType");
+    this.heightType = heightType;
   }
 
   public initMeshs(){
@@ -67,6 +66,7 @@ class Tile{
   }
 
   private initSize(){
+    
     switch (this.tileKey) {
       case "tile_start":
       case "tile_end":
@@ -78,31 +78,25 @@ class Tile{
         this.height = 0;
         break;
       case "tile_passable_wall":
-        this.defaultMat =  tileTextures["tile_wall"];
         this.height = GameConfig.TILE_HEIGHT;
         this.margin = 0.15; //高台有间隔
         break;
       default:
         if(this.heightType === "HIGHLAND"){
-
-          this.defaultMat =  tileTextures["tile_wall"];
           this.height = GameConfig.TILE_HEIGHT;
           this.margin = 0.15; //高台有间隔
 
         }else if(this.heightType === "LOWLAND"){
           this.height = 0;
-          this.defaultMat =  tileTextures["tile_road"];
           
         }
         break;
     }
   }
   private createMesh(){
-    const tileTexture = tileTextures[this.tileKey]? tileTextures[this.tileKey] : this.defaultMat;
-    let {top : topMaterial, side : sideMaterial} = tileTexture;
 
-    if(!topMaterial) topMaterial = this.defaultMat.top;
-    if(!sideMaterial) sideMaterial = this.defaultMat.side;
+    const tileTexture = getTile(this.tileKey, this.buildableType, this.heightType);
+    let {top : topMaterial, side : sideMaterial} = tileTexture;
     
     this.object = new Object3D();
 
@@ -171,6 +165,14 @@ class Tile{
         break;
       default:
         break;
+      case "tile_hole":
+        const hole = tileTexture.hole;
+        const size = this.gameManager.getPixelSize(hole.scale * this.width);
+        const holeGeo = new THREE.PlaneGeometry( size, size );
+        const holeMesh = new THREE.Mesh( holeGeo, hole.material );
+        holeMesh.position.z = 0.1;
+        this.object.add(holeMesh);
+        break;
     }
 
     const geometry = this.getBoxGeo(this.width, this.height, this.margin);
@@ -184,14 +186,12 @@ class Tile{
 
   //生成地块上的图像
   private createTexture(){
-    const textureScale = this.tileKey === "tile_floor"? 0.85 : 0.9;
-    const textureSize = this.gameManager.getPixelSize(this.width * textureScale);
-    const texture = getTexture(
-      this.tileKey, 
-      textureSize
-    );
+    let texture = getTexture(this.tileKey);
     
     if(texture){
+      let textureScale = this.tileKey === "tile_floor"? 0.85 : 0.9;
+      const textureSize = this.gameManager.getPixelSize(this.width * textureScale);
+      texture.scale.set(textureSize,textureSize,1);
       this.textureObj = texture;
       this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.08);
       this.object.add(this.textureObj)
@@ -200,10 +200,9 @@ class Tile{
     if(this.isBanned){
       const bannedSize = this.gameManager.getPixelSize(this.width * 0.9);
       const bannedTexture = getTexture(
-        "tile_banned", 
-        bannedSize
+        "tile_banned"
       );
-
+      texture.scale.set(bannedSize,bannedSize,1);
       bannedTexture.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.15);
       this.object.add(bannedTexture)
     }

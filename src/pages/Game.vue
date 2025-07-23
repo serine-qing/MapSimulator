@@ -30,7 +30,7 @@ export default{
       countDownCheckAll: true,
       countDownIndet: false,
 
-      enemyDatas: null,
+      enemyDatas: null
     }
   },
   props:["mapData"],
@@ -47,11 +47,13 @@ export default{
       await mapModel.init();
       await game.startGame(mapModel);
 
-      this.enemyDatas = mapModel.enemyDatas;
+      this.handleEnemyDatas(mapModel.enemyDatas);
+
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = game.maxSecond;
       this.$refs["container"].changeGameManager(game.gameManager);
+
     },
     pause(){
       game?.gameManager?.changePause(this.pause);
@@ -104,6 +106,22 @@ export default{
       this.isSliding = false;
       this.pause = this.cachePauseState;
     },
+    handleEnemyDatas(enemyDatas){
+      const cloneEnemyDatas = [];
+      enemyDatas.forEach(enemyData => {
+        const cloneEnemyData = {};
+        Object.keys(enemyData).forEach(key => {
+          
+          if(key !== "skeletonData"){
+            cloneEnemyData[key] = enemyData[key];
+          }
+        })
+
+        cloneEnemyDatas.push(cloneEnemyData)
+      })
+
+      this.enemyDatas = cloneEnemyDatas;
+    }
   },
   computed:{
     //分秒
