@@ -32,8 +32,11 @@ declare global {
     count: number,         //敌人数量
     level: number,         //敌人级别
     attributes: any,        //敌人属性
-    talentBlackboard: any[], //敌人天赋
-    skills: any,           //敌人技能（合并了天赋和技能）
+    talentBlackboard?: any[], //敌人天赋（原始数据）
+    talents: any,           //敌人天赋
+    skills: any,           //敌人技能
+    hugeEnemy: boolean,     //是否是巨型敌人
+    unMoveable: boolean,   //是否不可移动
     description: string,    //
     levelType: string,      //敌人级别 普通/精英/领袖
     name: string,

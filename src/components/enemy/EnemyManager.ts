@@ -14,8 +14,8 @@ class EnemyManager{
   public enemyIndexInWave: number = -1;     //当前波次出到第几个敌人
 
   private waveIndex: number = 0;
-  private currentSecond: number = -1; //当前游戏时间（-1为未开始默认值）
-  private usedSecond:number = 0;     //之前波次已经使用掉的时间
+  public gameSecond: number = 0; //当前游戏时间
+  public waveSecond: number = 0;     //当前波次时间
   public allWaveFinished: boolean = false;  //全部波次已经结束
   
   constructor(mapModel: MapModel, gameManager: GameManager,){
@@ -34,6 +34,7 @@ class EnemyManager{
         const enemy = new Enemy(wave);
         enemy.id = index++;
         enemy.gameManager = this.gameManager;
+        enemy.enemyManager = this;
         enemy.mapTiles = this.mapModel.mapTiles;
         enemy.SPFA = this.mapModel.SPFA;
         innerEnemies.push(enemy);
@@ -77,7 +78,7 @@ class EnemyManager{
     this.waveIndex ++;
     this.enemyIndexInWave = -1;
 
-    this.usedSecond = this.currentSecond;
+    this.waveSecond = 0;
   }
 
   //检查是否游戏结束
@@ -104,11 +105,6 @@ class EnemyManager{
     }
   }
 
-  //以波次计时
-  private waveSecond(){
-    return this.currentSecond - this.usedSecond;
-  }
-
   private spawnEnemy(){
     const waves = this.currentWave();
 
@@ -116,7 +112,7 @@ class EnemyManager{
 
       const enemy: Enemy = waves[i];
 
-      if(!enemy.isStarted && enemy.startTime <= this.waveSecond()){
+      if(!enemy.isStarted && enemy.startTime <= this.waveSecond){
         enemy.start();
 
         this.enemiesInMap.push(enemy.id);
@@ -138,10 +134,9 @@ class EnemyManager{
     return enemies;
   }
 
-  public update(delta: number, currentSecond: number){
+  public update(delta: number){
     if(this.allWaveFinished) return;
 
-    this.currentSecond = currentSecond;
     this.removeEnemies();
     this.checkFinished();
 
@@ -149,13 +144,15 @@ class EnemyManager{
 
     this.getEnemiesInMap().forEach(
       enemy => {
-          enemy.update(delta, this.waveSecond(), this.usedSecond)
+          enemy.update(delta)
       }
-        
     )
 
     this.spawnEnemy();
     
+    this.gameSecond += delta;
+    this.waveSecond += delta;
+
   }
 
   public get(){
@@ -169,7 +166,7 @@ class EnemyManager{
       enemiesInMap: [...this.enemiesInMap],
       enemyIndexInWave: this.enemyIndexInWave,
       waveIndex: this.waveIndex,
-      usedSecond: this.usedSecond,
+      waveSecond: this.waveSecond,
       allWaveFinished: this.allWaveFinished
     }
 
@@ -181,7 +178,7 @@ class EnemyManager{
       enemiesInMap, 
       enemyIndexInWave, 
       waveIndex, 
-      usedSecond, 
+      waveSecond, 
       allWaveFinished, 
       enemyStates
     } = state;
@@ -189,7 +186,7 @@ class EnemyManager{
     this.enemiesInMap = [...enemiesInMap];
     this.enemyIndexInWave = enemyIndexInWave;
     this.waveIndex = waveIndex;
-    this.usedSecond = usedSecond;
+    this.waveSecond = waveSecond;
     this.allWaveFinished = allWaveFinished;
 
     for(let i = 0; i< enemyStates.length; i++){

@@ -18,6 +18,7 @@
         >
           <div  
             class="countdown"
+            v-if="!label.unMoveable"
             v-show="label.options.countDownVisible && label.countDown > -1"
             :style="{
               fontSize: label.countDown >= 100? '10px' : '14px'
@@ -25,6 +26,17 @@
             
           >{{ label.countDown > -1 ? label.countDown : "" }}
           </div>
+
+          <div  
+            class="countdown end-countdown"
+            v-show="label.options.countDownVisible && label.endCountDown > -1"
+            :style="{
+              fontSize: label.endCountDown >= 100? '10px' : '14px'
+            }"
+            
+          >{{ label.endCountDown > -1 ? label.endCountDown : "" }}
+          </div>
+
         </div>
       </template>
 
@@ -107,14 +119,22 @@ const updateDatas = () => {
   enemyManager.getEnemiesInMap().forEach(enemy => {
     if(!enemy.spine) return;
     const label = enemyLabels.value[enemy.id];
-    const countDown = enemy.countDown();
+    const unMoveable = enemy.unMoveable;
+    const countDown = enemy.getCountDown("checkPoint");
+    const endCountDown = enemy.getCountDown("end");
     
+    label.unMoveable = unMoveable;
     if(countDown > 0){
       label.countDown = Math.floor(countDown);
     }else{
       label.countDown = -1;
     }
     
+    if(endCountDown > 0){
+      label.endCountDown = Math.floor(endCountDown);
+    }else{
+      label.endCountDown = -1;
+    }
   })
 }
 
@@ -255,20 +275,25 @@ defineExpose({
   cursor: pointer;
   transform-origin: center center;
   text-align: center;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
+  justify-content: center;
+  align-items: flex-end;
   .countdown{
     text-align: center;
-    line-height: 18px;
+    line-height: 17px;
     height: 18px;
     width: 18px;
     background-color: white;
     color: black;
     border-radius: 13px;
     border: 1px solid black;
+    margin-left: 2px;
+    margin-right: 2px;
   }
+  .end-countdown{
+    background-color: red;
+    color: white;
 
+  }
 }
 
 .enemy-key{

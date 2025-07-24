@@ -13,7 +13,7 @@ import { unitizeFbx  } from "./FbxHelper";
 
 import { getTrapsKey, getSpinesKey } from "@/api/assets";
 import { GC_Add } from "./GC";
-import { parseTalent } from "./SkillHelper";
+import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
 import Trap from "./Trap";
 
@@ -34,7 +34,6 @@ class MapModel{
   public SPFA: SPFA;  //寻路对象
   constructor(data: any){
     this.sourceData = data;
-    // console.log(this.enemyRoutes)
   }
 
   //异步数据，需要在实例化的时候手动调用
@@ -54,7 +53,6 @@ class MapModel{
 
     //解析波次数据
     this.parseEnemyWaves(this.sourceData.waves)
-    
     await this.initEnemyData(this.sourceData.enemyDbRefs);
     //获取哪些敌人的spine是可用的
     const spineUrls = await this.getEnemySpineUrls();
@@ -382,6 +380,7 @@ class MapModel{
   //覆盖数据
   private overwriteData(rawData, overwrittenData){
     Object.keys(rawData).forEach(key => {
+      if(key === "name" || key === "description") return;
       if(overwrittenData[key]?.m_defined){
         rawData[key] = overwrittenData[key].m_value;
       }
@@ -412,6 +411,13 @@ class MapModel{
       }
     })
 
+    //覆盖技能
+    overwrittenData.skills?.forEach(skill => {
+      const index = rawData.skills.findIndex(findSkill => findSkill.prefabKey === skill.prefabKey);
+      if(index > -1){
+        rawData.skills[index] = skill;
+      }
+    })
   }
 
   /**
@@ -502,7 +508,8 @@ class MapModel{
     })
 
     enemyDatas.forEach(enemyData => {
-      enemyData.skills = parseTalent(enemyData.talentBlackboard);
+      enemyData.talents = parseTalent(enemyData.talentBlackboard);
+      enemyData.skills = parseSkill(enemyData.skills); 
     })
 
     this.enemyDatas = enemyDatas;

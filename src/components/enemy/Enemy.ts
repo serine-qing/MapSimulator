@@ -7,6 +7,7 @@ import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } fro
 import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
 import MapTiles from "../game/MapTiles";
+import EnemyManager from "./EnemyManager";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
@@ -32,7 +33,8 @@ class Enemy{
   attackSpeed: number;
   attrChanges: {[key: string]: any[]}    //属性加成
 
-  skills: any[];          //天赋
+  talents: any[];          //天赋
+  skills: any[];           //技能
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
@@ -41,6 +43,8 @@ class Enemy{
 
   shadowOffset: Vec2;   //足坐标偏移
 
+  hugeEnemy: boolean = false;    //是否是巨型敌人
+  unMoveable: boolean = false;   //是否可移动
   route: EnemyRoute;
   checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
@@ -48,10 +52,9 @@ class Enemy{
   SPFA: SPFA;
   targetNode: PathNode;  //寻路目标点
   
-  startSecond: number = 0;      //进入地图的时间点
-  waveSecond: number = 0;       //波次开始后过了多久（update传进来）
+  currentSecond: number = 0;      //敌人的当前时间
 
-  targetWaitingSecond: number = 0;//等待到目标时间
+  private countDowns: any[] = [];  //倒计时
 
   isStarted: boolean = false;
   isFinished: boolean = false;
@@ -84,7 +87,7 @@ class Enemy{
   public simulateTrackTime: number;      //动画执行time
 
   public gameManager: GameManager;
-
+  public enemyManager: EnemyManager;
   
   constructor(wave: EnemyWave){
     this.enemyData = wave.enemyData;
@@ -94,8 +97,8 @@ class Enemy{
     this.waveTime = wave.waveTime;
 
     const {
-      key, levelType, motion, name, description, icon, applyWay,
-      attributes, notCountInTotal, skills, attrChanges
+      key, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
+      attributes, notCountInTotal, talents, skills, attrChanges
     } = this.enemyData;
 
     this.key = key;
@@ -105,9 +108,12 @@ class Enemy{
     this.description = description;
     this.applyWay = applyWay;
     this.notCountInTotal = notCountInTotal;
+    this.hugeEnemy = hugeEnemy;
+    this.unMoveable = unMoveable;
+    this.talents = talents;
     this.skills = skills;
     this.icon = icon;
-
+    // console.log(talents)
     this.attrChanges = attrChanges;
     
     this.attributes = attributes;
@@ -130,12 +136,14 @@ class Enemy{
     };
 
     this.initOptions();
-    this.handleSkill();
+    
   }
 
   public start(){
     this.reset();
     this.isStarted = true;
+    this.handleTalents();
+    this.handleSkills();
     this.show();
   }
 
@@ -146,12 +154,11 @@ class Enemy{
     );
     this.isStarted = false;
     this.isFinished = false;
-    this.targetWaitingSecond = 0;
+    this.countDowns = [];
     this.targetNode = null;
     this.animateState = 'idle';
     this.changeAnimation();
     this.changeCheckPoint(0)
-    this.waveSecond = 0;
   }
 
   public setPosition(x:number, y: number){
@@ -210,7 +217,7 @@ class Enemy{
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData, function(parameters) {
       //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
       //重叠时显示哪个用mesh的renderOrder属性控制
-			parameters.depthTest = false;
+			parameters.depthWrite = false;
 		}); 
 
     this.spine.add(this.skeletonMesh);
@@ -374,16 +381,17 @@ class Enemy{
 
   }
 
-  public update(delta: number, waveSecond: number, usedSecond: number){
+  public update(delta: number){
     
     if(this.isFinished) return;
     //模拟动画时间
-    
-    this.waveSecond = waveSecond;
-    if(!this.startSecond) this.startSecond = waveSecond;
-
+    this.currentSecond += delta;
+    this.applyCountDown(delta);
     this.handleRush();
-    if(this.countDown() > 0) return;
+
+    this.simulateTrackTime += this.deltaTrackTime(delta);
+
+    if(this.getCountDown("checkPoint") > 0) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
     const {type, time, reachOffset} = checkPoint;
@@ -391,7 +399,7 @@ class Enemy{
     switch (type) {
       case "MOVE":  
         //部分0移速的怪也有移动指令，例如GO活动的装备
-        if(this.attributes.moveSpeed === 0){
+        if(this.unMoveable || this.attributes.moveSpeed === 0){
           return;
         }
 
@@ -512,27 +520,30 @@ class Enemy{
       case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
       case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
+        let countDownTime = 0;
         switch (type){
           case "WAIT_FOR_SECONDS":
-            this.waitingTo( time + this.waveSecond );
+            countDownTime = time;
             break;
           case "WAIT_FOR_PLAY_TIME":
-            this.waitingTo( time - usedSecond);  //存疑，不过几乎没有用过WAIT_FOR_PLAY_TIME
+            countDownTime = time - this.enemyManager.gameSecond; 
             break;
           case "WAIT_CURRENT_FRAGMENT_TIME":
-            this.waitingTo( time + this.fragmentTime );
+            countDownTime = time - this.enemyManager.waveSecond + this.fragmentTime;
             break;
           case "WAIT_CURRENT_WAVE_TIME": 
-            this.waitingTo( time );
+            countDownTime = time - this.enemyManager.waveSecond + this.waveTime;
             break;
         }
-        this.nextCheckPoint();
+        
+        this.addCountDown("checkPoint", countDownTime);
+        
         break;
 
       case "DISAPPEAR":
         this.gradientHide();
         this.nextCheckPoint();
-        this.update(delta, this.waveSecond, usedSecond);
+        this.update(delta);
         break;
       case "APPEAR_AT_POS":
         this.setPosition(
@@ -552,7 +563,45 @@ class Enemy{
     this.velocity.x = 0;
     this.velocity.y = 0;
 
-    this.simulateTrackTime += this.deltaTrackTime(delta);
+  }
+
+
+
+  private addCountDown(name: string, time: number){
+    this.countDowns.push({
+      name, time
+    })
+  }
+
+  public getCountDown(name: string): number{
+    const find = this.countDowns.find(countDown => countDown.name === name);
+    return find? find.time : -1;
+  }
+
+  private applyCountDown(delta: number){
+    for(let i = 0; i < this.countDowns.length; i++){
+      const countDown = this.countDowns[i];
+      countDown.time = Math.max(countDown.time - delta, 0);
+      if(countDown.time === 0){
+        this.countDowns.splice(i, 1);
+        i--;
+
+        this.handleCountDownFinished(countDown.name);
+      }
+    }
+
+  }
+
+  private handleCountDownFinished(name: string){
+    switch (name) {
+      case "checkPoint":
+        this.nextCheckPoint();
+        break;
+    
+      case "end":
+        this.finishedMap();
+        break;
+    }
   }
 
   //视图相关的更新
@@ -618,20 +667,19 @@ class Enemy{
     return this.attributes.moveSpeed * this.speedRate() * 0.5;
   }
 
-  private handleSkill(){
-    // console.log(this.skills)
-    this.skills?.forEach(skill => {
-      switch (skill.key) {
+  private handleTalents(){
+    console.log(this.talents)
+    this.talents?.forEach(talent => {
+      const {move_speed, interval, duration, trig_cnt, unmove_duration} = talent.value;
+      switch (talent.key) {
         case "rush":
-          const {move_speed, interval, trig_cnt} = skill.value;
           if(move_speed && interval && trig_cnt){
-            this.rush = skill.value;
+            this.rush = talent.value;
           }
           
           break;
         case "revive":   //萨卡兹魔剑士、恶咒者
         case "sleepwalking": //钵海收割者
-          const { unmove_duration } = skill.value;
           if( unmove_duration ){
             this.checkpoints.unshift({
               position: null,
@@ -641,10 +689,59 @@ class Enemy{
               type: "WAIT_FOR_SECONDS"
             })
           }
-
+          break;
+        case "sleep": //驮兽
+          if( interval ){
+            this.checkpoints.unshift({
+              position: null,
+              reachOffset: null,
+              randomizeReachOffset: null,
+              time: interval,
+              type: "WAIT_FOR_SECONDS"
+            })
+          }
+          break;
+        case "timeup":  //prts等
+          if(duration){
+            //岁相
+            this.addCountDown("end", duration - this.enemyManager.gameSecond);
+          }else if(interval){
+            this.addCountDown("end", interval - this.enemyManager.gameSecond);
+          }
+          
           break;
       }
     })
+  }
+
+  private handleSkills(){
+    // console.log(this.skills)
+
+    this.skills?.forEach(skill => {
+      switch (skill.prefabKey) {
+        case "doom":
+          let countdown =  skill.initCooldown;
+          if(this.key === "enemy_1521_dslily"){
+            //昆图斯需要加上前两个阶段的时间
+            const growup1 = this.getTalent("growup1");
+            const growup2 = this.getTalent("growup2");
+            countdown += growup1.interval + growup2.interval;
+          }
+          this.addCountDown("end", countdown)
+          break;
+
+      }
+    });
+  }
+
+  private getTalent(key: string){
+    const find = this.talents.find(talent => talent.key === key);
+    return find? find.value : null;
+  }
+
+  private getSkill(key: string){
+    const find = this.skills.find(skill => skill.prefabKey === key);
+    return find? find : null;
   }
 
   private handleRush(){
@@ -653,27 +750,13 @@ class Enemy{
       const trigNum = 
       Math.min(
         Math.max(
-          Math.round((this.currentSecond() - (predelay||0)) /  interval), 
+          Math.round((this.currentSecond - (predelay||0)) /  interval), 
           0
         ), 
         trig_cnt
       );
       this.moveSpeedAddons.rush = trigNum * move_speed + 1;
     }
-  }
-
-  //出生后过了多久
-  private currentSecond(): number{
-    return this.waveSecond - this.startSecond;
-  }
-
-  private waitingTo(time: number){
-    this.targetWaitingSecond = time;
-    
-  }
-
-  public countDown(): number{
-    return this.targetWaitingSecond - this.waveSecond;
   }
 
   public show(){
@@ -784,6 +867,7 @@ class Enemy{
       x: this.position.x,
       y: this.position.y
     }
+
     const state = {
       position,
       acceleration: this.acceleration,
@@ -791,10 +875,9 @@ class Enemy{
       checkPointIndex: this.checkPointIndex,
       faceToward: this.faceToward,
       targetNode: this.targetNode,
-      targetWaitingSecond: this.targetWaitingSecond,
+      countDowns: this.countDowns.map( countDown => {return {...countDown} }),
       isStarted: this.isStarted,
-      startSecond: this.startSecond,
-      waveSecond: this.waveSecond,
+      currentSecond: this.currentSecond,
       isFinished: this.isFinished,
       animateState: this.animateState,
       shadowHeight: this.shadowHeight,
@@ -812,14 +895,13 @@ class Enemy{
       checkPointIndex, 
       faceToward,
       targetNode, 
-      targetWaitingSecond, 
+      countDowns,
       isStarted, 
       isFinished, 
       animateState,
       shadowHeight,
       exit,
-      startSecond,
-      waveSecond,
+      currentSecond,
       simulateTrackTime
     } = state;
 
@@ -829,11 +911,10 @@ class Enemy{
     this.checkPointIndex = checkPointIndex;
     this.faceToward = faceToward;
     this.targetNode = targetNode;
-    this.targetWaitingSecond = targetWaitingSecond;
+    this.countDowns = countDowns;
     this.isStarted = isStarted;
     this.exit = exit;
-    this.startSecond = startSecond;
-    this.waveSecond = waveSecond;
+    this.currentSecond = currentSecond;
     this.isFinished = isFinished;
     this.shadowHeight = shadowHeight;
     this.animateState = animateState;

@@ -27,7 +27,7 @@ class GameManager{
   private timeStamp: number = 1 / GameConfig.FPS;
   private singleFrameTime: number = 1 / GameConfig.FPS; //两次渲染之间间隔的游戏内时间
 
-  public currentSecond: number = 0;    //当前游戏时间
+  public gameSecond: number = 0;    //当前游戏时间
 
   public isFinished: boolean = false;
 
@@ -123,9 +123,9 @@ class GameManager{
 
       this.update(delta);
 
-      if(!this.isSimulate ) eventBus.emit("second_change", this.currentSecond);
+      if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
       
-      this.currentSecond += delta;
+      this.gameSecond += delta;
     }
 
     this.render(delta);
@@ -133,7 +133,7 @@ class GameManager{
   }
 
   private update(delta: number){
-    this.enemyManager.update(delta, this.currentSecond);
+    this.enemyManager.update(delta, this.gameSecond);
   }
 
   private render(delta: number){
@@ -147,7 +147,7 @@ class GameManager{
     this.simulateData = simulateData;
 
     this.enemyManager.flatEnemies.forEach((enemy, index) => {
-      enemy.spawnTime = parseFloat(simulateData.byEnemy[index].currentSecond.toFixed(1));
+      enemy.spawnTime = parseFloat(simulateData.byEnemy[index].gameSecond.toFixed(1));
     })
 
     eventBus.on("jump_to_enemy_index", (index) => {
@@ -163,7 +163,7 @@ class GameManager{
 
   public get(){
     let state = {
-      currentSecond: this.currentSecond,
+      gameSecond: this.gameSecond,
       isFinished: this.isFinished,
       eManagerState: this.enemyManager.get()
     }
@@ -171,9 +171,9 @@ class GameManager{
   }
 
   public set(state){
-    const {currentSecond, isFinished, eManagerState} = state;
+    const {gameSecond, isFinished, eManagerState} = state;
     
-    this.currentSecond = currentSecond;
+    this.gameSecond = gameSecond;
     this.enemyManager.set(eManagerState)
     this.isFinished = isFinished;
 

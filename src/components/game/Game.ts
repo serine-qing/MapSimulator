@@ -25,9 +25,9 @@ class Game{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    // console.log = ()=>{
-    //   return;
-    // }
+    console.log = ()=>{
+      return;
+    }
     const simulateGame = new GameManager(mapModel, true);
 
     const simData = {
@@ -41,7 +41,7 @@ class Game{
 
     let time = 0;
     while( !simulateGame.isFinished ){
-      if(simulateGame.currentSecond >= time){
+      if(simulateGame.gameSecond >= time){
         simData.byTime.push(simulateGame.get());
         time += GameConfig.SIMULATE_STEP;
       }

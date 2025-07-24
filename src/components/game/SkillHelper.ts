@@ -25,4 +25,29 @@ const parseTalent = (talentBlackboard: any[]):{ [key: string]: any }  => {
   });
 }
 
-export {parseTalent}
+const parseSkill = (skills) => {
+  const res = [];
+  
+  skills?.forEach(skill => {
+    const skillClone = {...skill};
+    skillClone.prefabKey = skillClone.prefabKey.toLowerCase();
+    const parsedBlackboard:{[key: string]: number|string} = {};
+    if(skill.blackboard){
+      skill.blackboard.forEach((item: any) => {
+        const {key, value, valueStr} = item;
+        if(valueStr === null){
+          parsedBlackboard[key] = value;
+        }else{
+          parsedBlackboard[key] = valueStr;
+        }
+      })
+
+      skillClone.blackboard = parsedBlackboard;
+    }
+    res.push(skillClone);
+  })
+
+  return res;
+}
+
+export {parseTalent, parseSkill}

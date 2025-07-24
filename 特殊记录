@@ -45,10 +45,4 @@ trap_182_sglink:纯净结晶需要贴图
 
 有部分3D敌人：克里斯滕球 15章弱化装置
 
-萨卡兹穿刺手 enemy_1072_dlancer 
-技能key rush.dlancer_t[trigger]
-move_speed interval trig_cnt predelay(延迟多久后执行)
-
-赏金猎人“骑士” enemy_1413_mmstck
-技能key Rush.enemy_mmstck_t[trigger]
-move_speed interval trig_cnt predelay
+解包：敌人的spine在 arknights\refs\arts

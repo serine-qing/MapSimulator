@@ -217,7 +217,7 @@ class RunesHelper{
   }
 
   public checkPredefines(traps){
-    traps.forEach(trap => {
+    traps?.forEach(trap => {
       const enable = this.predefinesEnable[trap.alias];
       if(enable === true){
         trap.hidden = false;
