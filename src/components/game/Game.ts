@@ -31,13 +31,13 @@ class Game{
     const simulateGame = new GameManager(mapModel, true);
 
     const simData = {
-      byEnemy: [],
+      byAction: [],
       byTime: []  
     };
     const fuc = () => {
-      simData.byEnemy.push(simulateGame.get());
+      simData.byAction.push(simulateGame.get());
     };
-    eventBus.on("enemy_index_change", fuc);
+    eventBus.on("action_index_change", fuc);
 
     let time = 0;
     while( !simulateGame.isFinished ){
@@ -50,7 +50,7 @@ class Game{
 
     this.maxSecond = simData.byTime.length - 1;
     
-    eventBus.remove("enemy_index_change", fuc);
+    eventBus.remove("action_index_change", fuc);
     simulateGame.destroy();
 
     console.log = cacheFunc;

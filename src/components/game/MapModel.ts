@@ -15,7 +15,6 @@ import { getTrapsKey, getSpinesKey } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
-import Trap from "./Trap";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -25,8 +24,7 @@ class MapModel{
 
   public mapTiles: MapTiles; //地图tiles
   public trapDatas: trapData[] = [];
-  public traps: Trap[] = []; //地图装置
-  public enemyWaves: EnemyWave[][] = [];
+  public actionDatas: ActionData[][] = [];
   public enemyDatas: EnemyData[] = [];
   public enemyRoutes: EnemyRoute[] = [];
 
@@ -47,29 +45,42 @@ class MapModel{
     //获取trap数据
     await this.getTrapDatas();
 
-    this.initTraps();
     //解析敌人路径
     this.parseEnemyRoutes();
 
     //解析波次数据
-    this.parseEnemyWaves(this.sourceData.waves)
+    this.parseActions(this.sourceData.waves)
     await this.initEnemyData(this.sourceData.enemyDbRefs);
     //获取哪些敌人的spine是可用的
     const spineUrls = await this.getEnemySpineUrls();
     //获取敌人spine
     this.getEnemySpines(spineUrls);
 
-    //绑定route和enemydata
-    this.enemyWaves.flat().forEach( wave => {
+    //绑定route和enemydata 或trap
+    this.actionDatas.flat().forEach( wave => {
       //route可能为null
       const findRoute: EnemyRoute = this.enemyRoutes.find( route => route.index === wave.routeIndex );
-      const findEnemyData = this.enemyDatas.find(e => e.waveKey === wave.key);
+      let findEnemyData: EnemyData;
+      let findTrap: trapData;
+      switch (wave.actionType) {
+        case "SPAWN":
+          findEnemyData = this.enemyDatas.find(e => e.waveKey === wave.key);
+          break;
+      
+        case "ACTIVATE_PREDEFINED":
+          findTrap = this.trapDatas.find(data => data.alias === wave.key);
+          break;
+      }
+      
 
       if(findRoute) wave.route = findRoute;
       if(findEnemyData) {
         wave.enemyData = findEnemyData
         findEnemyData.count ++;
-      };
+      }else if(findTrap){
+        //wave中的trap是指名道姓的实体
+        wave.trapData = findTrap;
+      }
     })
     
     this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
@@ -80,17 +91,13 @@ class MapModel{
 
   private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
-
     this.runesHelper.checkPredefines(tokenInsts);
     if(tokenInsts){
 
       const trapKeys:Set<string> = new Set();
 
       tokenInsts.forEach(data => {
-        const {direction, hidden, position, inst, mainSkillLvl} = data;
-
-        if(hidden) return;
-
+        const {alias, direction, hidden, position, inst, mainSkillLvl} = data;
         let key;
 
         switch (inst.characterKey) {
@@ -109,7 +116,9 @@ class MapModel{
         }
 
         this.trapDatas.push({
+          alias,
           key,
+          hidden,
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
           mainSkillLvl
@@ -240,15 +249,6 @@ class MapModel{
 
   }
 
-  private initTraps(){
-    this.trapDatas.forEach(trapData => {
-      const trap = new Trap(trapData);
-      this.traps.push(trap);
-    });
-
-    this.mapTiles.bindTraps(this.traps);
-  }
-
   private getRunes(){
     //"difficultyMask": 1和NORMAL是普通  2和FOUR_STAR是突袭  3和ALL是全部生效
     
@@ -267,8 +267,7 @@ class MapModel{
 
 
   //解析波次
-  private parseEnemyWaves(waves: any[]){ 
-
+  private parseActions(waves: any[]){ 
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
     waves.forEach((wave: any) => {
 
@@ -277,7 +276,7 @@ class MapModel{
 
       let currentTime = 0;
       
-      const innerWaves: EnemyWave[] = [];
+      const innerWaves: ActionData[] = [];
       currentTime += wave.preDelay;
       let waveTime = currentTime;
       wave.fragments.forEach((fragment: any) => {
@@ -295,24 +294,35 @@ class MapModel{
 
             let startTime = currentTime + action.preDelay + action.interval*i;
             lastTime = Math.max(lastTime, startTime);
-            
+            action.actionType = AliasHelper(action.actionType, "actionType");
+
             //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
             //虽然不会加入波次里面，但是该算的preDelay还是要算的
-            //有SPAWN和数字0两种
-            if(action.actionType !== "SPAWN" && action.actionType !== 0) return;
-
-            let eWave: EnemyWave = {
-              actionType: action.actionType,
-              key: this.runesHelper.checkEnemyChange( action.key ),
-              routeIndex : action.routeIndex,
-              startTime,
-              fragmentTime,
-              waveTime,
-              hiddenGroup: action.hiddenGroup
+            let actionKey;
+            switch (action.actionType) {
+              case "SPAWN":
+                actionKey = this.runesHelper.checkEnemyChange( action.key );
+                break;
+              case "ACTIVATE_PREDEFINED": //激活装置
+                actionKey = action.key;
+                break;
             }
+            
+            if(actionKey){
+              let eAction: ActionData = {
+                actionType: action.actionType,
+                key: actionKey,
+                routeIndex : action.routeIndex,
+                startTime,
+                fragmentTime,
+                waveTime,
+                dontBlockWave: action.dontBlockWave,
+                blockFragment: action.blockFragment,
+                hiddenGroup: action.hiddenGroup
+              }
 
-            innerWaves.push(eWave);
-
+              innerWaves.push(eAction);
+            }
           }
         })
 
@@ -324,7 +334,7 @@ class MapModel{
         return a.startTime - b.startTime;
       })
 
-      this.enemyWaves.push(innerWaves);
+      this.actionDatas.push(innerWaves);
       currentTime += wave.postDelay;
     });
     
@@ -427,7 +437,7 @@ class MapModel{
    */
   private async initEnemyData(enemyDbRefs: EnemyRef[]){
 
-    const waves = this.enemyWaves.flat();
+    const waves = this.actionDatas.flat();
 
     //波次中会出现的敌人对应的enemyDbRef数组
     //使用Set防止重复

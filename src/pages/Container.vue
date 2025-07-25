@@ -4,10 +4,9 @@
       v-for = "(label, index) in enemyLabels"
       :key = "index"
       placement="top"
-      :title="enemies[index].name"
+      :title="label.name + '#' + (label.id + 1)"
       :width="200"
       trigger="click"
-      content="this is content, this is content, this is content"
     >
       <template #reference>
         <div 
@@ -42,6 +41,8 @@
 
       <div>
         <span class="enemy-key">{{ label.key }}</span>
+        <span class="enemy-key">{{ `当前检查点：${label.currentCheckPoint + 1} / ${label.checkPointLength}` }}</span>
+        <el-button @click="showDetail(label.id)">查看数据</el-button>
         <el-checkbox 
           :disabled="!enemies[index].isRanged()" 
           v-model="label.options.attackRangeVisible" label="显示攻击范围" 
@@ -59,7 +60,7 @@
 
 <script lang="ts" setup>
 import GameManager from '@/components/game/GameManager';
-import EnemyManager from '@/components/enemy/EnemyManager';
+import WaveManager from '@/components/enemy/WaveManager';
 import { gameCanvas } from '@/components/game/GameCanvas';
 import * as THREE from "three";
 import Enemy from '@/components/enemy/Enemy';
@@ -69,7 +70,7 @@ import GameConfig from '@/components/utilities/GameConfig';
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
 const enemyLabels = ref([]);
 
-let enemyManager: EnemyManager;
+let waveManager: WaveManager;
 let enemies: Enemy[];
 
 //FUNCTION                                           
@@ -89,7 +90,7 @@ const updateLabelPosAndSize = () => {
 
   const scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
   
-  enemyManager.getEnemiesInMap().forEach(enemy => {
+  waveManager.getEnemiesInMap().forEach(enemy => {
     if(!enemy.spine) return;
     const {skelSize, skelOffset} = enemy;
     
@@ -116,9 +117,11 @@ const updateLabelPosAndSize = () => {
 }
 
 const updateDatas = () => {
-  enemyManager.getEnemiesInMap().forEach(enemy => {
+  waveManager.getEnemiesInMap().forEach(enemy => {
     if(!enemy.spine) return;
     const label = enemyLabels.value[enemy.id];
+    label.currentCheckPoint = enemy.checkPointIndex;
+
     const unMoveable = enemy.unMoveable;
     const countDown = enemy.getCountDown("checkPoint");
     const endCountDown = enemy.getCountDown("end");
@@ -147,8 +150,10 @@ const update = () => {
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
     enemyLabels.value.push({
+      id: enemy.id,
       key: enemy.key,
       name: enemy.name,
+      checkPointLength: enemy.checkpoints.length,
       options: enemy.options,
       style: {}
     });
@@ -158,7 +163,7 @@ const initEnemyLabels = () => {
 
 const animate = () => {
   requestAnimationFrame(()=>{
-    if(enemyManager){
+    if(waveManager){
       update();
     }
     animate();
@@ -169,12 +174,12 @@ animate();
 
 const changeGameManager = (gameManager: GameManager) => {
   if(gameManager){
-    enemyManager = gameManager.enemyManager;
-    enemies = enemyManager.flatEnemies;
+    waveManager = gameManager.waveManager;
+    enemies = waveManager.enemies;
 
     initEnemyLabels();
   }else{
-    enemyManager = null;
+    waveManager = null;
     enemies = [];
     enemyLabels.value = [];
   }
@@ -183,7 +188,7 @@ const changeGameManager = (gameManager: GameManager) => {
 
 //FUNCTION                                           
 //FUNCTION                                           
-//FUNCTION  与复选框的交互                            
+//FUNCTION  与弹出框的交互                            
 //FUNCTION                                           
 //FUNCTION                                           
 
@@ -247,6 +252,11 @@ const handleCountDownCheck = () => {
 
   const isIndeterminate = count > 0 && count < enemyLabels.value.length;
   emit("update:countDownIndet",isIndeterminate);
+}
+
+const showDetail = (enemyId: number) => {
+  const find = enemies.find(enemy => enemy.id === enemyId);
+  console.log(find);
 }
 
 // defineExpose 来显式指定在组件中要暴露出去的属性。

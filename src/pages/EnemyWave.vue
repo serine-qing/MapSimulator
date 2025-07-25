@@ -8,37 +8,37 @@
       ref="menu"
     >
       <el-sub-menu 
-        v-for="(enemyArr, i) in enemies"
+        v-for="(actionArr, i) in actions"
         :index="i.toString()"
         :key="i"
       >
 
         <template #title>
-          波次&nbsp;<span class="info">{{i+1}}</span>，开始时间:&nbsp;<span class="info">{{ enemyArr[0].spawnTime }}</span>&nbsp;秒
+          波次&nbsp;<span class="info">{{i+1}}</span>，开始时间:&nbsp;<span class="info">{{ actionArr[0].actionTime }}</span>&nbsp;秒
         </template>
 
         <div class="cards">
           <div 
             class="enemy-card"
-            :class="{active: enemyIndex === index && waveIndex === i}"
-            v-for="(enemy, index) in enemyArr"
+            :class="{active: actionIndex === index && waveIndex === i}"
+            v-for="(action, index) in actionArr"
           >
             <div class="button">
-              <span class="time">{{ enemy.spawnTime + "秒" }}</span>
+              <span class="time">{{ action.actionTime + "秒" }}</span>
               <el-button 
                 class="play-button" 
                 type="primary" 
                 :icon="CaretRight" 
                 circle 
                 size="small"
-                @click="jumpToEnemyIndex(enemy.id)"
+                @click="jumpToEnemyIndex(action.id)"
               />
             </div>
             <div class="content">
-              <el-image class="head-image" :src="enemy.icon" fit="fill" />
+              <el-image class="head-image" :src="action.enemy?.icon" fit="fill" />
               <div class="name">
-                <span class="index">#{{enemy.id + 1}}</span>
-                {{enemy.name}}
+                <span class="index">#{{action.id + 1}}</span>
+                {{action.enemy?action.enemy.name : "装置出现"}}
               </div>
             </div>
           </div>
@@ -61,8 +61,8 @@ import {
   CaretRight,
 } from '@element-plus/icons-vue'
 
-let enemies = ref();
-const enemyIndex = ref(0);
+const actions = ref([]);
+const actionIndex = ref(0);
 const waveIndex = ref(0);
 const menu = ref(null);
 
@@ -81,14 +81,14 @@ watch(waveIndex, () => {
   
 })
 
-eventBus.on("enemies_init", (res) => {
-  enemies.value = res;
+eventBus.on("actions_init", (acts) => {
+  actions.value = acts;
 });
 
-eventBus.on("enemy_index_change", (eIndex, wIndex) => {
+eventBus.on("action_index_change", (aIndex, wIndex) => {
 
-  if(enemies.value?.length){
-    enemyIndex.value = eIndex;
+  if(actions.value.length > 0){
+    actionIndex.value = aIndex;
     waveIndex.value = wIndex;
   }
 

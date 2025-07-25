@@ -2,7 +2,7 @@ import * as THREE from "three"
 import MapTiles from "./MapTiles"
 
 import Tile from "./Tile"
-import EnemyManager from "../enemy/EnemyManager"
+import WaveManager from "../enemy/WaveManager"
 import GameConfig from "@/components/utilities/GameConfig"
 
 import {gameCanvas} from '@/components/game/GameCanvas';
@@ -17,13 +17,13 @@ class GameView{
   private mapTiles: MapTiles;
   private traps: Trap[];
   private gameManager: GameManager;
-  private enemyManager: EnemyManager;
+  private waveManager: WaveManager;
 
-  constructor(gameManager: GameManager, mapTiles: MapTiles, traps: Trap[], enemyManager: EnemyManager){
+  constructor(gameManager: GameManager, mapTiles: MapTiles, traps: Trap[], waveManager: WaveManager){
     this.gameManager = gameManager;
     this.mapTiles = mapTiles;
     this.traps = traps;
-    this.enemyManager = enemyManager;
+    this.waveManager = waveManager;
 
     this.mapContainer = new THREE.Object3D();
     
@@ -54,7 +54,7 @@ class GameView{
   } 
 
   public initEnemys(){
-    const enemies = this.enemyManager.flatEnemies;
+    const enemies = this.waveManager.enemies;
     enemies.forEach(enemy => {
       enemy.initSpine();
       if(enemy.spine){
@@ -68,7 +68,7 @@ class GameView{
   public render(delta: number){
     gameCanvas.render();
 
-    this.enemyManager.flatEnemies.forEach(
+    this.waveManager.enemies.forEach(
       //TODO不同的敌人动画速率不同
       enemy => enemy.render( delta )
     )
@@ -87,7 +87,7 @@ class GameView{
     
     this.mapContainer = null;
     this.mapTiles = null;
-    this.enemyManager = null;
+    this.waveManager = null;
   }
 }
 

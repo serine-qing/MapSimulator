@@ -35,11 +35,16 @@ const AliasMap = {
     1: "RIGHT",
     2: "LEFT",
     3: "DOWN"
+  },
+  actionType:{
+    0: "SPAWN",
+    6: "ACTIVATE_PREDEFINED"
   }
 }
 const AliasHelper = (key, type) => {
   if(typeof key === "number"){
-    return AliasMap[type][key];
+    const alias = AliasMap[type][key];
+    return alias? alias : key;
   }
   return key;
 }

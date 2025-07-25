@@ -1,4 +1,5 @@
 import Enemy from "@/components/enemy/Enemy"
+import Trap from "../game/Trap"
 
 declare global {
   interface Stage{
@@ -75,7 +76,8 @@ declare global {
     spawnRandomRange: any,
   }
 
-  interface EnemyWave{
+  interface ActionData{
+    enemyId?: number,              //id 和敌人index对应
     actionType: string,      //敌人生成模式
     key: string,             //敌人id
     routeIndex: number,
@@ -83,8 +85,11 @@ declare global {
     fragmentTime: number,     //分支(FRAGMENT)开始时间
     waveTime: number,         //波次(WAVE)开始时间
     hiddenGroup: string,      //敌人属于哪个分组
+    dontBlockWave: boolean,   //是否不影响下一波次刷新
+    blockFragment: boolean,   
     route?: EnemyRoute,  
     enemyData?: EnemyData,
+    trapData?: trapData               //波次绑定的装置
   }
 
   //寻路地图中的单个Node
@@ -110,9 +115,11 @@ declare global {
 
   interface trapData{
     key: string,
+    alias: string,          //地图里的装置id
     direction: string,
     position: Vec2,
     mainSkillLvl: number,   //技能等级
+    hidden: boolean,        //是否隐藏
     idleAnimate?: string,   //idle动画
     mesh?: THREE.Mesh,     //fbx数据有mesh
     skeletonData?: any,     //spine数据有skeletonData
@@ -120,4 +127,4 @@ declare global {
   }
 }
 
-export {Stage, Vec2, TileData, EnemyWave, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}
+export {Stage, Vec2, TileData, ActionData, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}

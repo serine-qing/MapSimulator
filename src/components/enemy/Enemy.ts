@@ -7,19 +7,18 @@ import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } fro
 import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
 import MapTiles from "../game/MapTiles";
-import EnemyManager from "./EnemyManager";
+import WaveManager from "./WaveManager";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
   mapTiles: MapTiles;
 
-  id: number;    //EnemyManager中使用的id
+  id: number;    //WaveManager中使用的id
   key: string;
   levelType: string;
   motion: string;       
   name: string;
   description: string;  
-  actionType: string;      //敌人生成模式
   icon: string;            //敌人头像URL
   notCountInTotal: boolean; //是否是费首要目标
 
@@ -62,8 +61,6 @@ class Enemy{
 
   private rush;
 
-  public spawnTime;             //模拟数据中的出生时间
-
   public exit: boolean = false;
   private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
@@ -87,14 +84,13 @@ class Enemy{
   public simulateTrackTime: number;      //动画执行time
 
   public gameManager: GameManager;
-  public enemyManager: EnemyManager;
+  public waveManager: WaveManager;
   
-  constructor(wave: EnemyWave){
-    this.enemyData = wave.enemyData;
-    this.actionType = wave.actionType;
-    this.startTime = wave.startTime;
-    this.fragmentTime = wave.fragmentTime;
-    this.waveTime = wave.waveTime;
+  constructor(action: ActionData){
+    this.enemyData = action.enemyData;
+    this.startTime = action.startTime;
+    this.fragmentTime = action.fragmentTime;
+    this.waveTime = action.waveTime;
 
     const {
       key, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
@@ -120,7 +116,7 @@ class Enemy{
 
     this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
-    this.route = wave.route;
+    this.route = action.route;
     this.checkpoints = [...this.route.checkpoints];
 
     this.position = new THREE.Vector2();
@@ -148,6 +144,7 @@ class Enemy{
   }
 
   public reset(){
+
     this.setPosition(
       this.route.startPosition.x,
       this.route.startPosition.y
@@ -382,8 +379,8 @@ class Enemy{
   }
 
   public update(delta: number){
-    
     if(this.isFinished) return;
+
     //模拟动画时间
     this.currentSecond += delta;
     this.applyCountDown(delta);
@@ -526,13 +523,13 @@ class Enemy{
             countDownTime = time;
             break;
           case "WAIT_FOR_PLAY_TIME":
-            countDownTime = time - this.enemyManager.gameSecond; 
+            countDownTime = time - this.waveManager.gameSecond; 
             break;
           case "WAIT_CURRENT_FRAGMENT_TIME":
-            countDownTime = time - this.enemyManager.waveSecond + this.fragmentTime;
+            countDownTime = time - this.waveManager.waveSecond + this.fragmentTime;
             break;
           case "WAIT_CURRENT_WAVE_TIME": 
-            countDownTime = time - this.enemyManager.waveSecond + this.waveTime;
+            countDownTime = time - this.waveManager.waveSecond + this.waveTime;
             break;
         }
         
@@ -668,7 +665,7 @@ class Enemy{
   }
 
   private handleTalents(){
-    console.log(this.talents)
+    // console.log(this.talents)
     this.talents?.forEach(talent => {
       const {move_speed, interval, duration, trig_cnt, unmove_duration} = talent.value;
       switch (talent.key) {
@@ -704,9 +701,9 @@ class Enemy{
         case "timeup":  //prts等
           if(duration){
             //岁相
-            this.addCountDown("end", duration - this.enemyManager.gameSecond);
+            this.addCountDown("end", duration - this.waveManager.gameSecond);
           }else if(interval){
-            this.addCountDown("end", interval - this.enemyManager.gameSecond);
+            this.addCountDown("end", interval - this.waveManager.gameSecond);
           }
           
           break;
@@ -911,7 +908,7 @@ class Enemy{
     this.checkPointIndex = checkPointIndex;
     this.faceToward = faceToward;
     this.targetNode = targetNode;
-    this.countDowns = countDowns;
+    this.countDowns = countDowns.map( countDown => {return {...countDown} });
     this.isStarted = isStarted;
     this.exit = exit;
     this.currentSecond = currentSecond;

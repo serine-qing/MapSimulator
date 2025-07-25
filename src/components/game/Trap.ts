@@ -10,10 +10,12 @@ class Trap{
   data: trapData;  //原始数据
 
   key: string;
+  alias: string;            //地图内装置id
   direction: string;
   position: Vec2;
   idleAnimate: string;
   mainSkillLvl: number;    //技能等级
+  visible: boolean;         //是否可见
   
   object: THREE.Object3D;          //fbxMesh和skeletonMesh
   fbxMesh: THREE.Mesh;
@@ -28,10 +30,11 @@ class Trap{
   constructor(data: trapData){
     this.data = data;
     this.key = data.key;
+    this.alias = data.alias;
     this.direction = data.direction;
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;
-
+    this.visible = !data.hidden;
   }
 
   initMesh(){
@@ -62,6 +65,7 @@ class Trap{
     this.object.position.x = coordinate.x;
     this.object.position.y = coordinate.y;
 
+    this.object.visible = this.visible;
     //初始化技能（目前就是影响一些外观）
     this.initSkill();
   }
@@ -129,6 +133,35 @@ class Trap{
     
     }
 
+  }
+
+  public show(){
+    this.visible = true;
+    if(!this.gameManager.isSimulate){
+      this.object.visible = true;
+    }
+
+  }
+
+  public hide(){
+    this.visible = false;
+    if(!this.gameManager.isSimulate){
+      this.object.visible = false;
+    }
+    
+  }
+
+  public get(){
+    const state = {
+      visible: this.visible
+    }
+
+    return state;
+  }
+
+  public set(state){
+    const { visible } = state;
+    visible? this.show() : this.hide();
   }
 }
 

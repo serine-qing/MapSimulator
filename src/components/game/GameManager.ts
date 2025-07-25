@@ -4,7 +4,7 @@ import GameConfig from "@/components/utilities/GameConfig"
 import GameView from "./GameView"
 
 import MapModel from "./MapModel"
-import EnemyManager from "@/components/enemy/EnemyManager";
+import WaveManager from "@/components/enemy/WaveManager";
 import eventBus from "@/components/utilities/EventBus";
 import Trap from "./Trap";
 
@@ -18,7 +18,7 @@ class GameManager{
   private simulateData: any;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
-  public enemyManager: EnemyManager;
+  public waveManager: WaveManager;
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -34,12 +34,12 @@ class GameManager{
   constructor(mapModel: MapModel, isSimulate?: boolean){
     this.isSimulate = isSimulate? isSimulate : false;
     //初始化敌人控制类
-    this.enemyManager = new EnemyManager(
+    this.waveManager = new WaveManager(
       mapModel,
       this
     );
 
-    mapModel.traps.forEach(trap => {
+    this.waveManager.traps.forEach(trap => {
       trap.gameManager = this;
     })
 
@@ -52,8 +52,8 @@ class GameManager{
         this.gameView = new GameView(
           this,
           mapModel.mapTiles,
-          mapModel.traps,
-          this.enemyManager
+          this.waveManager.traps,
+          this.waveManager
         );
 
         this.animate();
@@ -133,7 +133,7 @@ class GameManager{
   }
 
   private update(delta: number){
-    this.enemyManager.update(delta, this.gameSecond);
+    this.waveManager.update(delta);
   }
 
   private render(delta: number){
@@ -146,12 +146,12 @@ class GameManager{
   public setSimulateData(simulateData: any){
     this.simulateData = simulateData;
 
-    this.enemyManager.flatEnemies.forEach((enemy, index) => {
-      enemy.spawnTime = parseFloat(simulateData.byEnemy[index].gameSecond.toFixed(1));
+    this.waveManager.actions.flat().forEach((action, index) => {
+      action.actionTime = parseFloat(simulateData.byAction[index].gameSecond.toFixed(1));
     })
 
     eventBus.on("jump_to_enemy_index", (index) => {
-      const setData = this.simulateData.byEnemy[index];
+      const setData = this.simulateData.byAction[index];
       this.addSetData(setData);
     });
 
@@ -165,7 +165,7 @@ class GameManager{
     let state = {
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
-      eManagerState: this.enemyManager.get()
+      eManagerState: this.waveManager.get()
     }
     return state;
   }
@@ -174,7 +174,7 @@ class GameManager{
     const {gameSecond, isFinished, eManagerState} = state;
     
     this.gameSecond = gameSecond;
-    this.enemyManager.set(eManagerState)
+    this.waveManager.set(eManagerState)
     this.isFinished = isFinished;
 
     this.setData = null;
@@ -202,10 +202,10 @@ class GameManager{
     eventBus.remove("jump_to_time_index");
 
     this.gameView?.destroy();
-    this.enemyManager?.destroy();
+    this.waveManager?.destroy();
 
     this.gameView = null;
-    this.enemyManager = null;
+    this.waveManager = null;
     this.simulateData = null;
   }
 }
