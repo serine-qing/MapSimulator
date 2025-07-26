@@ -5,11 +5,14 @@ import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { timeFormat } from "@/components/utilities/utilities";
 import Container from "@/pages/Container.vue"
+import GameOverMask from "@/pages/GameOverMask.vue"
 import DataTable from "@/pages/DataTable.vue"
 import MapModel from "@/components/game/MapModel";
+import GameManager from "@/components/game/GameManager";
 
 let mapModel: MapModel;
 let game: Game = new Game();
+let gameManager: GameManager;
 
 export default{
   data(){
@@ -29,16 +32,18 @@ export default{
 
       countDownCheckAll: true,
       countDownIndet: false,
+      enemyDatas: null,
 
-      enemyDatas: null
+      isFinished: false
     }
   },
   props:["mapData"],
-  components:{ Container, DataTable },
+  components:{ Container, DataTable, GameOverMask},
   watch:{
     async mapData(){
       console.log(this.mapData.levelId)
 
+      this.isFinished = false;
       this.$refs["container"].changeGameManager(null);
       this.loading = true;
 
@@ -46,25 +51,29 @@ export default{
 
       await mapModel.init();
       await game.startGame(mapModel);
+      gameManager = game.gameManager;
 
       this.handleEnemyDatas(mapModel.enemyDatas);
 
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = game.maxSecond;
-      this.$refs["container"].changeGameManager(game.gameManager);
+      this.$refs["container"].changeGameManager(gameManager);
 
     },
     pause(){
-      game?.gameManager?.changePause(this.pause);
-    },
+      gameManager?.changePause(this.pause);
+    }
   },
   created(){
     this.reset();
     this.gameSpeed = GameConfig.GAME_SPEED;
     eventBus.on("second_change", this.handleSecondChange)
-    eventBus.on("gamestart", () => {
+    eventBus.on("gameStart", () => {
       this.loading = false;
+    })
+    eventBus.on("update:isFinished", (isFinished) => {
+      this.isFinished = isFinished;
     })
   },
   mounted() {
@@ -81,7 +90,7 @@ export default{
     },
     changeGameSpeed(){
       this.gameSpeed = this.gameSpeed === 4? 1 : this.gameSpeed * 2;
-      game.gameManager.changeGameSpeed(this.gameSpeed);
+      gameManager.changeGameSpeed(this.gameSpeed);
     },
     changePause(){
       this.pause = !this.pause;
@@ -121,6 +130,9 @@ export default{
       })
 
       this.enemyDatas = cloneEnemyDatas;
+    },
+    restart(){
+      gameManager.restart();
     }
   },
   computed:{
@@ -186,6 +198,10 @@ export default{
         @update:attackRangeIndet = "val => attackRangeIndet = val"
         @update:countDownIndet = "val => countDownIndet = val"
       ></Container>
+      <GameOverMask
+        v-show="isFinished"
+        @restart = "restart"
+      ></GameOverMask>
     </div>
   </div>
 

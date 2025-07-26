@@ -14,44 +14,47 @@ class Game{
     if(this.gameManager){
       this.gameManager.destroy();
     }
-    
-    const simData = this.startSimulate(mapModel);
+
     this.gameManager = new GameManager(mapModel);
+    const simData = this.startSimulate(this.gameManager);
     this.gameManager.setSimulateData(simData);
+    this.gameManager.start();
   }
 
   //获取模拟数据
-  startSimulate(mapModel: MapModel){
+  startSimulate(gameManager: GameManager){
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    console.log = ()=>{
-      return;
-    }
-    const simulateGame = new GameManager(mapModel, true);
+    // console.log = ()=>{
+    //   return;
+    // }
 
+    gameManager.isSimulate = true;
     const simData = {
       byAction: [],
       byTime: []  
     };
     const fuc = () => {
-      simData.byAction.push(simulateGame.get());
+      simData.byAction.push(gameManager.get());
     };
     eventBus.on("action_index_change", fuc);
 
     let time = 0;
-    while( !simulateGame.isFinished ){
-      if(simulateGame.gameSecond >= time){
-        simData.byTime.push(simulateGame.get());
+    while( !gameManager.isFinished ){
+      if(gameManager.gameSecond >= time){
+        simData.byTime.push(gameManager.get());
         time += GameConfig.SIMULATE_STEP;
       }
-      simulateGame.gameLoop();
+      gameManager.gameLoop();
     }
 
     this.maxSecond = simData.byTime.length - 1;
     
     eventBus.remove("action_index_change", fuc);
-    simulateGame.destroy();
+
+    gameManager.isSimulate = false;
+
 
     console.log = cacheFunc;
     return simData;

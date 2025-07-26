@@ -504,10 +504,13 @@ class MapModel{
 
       //深拷贝
       extraEnemy.attributes = {...attributes};
-      extraEnemy.talentBlackboard = [...talentBlackboard];
-      talentBlackboard.forEach((talent, index) => {
-        extraEnemy.talentBlackboard[index] = {...talent};
-      })
+
+      if(talentBlackboard){
+        extraEnemy.talentBlackboard = [...talentBlackboard];
+        talentBlackboard.forEach((talent, index) => {
+          extraEnemy.talentBlackboard[index] = {...talent};
+        })
+      }
 
       extraEnemy.waveKey = enemyDbRef.id;
 

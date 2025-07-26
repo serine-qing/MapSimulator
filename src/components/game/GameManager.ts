@@ -6,7 +6,6 @@ import GameView from "./GameView"
 import MapModel from "./MapModel"
 import WaveManager from "@/components/enemy/WaveManager";
 import eventBus from "@/components/utilities/EventBus";
-import Trap from "./Trap";
 
 import assetsManager from "@/components/assetManager/assetsManager"
 
@@ -15,6 +14,7 @@ class GameManager{
   public isSimulate: boolean = false;
   private clock: THREE.Clock = new THREE.Clock();
 
+  private mapModel: MapModel;
   private simulateData: any;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
@@ -31,9 +31,9 @@ class GameManager{
 
   public isFinished: boolean = false;
 
-  constructor(mapModel: MapModel, isSimulate?: boolean){
-    this.isSimulate = isSimulate? isSimulate : false;
+  constructor(mapModel: MapModel){
     //初始化敌人控制类
+    this.mapModel = mapModel;
     this.waveManager = new WaveManager(
       mapModel,
       this
@@ -43,24 +43,29 @@ class GameManager{
       trap.gameManager = this;
     })
 
-    if(!this.isSimulate){
 
-      assetsManager.allOnload.then( () => {
+  }
 
-        eventBus.emit("gamestart")
+  public start(){
+    
+    assetsManager.allOnload.then( () => {
 
-        this.gameView = new GameView(
-          this,
-          mapModel.mapTiles,
-          this.waveManager.traps,
-          this.waveManager
-        );
+      this.restart();
+      
+      eventBus.emit("gameStart")
 
-        this.animate();
+      this.gameView = new GameView(
+        this,
+        this.mapModel.mapTiles,
+        this.waveManager.traps,
+        this.waveManager
+      );
 
-      })
 
-    }
+      this.animate();
+
+    })
+
   }
 
   public getPixelSize(x:number):number {
@@ -92,8 +97,6 @@ class GameManager{
 
   //循环执行
   private animate(){
-    if(this.isFinished) return; //结束游戏
-
     this.delta = this.clock.getDelta();
     this.timeStamp += this.delta;
 
@@ -114,7 +117,7 @@ class GameManager{
   public gameLoop(){
     let delta = 0;
 
-    if(!this.pause){
+    if(!this.pause && !this.isFinished){
       
       if(this.setData){
         this.set(this.setData);
@@ -127,6 +130,8 @@ class GameManager{
       
       this.gameSecond += delta;
     }
+
+    if(!this.isSimulate) eventBus.emit("update:isFinished", this.isFinished);
 
     this.render(delta);
 
@@ -161,6 +166,11 @@ class GameManager{
     });
   }
 
+  public restart(){
+    const data = this.simulateData.byTime[0];
+    this.set(data);
+  }
+
   public get(){
     let state = {
       gameSecond: this.gameSecond,
@@ -189,14 +199,11 @@ class GameManager{
     if(this.isFinished || this.pause){
       this.set(this.setData);
     }
-    //已经结束的话，还需要额外重新启动游戏
-    if(isFinished){
-      this.animate();
-    }
 
   }
 
   public destroy(){
+    this.clock.stop();
     this.isFinished = true;
     eventBus.remove("jump_to_enemy_index");
     eventBus.remove("jump_to_time_index");

@@ -19,8 +19,10 @@
             class="countdown"
             v-if="!label.unMoveable"
             v-show="label.options.countDownVisible && label.countDown > -1"
-            :style="{
-              fontSize: label.countDown >= 100? '10px' : '14px'
+            :class="{
+              'big': label.countDown >= 1000,
+              'middle': label.countDown >= 100 && label.countDown < 1000,
+              'small': label.countDown < 100,
             }"
             
           >{{ label.countDown > -1 ? label.countDown : "" }}
@@ -29,8 +31,10 @@
           <div  
             class="countdown end-countdown"
             v-show="label.options.countDownVisible && label.endCountDown > -1"
-            :style="{
-              fontSize: label.endCountDown >= 100? '10px' : '14px'
+            :class="{
+              'big': label.endCountDown >= 1000,
+              'middle': label.endCountDown >= 100 && label.endCountDown < 1000,
+              'small': label.endCountDown < 100,
             }"
             
           >{{ label.endCountDown > -1 ? label.endCountDown : "" }}
@@ -132,7 +136,7 @@ const updateDatas = () => {
     }else{
       label.countDown = -1;
     }
-    
+
     if(endCountDown > 0){
       label.endCountDown = Math.floor(endCountDown);
     }else{
@@ -302,7 +306,18 @@ defineExpose({
   .end-countdown{
     background-color: red;
     color: white;
-
+  }
+  .big{
+    height: 22px;
+    width: 22px;
+    line-height: 22px;
+    font-size: 10px;
+  }
+  .middle{
+    font-size: 10px;
+  }
+  .small{
+    font-size: 14px;
   }
 }
 

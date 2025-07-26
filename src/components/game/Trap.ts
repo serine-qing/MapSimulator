@@ -137,7 +137,7 @@ class Trap{
 
   public show(){
     this.visible = true;
-    if(!this.gameManager.isSimulate){
+    if(this.object){
       this.object.visible = true;
     }
 
@@ -145,7 +145,7 @@ class Trap{
 
   public hide(){
     this.visible = false;
-    if(!this.gameManager.isSimulate){
+    if(this.object){
       this.object.visible = false;
     }
     

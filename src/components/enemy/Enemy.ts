@@ -117,6 +117,7 @@ class Enemy{
     this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
+    console.log(this.route.spawnRandomRange);
     this.checkpoints = [...this.route.checkpoints];
 
     this.position = new THREE.Vector2();
@@ -132,14 +133,14 @@ class Enemy{
     };
 
     this.initOptions();
-    
+
   }
 
   public start(){
     this.reset();
-    this.isStarted = true;
     this.handleTalents();
     this.handleSkills();
+    this.isStarted = true;
     this.show();
   }
 
@@ -399,11 +400,12 @@ class Enemy{
         if(this.unMoveable || this.attributes.moveSpeed === 0){
           return;
         }
-
+        
         const currentPosition = this.position;
+
         const currentNode = this.SPFA.getPathNode(
           this.currentCheckPoint().position,
-          this.route.motionMode,
+          this.motion,
           currentPosition
         );
 
@@ -416,7 +418,7 @@ class Enemy{
           //到达新地块，并且新地块不是上个地块的nextNode：直接将targetNode切换为新地块的nextNode
           (this.targetNode !== currentNode.nextNode && this.targetNode !== currentNode)
         ){
-          
+
           //如果currentNode没有nextNode，就是检查点终点
           this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
         }
@@ -533,7 +535,9 @@ class Enemy{
             break;
         }
         
-        this.addCountDown("checkPoint", countDownTime);
+        this.addCountDown("checkPoint", countDownTime, () => {
+          this.nextCheckPoint();
+        });
         
         break;
 
@@ -563,10 +567,9 @@ class Enemy{
   }
 
 
-
-  private addCountDown(name: string, time: number){
+  private addCountDown(name: string, time: number, callback?: Function){
     this.countDowns.push({
-      name, time
+      name, time, callback
     })
   }
 
@@ -583,22 +586,12 @@ class Enemy{
         this.countDowns.splice(i, 1);
         i--;
 
-        this.handleCountDownFinished(countDown.name);
+        if(countDown.callback){
+          countDown.callback();
+        }
       }
     }
 
-  }
-
-  private handleCountDownFinished(name: string){
-    switch (name) {
-      case "checkPoint":
-        this.nextCheckPoint();
-        break;
-    
-      case "end":
-        this.finishedMap();
-        break;
-    }
   }
 
   //视图相关的更新
@@ -665,9 +658,10 @@ class Enemy{
   }
 
   private handleTalents(){
-    // console.log(this.talents)
+    // if(this.talents) console.log(this.talents)
     this.talents?.forEach(talent => {
       const {move_speed, interval, duration, trig_cnt, unmove_duration} = talent.value;
+      let waitTime;
       switch (talent.key) {
         case "rush":
           if(move_speed && interval && trig_cnt){
@@ -687,32 +681,40 @@ class Enemy{
             })
           }
           break;
+        case "wait": //念旧
         case "sleep": //驮兽
-          if( interval ){
-            this.checkpoints.unshift({
-              position: null,
-              reachOffset: null,
-              randomizeReachOffset: null,
-              time: interval,
-              type: "WAIT_FOR_SECONDS"
-            })
+          waitTime = duration || interval;
+          const callback = () => {};
+          if( waitTime ){
+            this.addCountDown("checkPoint", waitTime, () => {
+              switch (this.key) {
+                //念旧
+                case "enemy_10057_cjstel":
+                case "enemy_10057_cjstel_2":
+                  this.motion = "FLY"
+                  break;
+              }
+            });
+
           }
+
+
           break;
-        case "timeup":  //prts等
-          if(duration){
-            //岁相
-            this.addCountDown("end", duration - this.waveManager.gameSecond);
-          }else if(interval){
-            this.addCountDown("end", interval - this.waveManager.gameSecond);
+        case "timeup":  //prts 岁相等
+          waitTime = duration || interval;
+          if(waitTime){
+            this.addCountDown("end", waitTime - this.waveManager.gameSecond, () => {
+              this.finishedMap();
+            });
           }
-          
+            
           break;
       }
     })
   }
 
   private handleSkills(){
-    // console.log(this.skills)
+    // if(this.skills.length > 0) console.log(this.skills)
 
     this.skills?.forEach(skill => {
       switch (skill.prefabKey) {
@@ -724,7 +726,9 @@ class Enemy{
             const growup2 = this.getTalent("growup2");
             countdown += growup1.interval + growup2.interval;
           }
-          this.addCountDown("end", countdown)
+          this.addCountDown("end", countdown, () => {
+            this.finishedMap();
+          })
           break;
 
       }
@@ -879,7 +883,8 @@ class Enemy{
       animateState: this.animateState,
       shadowHeight: this.shadowHeight,
       exit: this.exit,
-      simulateTrackTime: this.simulateTrackTime
+      simulateTrackTime: this.simulateTrackTime,
+      motion: this.motion
     }
 
     return state;
@@ -899,7 +904,8 @@ class Enemy{
       shadowHeight,
       exit,
       currentSecond,
-      simulateTrackTime
+      simulateTrackTime,
+      motion
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -916,6 +922,7 @@ class Enemy{
     this.shadowHeight = shadowHeight;
     this.animateState = animateState;
     this.simulateTrackTime = simulateTrackTime;
+    this.motion = motion;
     
     if(this.spine){
       //恢复当前动画状态

@@ -13,9 +13,7 @@ class SPFA{
 
     //生成寻路地图
     this.generatepathMaps();  
-    //平整化寻路地图
-    this.flatteningFindMaps();
-
+    
   }
 
   //生成寻路地图需要用到的拷贝对象
@@ -56,20 +54,27 @@ class SPFA{
         })
         
         if(find === undefined){ 
-          let findMap = this.generatepathMapsByVec(point,motionMode);
-
-          const pathMap: PathMap = {
-            motionMode: motionMode,
-            targetPoint:{x: point.x, y: point.y},
-            map : findMap
-          }
-          
-          this.pathMaps.push(pathMap)
+          this.generatepathMap(point, motionMode)
         }
       })
       
     })
 
+  }
+
+  private generatepathMap(target: Vec2, motionMode: string){
+    const findMap = this.generatepathMapsByVec(target, motionMode);
+    const pathMap: PathMap = {
+      motionMode: motionMode,
+      targetPoint:{x: target.x, y: target.y},
+      map : findMap
+    }
+    
+    //平整化寻路地图
+    this.flatteningFindMap(pathMap);
+    this.pathMaps.push(pathMap);
+
+    return pathMap;
   }
 
   //给定目标地块生成寻路地图
@@ -191,18 +196,16 @@ class SPFA{
   }
 
   //平整化
-  private flatteningFindMaps(){
-    this.pathMaps.forEach(findMap => {
-      const {map, motionMode}  = findMap;
+  private flatteningFindMap(pathMap){
+    const {map, motionMode}  = pathMap;
 
-      map.forEach(row => {
-        row.forEach(point => {
+    map.forEach(row => {
+      row.forEach(point => {
 
-          if(point !== null){
-            this.flatteningSinglePoint(point, motionMode)
-          }
+        if(point !== null){
+          this.flatteningSinglePoint(point, motionMode)
+        }
 
-        })
       })
     })
   }
@@ -251,11 +254,17 @@ class SPFA{
 
   //获取某个目标的寻路地图
   public getPathMap(targetPoint: Vec2, motionMode: string) : PathMap | undefined{
-    return this.pathMaps.find(pathMap => {
+    let find = this.pathMaps.find(pathMap => {
       return pathMap.motionMode === motionMode &&
         pathMap.targetPoint.x === targetPoint.x &&
         pathMap.targetPoint.y === targetPoint.y
     })
+    //没有的话就临时生成寻路地图
+    if(!find){
+      find = this.generatepathMap(targetPoint, motionMode);
+    }
+
+    return find;
   }
 
   //motionMode：飞行还是地面 targetPoint：检查点目标点 position：当前光标位置

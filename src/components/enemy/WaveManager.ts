@@ -89,10 +89,6 @@ class WaveManager{
       }
     }
 
-    //该波次最后一个怪进蓝门，就切换到下一波次
-    if(this.isWaveFinished()){
-      this.changeNextWave();
-    }
   }
 
   public getEnemiesInMap(): Enemy[]{
@@ -104,6 +100,10 @@ class WaveManager{
     }
 
     return enemies;
+  }
+
+  public currentActions(): Action[]{
+    return this.actions[this.waveIndex];
   }
 
 
@@ -123,14 +123,26 @@ class WaveManager{
     return this.getEnemysByWaveIndex(this.waveIndex);
   }
 
-  private isWaveFinished(): boolean{
-    return !this.currentWaveEnemys().find(enemy => !enemy.isFinished);
-  }
-
   private changeNextWave(){
     this.waveIndex ++;
     this.actionIndex = -1;
     this.waveSecond = 0;
+  }
+
+  private checkWaveFinished(){
+    const isWaveFinished = !this.currentActions().find(action => {
+      //不阻挡波次和没有绑定敌人
+      if((action.isStarted && action.dontBlockWave) || !action.enemy){
+        return false;
+      }else{
+        return !action.enemy.isFinished;
+      }
+    })
+
+    //切换到下一波次
+    if(isWaveFinished){
+      this.changeNextWave();
+    }
   }
 
   //检查是否游戏结束
@@ -182,6 +194,7 @@ class WaveManager{
     if(this.allWaveFinished) return;
 
     this.removeEnemies();
+    this.checkWaveFinished();
     this.checkFinished();
 
     if(this.allWaveFinished) return;
@@ -225,6 +238,7 @@ class WaveManager{
       enemiesInMap: [...this.enemiesInMap],
       actionIndex: this.actionIndex,
       waveIndex: this.waveIndex,
+      gameSecond: this.gameSecond,
       waveSecond: this.waveSecond,
       allWaveFinished: this.allWaveFinished
     }
@@ -237,16 +251,18 @@ class WaveManager{
       enemiesInMap, 
       actionIndex, 
       waveIndex, 
+      gameSecond,
       waveSecond, 
       allWaveFinished, 
       actionStates,
       enemyStates,
-      trapStates
+      trapStates,
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
     this.actionIndex = actionIndex;
     this.waveIndex = waveIndex;
+    this.gameSecond = gameSecond;
     this.waveSecond = waveSecond;
     this.allWaveFinished = allWaveFinished;
 
