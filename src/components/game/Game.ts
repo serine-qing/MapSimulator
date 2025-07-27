@@ -41,7 +41,7 @@ class Game{
     eventBus.on("action_index_change", fuc);
 
     let time = 0;
-    while( !gameManager.isFinished ){
+    while( !gameManager.isFinished && gameManager.gameSecond < 3600 ){
       if(gameManager.gameSecond >= time){
         simData.byTime.push(gameManager.get());
         time += GameConfig.SIMULATE_STEP;

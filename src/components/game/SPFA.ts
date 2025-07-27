@@ -9,10 +9,7 @@ class SPFA{
   constructor(mapTiles: MapTiles, enemyRoutes: EnemyRoute[]){
     
     this.mapTiles = mapTiles;
-    this.enemyRoutes = enemyRoutes;
-
-    //生成寻路地图
-    this.generatepathMaps();  
+    this.enemyRoutes = enemyRoutes; 
     
   }
 
@@ -32,7 +29,7 @@ class SPFA{
   }
 
   //生成所有routes的寻路地图
-  private generatepathMaps(){
+  public generatepathMaps(){
     this.enemyRoutes.forEach(route => {
       const points: Vec2[]= [];
       const motionMode = route.motionMode;
@@ -166,7 +163,7 @@ class SPFA{
     }
 
     const trapKey = tile.trap?.key;
-    
+    // console.log(trapKey)
     switch (trapKey) {
       case "trap_001_crate":
       case "trap_002_emp":
@@ -274,6 +271,7 @@ class SPFA{
     const y = Math.floor(position.y + offset);
 
     const pathMap = this.getPathMap(targetPoint, motionMode);
+    // console.log(pathMap)
     const map = pathMap?.map;
     let currentNode = map? map[y]? map[y][x] : null : null;
 

@@ -6,7 +6,7 @@
     style="width: 100%"
     align="center"
   >
-    <el-table-column align="center" prop="name" label="头像" width="70">
+    <el-table-column align="center" label="头像" width="70">
       <template #default="scope">
         <div class="icon">
           <img :src="scope.row.icon" :alt="scope.row.name">
@@ -14,9 +14,9 @@
       </template>
     </el-table-column>
     <el-table-column align="center" prop="name" label="名称"  width="100"/>
-    <el-table-column align="center" prop="count" label="数量" width="60" />
+    <el-table-column sortable align="center" prop="count" label="数量" width="60" />
     
-    <el-table-column align="center" prop="levelType" label="地位">
+    <el-table-column sortable align="center" prop="levelType" label="地位">
       <template #default="scope">
         <div>
           {{ levelType[scope.row.levelType] }}
@@ -24,12 +24,14 @@
       </template>
     </el-table-column>
 
-    <el-table-column align="center" prop="level" label="级别" width="60"/>
+    <el-table-column sortable align="center" prop="level" label="级别" width="60"/>
 
     <el-table-column 
       v-for="(name, key) in attrColumns"
       align="center" 
       :label="name"
+      sortable
+      :sort-by = "'attributes.' + key"
     >
 
       <template #default="scope">
@@ -62,6 +64,8 @@
     <el-table-column 
       align="center" 
       label="攻击间隔"
+      sortable
+      :sort-method="attackSpeedSort"
     >
 
       <template #default="scope">
@@ -74,9 +78,7 @@
         >
           <div class="active">
             {{ 
-              parseFloat( 
-                (scope.row.attributes['baseAttackTime'] * 100 /  scope.row.attributes['attackSpeed']).toFixed(3) 
-              )
+              accuracyNum(scope.row.attributes['baseAttackTime'] * 100 /  scope.row.attributes['attackSpeed']) 
             }}
           </div>
         </el-tooltip>
@@ -89,13 +91,13 @@
       </template>
     </el-table-column>
 
-    <el-table-column align="center" prop="lifePointReduce" label="目标价值"/>
+    <el-table-column sortable align="center" prop="lifePointReduce" label="目标价值"/>
   </el-table>
 </div>
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
+import { accuracyNum } from '@/components/utilities/utilities';
 
 const levelType = {
   NORMAL: "普通",
@@ -120,23 +122,16 @@ const getAttrChange = (name, attrChange): string => {
   let res = "";
   
   attrChange?.forEach(item => {
-    const {type, value} = item;
+    const {type, value, calMethod} = item;
     
-    //todo 冗余代码太多 需要统一化 提升和降低的判断要相对于原本数值
     const updown = value >= 1 ? "提升" : "降低";
     const color = value >= 1 ? "red" : "blue";
     let val;
-    switch (name) {
-      case "法术抗性":
-      case "重量等级":
-        val = value;
-        break;
-    
-      default:
-        val = parseFloat( 
-          (value * 100).toFixed(4) 
-        ) + "%";
-        break;
+
+    if( calMethod === "add"){
+      val = value;
+    }else if(calMethod === "mul"){
+      val = accuracyNum(value * 100) + "%";
     }
     
     res += "<p>"
@@ -155,6 +150,12 @@ const getAttrChange = (name, attrChange): string => {
   return res;
 }
 
+//攻速排序方法
+const attackSpeedSort = (a, b) => {
+  const speedA = a.attributes.baseAttackTime / a.attributes.attackSpeed;
+  const speedB = b.attributes.baseAttackTime / b.attributes.attackSpeed;
+  return speedA - speedB;
+}
 </script>
 
 <style lang="scss" scoped>

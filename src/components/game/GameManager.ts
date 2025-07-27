@@ -152,7 +152,7 @@ class GameManager{
     this.simulateData = simulateData;
 
     this.waveManager.actions.flat().forEach((action, index) => {
-      action.actionTime = parseFloat(simulateData.byAction[index].gameSecond.toFixed(1));
+      action.actionTime = parseFloat(simulateData.byAction[index]?.gameSecond?.toFixed(1));
     })
 
     eventBus.on("jump_to_enemy_index", (index) => {
@@ -167,7 +167,7 @@ class GameManager{
   }
 
   public restart(){
-    const data = this.simulateData.byTime[0];
+    const data = this.simulateData?.byTime[0];
     this.set(data);
   }
 

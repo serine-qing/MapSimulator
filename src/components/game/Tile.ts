@@ -56,10 +56,11 @@ class Tile{
 
     this.tileKey = tileKey;
     this.heightType = heightType;
+
+    this.initSize();
   }
 
   public initMeshs(){
-    this.initSize();
     this.createMesh();
     this.createTexture();
     this.addBorder();

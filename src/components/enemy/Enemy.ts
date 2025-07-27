@@ -8,6 +8,7 @@ import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
 import MapTiles from "../game/MapTiles";
 import WaveManager from "./WaveManager";
+import Action from "../game/Action";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
@@ -44,6 +45,7 @@ class Enemy{
 
   hugeEnemy: boolean = false;    //是否是巨型敌人
   unMoveable: boolean = false;   //是否可移动
+  public action: Action;
   route: EnemyRoute;
   checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
@@ -77,6 +79,7 @@ class Enemy{
 
   public skelOffset: Vec2;                //模型偏移
   public skelSize: Vec2;                //模型宽高
+  public skeletonZOffset: number = 0;             //模型Z轴位移
 
   private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
@@ -114,10 +117,10 @@ class Enemy{
     
     this.attributes = attributes;
 
-    this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
+    // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
-    console.log(this.route.spawnRandomRange);
+
     this.checkpoints = [...this.route.checkpoints];
 
     this.position = new THREE.Vector2();
@@ -157,6 +160,13 @@ class Enemy{
     this.animateState = 'idle';
     this.changeAnimation();
     this.changeCheckPoint(0)
+  }
+
+  public getIntPosition(): THREE.Vector2{
+    const offset = 0.5;
+    const x = Math.floor(this.position.x + offset);
+    const y = Math.floor(this.position.y + offset);
+    return new THREE.Vector2(x, y);
   }
 
   public setPosition(x:number, y: number){
@@ -233,7 +243,7 @@ class Enemy{
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     this.skeletonMesh.position.z = this.motion === "WALK"? 
-      this.gameManager.getPixelSize( 1/7) : this.gameManager.getPixelSize( 10/7);
+      this.gameManager.getPixelSize( 1/7 + this.skeletonZOffset) : this.gameManager.getPixelSize( 10/7);
 
     this.getSkelSize();
     this.initShadow();
@@ -409,6 +419,21 @@ class Enemy{
           currentPosition
         );
 
+        if(!currentNode){
+          //没有路径，直接忽略它
+          //可能是一些放在无路径地面的敌人，或者是bug
+          this.unMoveable = true;
+          this.motion = "FLY";
+          this.notCountInTotal = true;
+          this.action.dontBlockWave = true;
+            const tile = this.mapTiles.get(this.getIntPosition());
+            this.skeletonZOffset = tile.height;
+
+          if(this.skeletonMesh){
+            this.skeletonMesh.position.z = this.gameManager.getPixelSize(this.skeletonZOffset);
+          }
+          return;
+        }
         //核心逻辑：目标地块一直是当前光标地块的nextNode，当前为终点目标地块则为光标地块
         //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
         if(

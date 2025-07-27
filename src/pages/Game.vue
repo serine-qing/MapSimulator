@@ -3,7 +3,7 @@ import Game from "@/components/game/Game"
 import {setupCanvas} from '@/components/game/GameCanvas.ts';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
-import { timeFormat } from "@/components/utilities/utilities";
+import { accuracyNum, timeFormat } from "@/components/utilities/utilities";
 import Container from "@/pages/Container.vue"
 import GameOverMask from "@/pages/GameOverMask.vue"
 import DataTable from "@/pages/DataTable.vue"
@@ -27,6 +27,11 @@ export default{
       isSliding: false,
       loading: false,
 
+      title: "",
+      challenge: "",
+      description: "",
+      stageAttrInfo: "",   //属性加成信息   
+
       attackRangeCheckAll: false,
       attackRangeIndet: false,
 
@@ -41,8 +46,6 @@ export default{
   components:{ Container, DataTable, GameOverMask},
   watch:{
     async mapData(){
-      console.log(this.mapData.levelId)
-
       this.isFinished = false;
       this.$refs["container"].changeGameManager(null);
       this.loading = true;
@@ -51,10 +54,11 @@ export default{
 
       await mapModel.init();
       await game.startGame(mapModel);
+
       gameManager = game.gameManager;
 
+      this.generateStageInfo();
       this.handleEnemyDatas(mapModel.enemyDatas);
-
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = game.maxSecond;
@@ -133,6 +137,128 @@ export default{
     },
     restart(){
       gameManager.restart();
+    },
+    //生成关卡详情
+    generateStageInfo(){
+      const {levelId, operation, cn_name, challenge, description} = this.mapData;
+      console.log(levelId)
+      this.title = `${operation} ${cn_name}`;
+      this.challenge = challenge;
+      this.description = description;
+
+      const enemyDatas = mapModel.enemyDatas;
+
+      const attrColumns = {
+        maxHp: "生命值",
+        atk: "攻击力",
+        def: "防御力",
+        magicResistance: "法术抗性",
+        massLevel: "重量等级",
+        moveSpeed: "移动速度",
+        rangeRadius: "攻击范围"
+      }
+
+      const stageAttrRunes = [];
+
+      Object.values(mapModel.runesHelper.attrChanges).forEach(attrChanges => {
+        attrChanges.forEach(attrChange => {
+          const { enemy, enemyExclude, calMethod } = attrChange;
+          let includeEnemy;
+          let excludeEnemy;
+          if(enemy){
+            includeEnemy = enemy.map(
+              eName => "<span class='bluename'>" + enemyDatas.find(eData => eData.key === eName)?.name + "</span>" 
+            )?.join("/");
+          }else if(enemyExclude){
+            excludeEnemy = enemyExclude.map(
+              eName => "<span class='bluename'>" + enemyDatas.find(eData => eData.key === eName)?.name + "</span>" 
+            )?.join("/");
+          }
+
+          const rune = {
+            includeEnemy,
+            excludeEnemy,
+            attrChanges: [],
+            calMethod
+          };
+          Object.keys(attrChange).forEach(key => {
+            const name = attrColumns[key];
+            if(name){
+              const val = attrChange[key];
+              rune.attrChanges.push({
+                name, val
+              });
+            }
+          })
+
+          //有相同类型的rune就合并
+          const find = stageAttrRunes.find(traverseRune => {
+            return traverseRune.calMethod === rune.calMethod &&
+              traverseRune.includeEnemy === rune.includeEnemy &&
+              traverseRune.excludeEnemy === rune.excludeEnemy
+          });
+
+          if(find){
+            
+            const fAC = find.attrChanges; //原本属性
+            const rAC = rune.attrChanges; //需要额外乘/加的属性
+
+            rAC.forEach(rItem => {
+              const fItem = fAC.find(i => i.name === rItem.name);
+              if(fItem){
+
+                if(find.calMethod === "add"){
+                  fItem.val += rItem.val;
+                }else if(find.calMethod === "mul"){
+                  fItem.val *= rItem.val;
+                }
+
+              }else{
+                find.attrChanges.push(rItem);
+              }
+            })
+          }else{
+            stageAttrRunes.push(rune);
+          }
+
+        })
+      })
+
+      let infoStr1 = "";
+      let infoStr2 = "";
+
+      stageAttrRunes.forEach(rune => {
+        let enemyNamesStr = "";
+        let attrChangeStr = "";
+
+        if(rune.excludeEnemy){
+          enemyNamesStr += "除" + rune.excludeEnemy + "外的敌方单位的";
+        }else if(rune.includeEnemy){
+          enemyNamesStr += rune.includeEnemy + "的";
+        }else{
+          enemyNamesStr += "敌方单位的";
+        }
+
+        rune.attrChanges.forEach(item => {
+          const name = item.name;
+          const isAdd = rune.calMethod === "add";
+          const val = isAdd? item.val : accuracyNum(item.val * 100);
+          const valStr = `<span class="challenge">${val}</span>`;
+          const calMethodStr = isAdd? "提升":"提升至";
+          attrChangeStr += name + calMethodStr + (isAdd? valStr + "，" : valStr + "%，");
+        })
+
+        attrChangeStr = attrChangeStr.slice(0, -1); //去个逗号
+        
+        if(rune.calMethod === "add"){
+          infoStr1 += enemyNamesStr + attrChangeStr;
+        }else if(rune.calMethod === "mul"){
+          infoStr2 += enemyNamesStr + attrChangeStr;
+        }
+      })
+
+      this.stageAttrInfo = infoStr1 && infoStr2? infoStr1 + "，" + infoStr2 : infoStr1 + infoStr2;
+
     }
   },
   computed:{
@@ -203,6 +329,15 @@ export default{
         @restart = "restart"
       ></GameOverMask>
     </div>
+  </div>
+
+  <div class="info">
+    <h1>{{ title }}</h1>
+    <p class="description">{{ description }}</p>
+    <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>
+    <p v-if="stageAttrInfo"><span class="challenge">属性加成：</span>
+      <span v-html="stageAttrInfo"></span>
+    </p>
   </div>
 
   <DataTable
@@ -285,5 +420,22 @@ select {
     -moz-appearance: none;    /* Firefox */
     -webkit-appearance: none; /* Safari 和 Chrome */
     appearance: none;         /* 标准属性 */
+}
+
+.info{
+  h1{
+    text-align: center;
+  }
+  .description{
+    font-size: 15px;
+    color: #555555;
+  }
+  ::v-deep .bluename{
+    color: #0645ad;
+  }
+  ::v-deep .challenge{
+    color: #d22d2dcc;
+    font-weight: bolder;
+  }
 }
 </style>

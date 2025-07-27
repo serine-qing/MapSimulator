@@ -1,4 +1,4 @@
-import { toCamelCase } from "@/components/utilities/utilities"
+import { accuracyNum, toCamelCase } from "@/components/utilities/utilities"
 import MapTiles from "./MapTiles";
 import Tile from "./Tile";
 
@@ -7,7 +7,7 @@ class RunesHelper{
   private enemyGroupEnable: string[] = [];       //额外出现某组敌人
   private enemyGroupDisable: string[] = [];      //移除某组敌人
   private enemyChanges: { [ key:string ] : string } = {};      //移除某组敌人
-  private attrChanges: { [ key:string ] : any } = {};     //敌人属性提升
+  public attrChanges: { [ key:string ] : any } = {};     //敌人属性提升
   private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
   private bannedTiles: Vec2[] = [];
   constructor(runes: any){
@@ -51,7 +51,19 @@ class RunesHelper{
           }
 
           const attrChanges = {};
-
+          switch (rune.key) {
+            //加法提升
+            case "enemy_attribute_add":
+            case "enemy_weight_add":
+            case "ebuff_weight":
+              attrChanges["calMethod"] = "add";
+              break;
+            //乘法提升
+            default:
+              attrChanges["calMethod"] = "mul";
+              break;
+          }
+          
           //enemy_exclude是指不包括的敌人
           //enemy指包括的敌人
           blackboard.forEach( item => {
@@ -125,6 +137,17 @@ class RunesHelper{
 
     })
     
+    //让加算排前面，乘算排后面
+    Object.values(this.attrChanges).forEach(attrChange => {
+      attrChange.sort((a, b) => {
+        if(a.calMethod !== b.calMethod){
+          return a.calMethod === "add"? -1 : 1;
+        }else{
+          return 0;
+        }
+      })
+    })
+
   }
 
   public checkEnemyGroup(group: string): boolean{
@@ -145,18 +168,19 @@ class RunesHelper{
       
       changesArr.forEach(item => {
         let apply = true;
-        if(item["enemy"]){
+        const {enemy, enemyExclude, calMethod} = item;
+        if(enemy){
         
-          apply = item["enemy"].find(enemyKey => key === enemyKey);
-        }else if(item["enemyExclude"]){
+          apply = enemy.find(enemyKey => key === enemyKey);
+        }else if(enemyExclude){
 
-          apply = !item["enemyExclude"].find(enemyKey => key === enemyKey);
+          apply = !enemyExclude.find(enemyKey => key === enemyKey);
         }
-
+        
         if(apply){
           Object.keys(item).forEach(attrKey => {
 
-            if(attrKey !== "enemyExclude" && attrKey !== "enemy"){
+            if(attrKey !== "enemyExclude" && attrKey !== "enemy" && attrKey !== "calMethod"){
               const attrValue = item[attrKey];
 
               if(!data.attrChanges[attrKey]){
@@ -164,7 +188,7 @@ class RunesHelper{
               }
 
               data.attrChanges[attrKey].push({
-                type, value: attrValue
+                type, value: attrValue, calMethod
               });
             }
           })
@@ -179,27 +203,21 @@ class RunesHelper{
       const attrValue = attributes[attrKey];
 
       const attrChange = data.attrChanges[attrKey];
-      let multiplier = 1;
       let value = attrValue;
-      
+
       if(attrChange){
-        switch (attrKey) {
-          case "magicResistance": //法抗
-          case "massLevel": //重量等级
-            multiplier =  attrChange.reduce((acc, current) => acc + current.value, 0 );
-            value = multiplier + attrValue;
-            break;
-          
-          default:
-            multiplier = attrChange.reduce((acc, current) => acc * current.value, 1 );
-            value = multiplier * attrValue
-            break;
-        }
+        value =  attrChange.reduce((acc, current) => {
+          //加算
+          if(current.calMethod === "add"){
+            return acc + current.value;
+          //乘算
+          }else if(current.calMethod === "mul"){
+            return acc * current.value;
+          }
+        }, attrValue );
 
         //消除乘完后会出现的很长小数
-        attributes[attrKey] = parseFloat( 
-          value.toFixed(4) 
-        );
+        attributes[attrKey] = accuracyNum(value);
       }
 
     });

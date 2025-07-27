@@ -20,7 +20,7 @@ import SPFA from "./SPFA";
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
   private sourceData: any;
-  private runesHelper: RunesHelper;
+  public runesHelper: RunesHelper;
 
   public mapTiles: MapTiles; //地图tiles
   public trapDatas: trapData[] = [];
@@ -449,15 +449,13 @@ class MapModel{
       const prefabKey = enemyRef.overwrittenData?.prefabKey;
       let toAdd: EnemyRef = enemyRef;
 
-      if(waves.find(wave => wave.key === enemyRef.id) !== undefined){
-
-        if(prefabKey?.m_defined){
-          toAdd = enemyDbRefs.find(ref => ref.id === prefabKey.m_value);
-          extraEnemies.push(enemyRef);
-        }
-
-        enemies.add(toAdd)
+      if(prefabKey?.m_defined){
+        toAdd = enemyDbRefs.find(ref => ref.id === prefabKey.m_value);
+        extraEnemies.push(enemyRef);
       }
+
+      enemies.add(toAdd)
+      
     })
 
     const enemyRefReq = Array.from(enemies).filter((enemyRef: EnemyRef) => enemyRef.useDb);
@@ -486,7 +484,6 @@ class MapModel{
       enemyData.icon = GameConfig.BASE_URL + "enemy_icon/" + enemyData.key + ".png";
       
       enemyData.count = 0;
-      this.runesHelper.checkEnemyAttribute(enemyData);
 
     })
     
@@ -523,6 +520,7 @@ class MapModel{
     enemyDatas.forEach(enemyData => {
       enemyData.talents = parseTalent(enemyData.talentBlackboard);
       enemyData.skills = parseSkill(enemyData.skills); 
+      this.runesHelper.checkEnemyAttribute(enemyData);
     })
 
     this.enemyDatas = enemyDatas;

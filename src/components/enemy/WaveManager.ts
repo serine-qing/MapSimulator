@@ -27,6 +27,7 @@ class WaveManager{
 
     //通过actionData生成action对象 并且和enemy trap绑定
     this.initTraps();
+    this.mapModel.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
     this.initActions();
     
   }
@@ -61,7 +62,7 @@ class WaveManager{
             enemy.SPFA = this.mapModel.SPFA;
 
             action.enemy = enemy;
-
+            enemy.action = action;
             this.enemies.push(enemy);
             break;
           

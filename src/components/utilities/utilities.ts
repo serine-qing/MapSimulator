@@ -100,6 +100,11 @@ const toCamelCase = (str) => {
   return str.replace(/[-_]\w/g, match => match[1].toUpperCase());
 }
 
+//处理一些因为精度原因计算后出现的很长小数
+const accuracyNum = (num: number): number => {
+  return parseFloat(num.toFixed(3))
+}
+
 //秒转化为分 秒
 function timeFormat(timestamp: number): string{
   const minute = Math.floor(timestamp / 60);
@@ -109,4 +114,4 @@ function timeFormat(timestamp: number): string{
   return str ;
 }
 
-export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, timeFormat}
+export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, timeFormat, accuracyNum}
