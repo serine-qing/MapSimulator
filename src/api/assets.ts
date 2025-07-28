@@ -11,6 +11,17 @@ const getTrapsKey = (keys) => {
   })
 }
 
+//获取可使用的装置图标
+const getTokenCards = (keys) => {
+  return request({
+    method: "post",
+    url: "/assets/getTokenCards",
+    data: {
+      keys
+    }
+  })
+}
+
 //获取敌人skel名
 const getSpinesKey = (keys) => {
   return request({
@@ -22,4 +33,4 @@ const getSpinesKey = (keys) => {
   })
 } 
 
-export { getTrapsKey, getSpinesKey };
+export { getTrapsKey, getTokenCards, getSpinesKey };

@@ -78,11 +78,32 @@ class MapTiles{
       if(tile){
         tile.trap = trap;
         trap.tile = tile;
+
       }else{
         console.error(`${trap.key} 获取tile出错！`)
       }
     })
+  }
 
+  initPreviewTextures(){
+    this.tiles.flat().forEach(tile => {
+      //生成预览texture
+      tile.initPreviewTexture();
+    })
+  }
+
+  updatePreviewImage(texture: THREE.Texture){
+    this.tiles.flat().forEach(tile => {
+      //生成预览texture
+      tile.updatePreviewImage(texture);
+    })
+  }
+
+  hiddenPreviewTextures(){
+    this.tiles.flat().forEach(tile => {
+      //生成预览texture
+      tile.hiddenPreviewTexture();
+    })
   }
 }
 

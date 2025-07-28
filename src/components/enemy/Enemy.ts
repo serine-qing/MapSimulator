@@ -9,6 +9,7 @@ import { GC_Add } from "../game/GC";
 import MapTiles from "../game/MapTiles";
 import WaveManager from "./WaveManager";
 import Action from "../game/Action";
+import { gameCanvas } from "../game/GameCanvas";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
@@ -208,7 +209,6 @@ class Enemy{
 
   //初始化spine小人
   public initSpine(){
-    //TODO 不同角度会导致spine看起来很奇怪，看能不能通过改mesh方向修复它
     //显示相关的数据为异步加载数据，会晚于构造函数调用
     const {skeletonData, moveAnimate, idleAnimate} = this.enemyData;
     if(!skeletonData) return;
@@ -624,6 +624,9 @@ class Enemy{
 
     if(this.spine){
       this.handleGradient();
+
+      //锁定spine朝向向相机，防止梯形畸变
+      this.skeletonMesh.lookAt(gameCanvas.camera.position);
 
       if(this.isStarted && !this.isFinished){
         this.skeletonMesh.update(

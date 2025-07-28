@@ -5,7 +5,7 @@ import Tile from "./Tile"
 import WaveManager from "../enemy/WaveManager"
 import GameConfig from "@/components/utilities/GameConfig"
 
-import {gameCanvas} from '@/components/game/GameCanvas';
+import { gameCanvas } from '@/components/game/GameCanvas';
 import Trap from "./Trap"
 import GameManager from "./GameManager"
 import { GC_Sweep } from "./GC"
@@ -13,17 +13,19 @@ import { GC_Sweep } from "./GC"
 class GameView{
   
   private mapContainer: THREE.Object3D;
+  public tileMeshs: THREE.Mesh[] = [];
 
   private mapTiles: MapTiles;
   private traps: Trap[];
   private gameManager: GameManager;
   private waveManager: WaveManager;
 
-  constructor(gameManager: GameManager, mapTiles: MapTiles, traps: Trap[], waveManager: WaveManager){
+  constructor(gameManager: GameManager){
     this.gameManager = gameManager;
-    this.mapTiles = mapTiles;
-    this.traps = traps;
+    const { mapModel, waveManager } = gameManager;
+    this.mapTiles = mapModel.mapTiles;
     this.waveManager = waveManager;
+    this.traps = waveManager.traps;
 
     this.mapContainer = new THREE.Object3D();
     
@@ -38,11 +40,14 @@ class GameView{
       tile.gameManager = this.gameManager;
       tile.initMeshs();
       this.mapContainer.add(tile.object);
+      this.tileMeshs.push(tile.cube);
     })
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
     this.mapContainer.position.x = - this.mapTiles.width / 2 * GameConfig.TILE_SIZE;
     this.mapContainer.position.y = - this.mapTiles.height / 2 * GameConfig.TILE_SIZE + 7;
+
+    this.mapTiles.initPreviewTextures();
     gameCanvas.scene.add(this.mapContainer);
   }
 

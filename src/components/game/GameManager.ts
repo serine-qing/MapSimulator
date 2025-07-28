@@ -8,13 +8,18 @@ import WaveManager from "@/components/enemy/WaveManager";
 import eventBus from "@/components/utilities/EventBus";
 
 import assetsManager from "@/components/assetManager/assetsManager"
+import { gameCanvas } from "./GameCanvas";
+import TokenCard from "./TokenCard";
+import Tile from "./Tile";
+import MapTiles from "./MapTiles";
 
 //游戏控制器
 class GameManager{
   public isSimulate: boolean = false;
   private clock: THREE.Clock = new THREE.Clock();
 
-  private mapModel: MapModel;
+  public mapModel: MapModel;
+  public mapTiles: MapTiles;
   private simulateData: any;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
@@ -31,9 +36,15 @@ class GameManager{
 
   public isFinished: boolean = false;
 
+  private tokenCards: TokenCard[];
+  private tokenCardActived: boolean = false;
+
   constructor(mapModel: MapModel){
     //初始化敌人控制类
     this.mapModel = mapModel;
+    this.mapTiles = mapModel.mapTiles;
+    this.tokenCards = mapModel.tokenCards;
+
     this.waveManager = new WaveManager(
       mapModel,
       this
@@ -54,13 +65,9 @@ class GameManager{
       
       eventBus.emit("gameStart")
 
-      this.gameView = new GameView(
-        this,
-        this.mapModel.mapTiles,
-        this.waveManager.traps,
-        this.waveManager
-      );
+      this.gameView = new GameView(this);
 
+      this.handleMouseMove();
 
       this.animate();
 
@@ -146,6 +153,54 @@ class GameManager{
       this.gameView.render(delta);
     }
     
+  }
+
+  private handleMouseMove(){
+    // 监听鼠标移动
+    gameCanvas.wrapper.addEventListener('mousemove', (event) => {
+      if( !this.tokenCardActived ) return;
+
+      this.mapTiles.hiddenPreviewTextures();
+      // 1. 计算标准化设备坐标 (NDC)
+      // 在将鼠标的屏幕坐标转换为标准化设备坐标（NDC）时，我们需要将坐标从屏幕坐标系（以像素为单位）
+      // 转换到WebGL的NDC坐标系（范围为[-1, 1]）。这个转换过程是通过线性变换完成的。
+      // 我们需要转换为NDC坐标系（WebGL，原点在中心，范围[-1,1]）：
+      // x:从左到右为-1到1
+      // y: 从下到上为-1到1（注意：屏幕坐标的y轴方向与NDC的y轴方向相反）
+      gameCanvas.mouse.x = (event.offsetX / gameCanvas.wrapper.offsetWidth) * 2 - 1;
+      gameCanvas.mouse.y = -(event.offsetY / gameCanvas.wrapper.offsetHeight) * 2 + 1;
+
+      // 2. 更新射线
+      gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
+      
+      // 检测与所有物体的交点
+      const intersects = gameCanvas.raycaster.intersectObjects(this.gameView.tileMeshs);
+      if (intersects.length > 0) {
+        const firstIntersect = intersects[0];
+        const tile: Tile = firstIntersect.object['tile'];
+        if(tile.previewTexture){
+
+          tile.previewTexture.visible = true;
+        }
+      }
+    });
+  }
+
+  public activeTokenCard(card: TokenCard){
+    this.tokenCards.forEach((tokenCard: TokenCard) => {
+      if(tokenCard.characterKey !== card.characterKey){
+        tokenCard.selected = false;
+      }
+    });
+    card.selected = !card.selected;
+
+    if(card.selected){
+      this.mapTiles.updatePreviewImage(card.texture)
+      this.tokenCardActived = true;
+    }else{
+      this.mapTiles.hiddenPreviewTextures();
+      this.tokenCardActived = false;
+    }
   }
 
   public setSimulateData(simulateData: any){

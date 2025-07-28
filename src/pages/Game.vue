@@ -7,6 +7,7 @@ import { accuracyNum, timeFormat } from "@/components/utilities/utilities";
 import Container from "@/pages/Container.vue"
 import GameOverMask from "@/pages/GameOverMask.vue"
 import DataTable from "@/pages/DataTable.vue"
+import TokenCards from "@/pages/TokenCards.vue"
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
 
@@ -38,12 +39,13 @@ export default{
       countDownCheckAll: true,
       countDownIndet: false,
       enemyDatas: null,
+      tokenCards: null,
 
       isFinished: false
     }
   },
   props:["mapData"],
-  components:{ Container, DataTable, GameOverMask},
+  components:{ Container, DataTable, GameOverMask, TokenCards},
   watch:{
     async mapData(){
       this.isFinished = false;
@@ -54,6 +56,7 @@ export default{
 
       await mapModel.init();
       await game.startGame(mapModel);
+      this.tokenCards = mapModel.tokenCards;
 
       gameManager = game.gameManager;
 
@@ -62,7 +65,9 @@ export default{
       this.reset();
       this.gameSpeed = GameConfig.GAME_SPEED;
       this.maxSecond = game.maxSecond;
+      
       this.$refs["container"].changeGameManager(gameManager);
+      this.$refs["tokenCards"].changeGameManager(gameManager);
 
     },
     pause(){
@@ -247,8 +252,6 @@ export default{
           const calMethodStr = isAdd? "提升":"提升至";
           attrChangeStr += name + calMethodStr + (isAdd? valStr + "，" : valStr + "%，");
         })
-
-        attrChangeStr = attrChangeStr.slice(0, -1); //去个逗号
         
         if(rune.calMethod === "add"){
           infoStr1 += enemyNamesStr + attrChangeStr;
@@ -256,6 +259,9 @@ export default{
           infoStr2 += enemyNamesStr + attrChangeStr;
         }
       })
+
+      infoStr1 = infoStr1.slice(0, -1); //去个逗号
+      infoStr2 = infoStr2.slice(0, -1); 
 
       this.stageAttrInfo = infoStr1 && infoStr2? infoStr1 + "，" + infoStr2 : infoStr1 + infoStr2;
 
@@ -314,25 +320,35 @@ export default{
         </el-checkbox>
       </div>
     </div>
-    <div class="game-wrapper" ref="wrapper">
-      <canvas id="c"></canvas>
-      <Container 
-        ref = "container"
-        @pause = "pause = true"
-        :attackRangeCheckAll = "attackRangeCheckAll"
-        :countDownCheckAll = "countDownCheckAll"
-        @update:attackRangeIndet = "val => attackRangeIndet = val"
-        @update:countDownIndet = "val => countDownIndet = val"
-      ></Container>
-      <GameOverMask
-        v-show="isFinished"
-        @restart = "restart"
-      ></GameOverMask>
+    <div class="content">
+      <div class="game-wrapper" ref="wrapper">
+        <canvas id="c"></canvas>
+        <Container 
+          ref = "container"
+          @pause = "pause = true"
+          :attackRangeCheckAll = "attackRangeCheckAll"
+          :countDownCheckAll = "countDownCheckAll"
+          @update:attackRangeIndet = "val => attackRangeIndet = val"
+          @update:countDownIndet = "val => countDownIndet = val"
+        ></Container>
+        <GameOverMask
+          v-show="isFinished"
+          @restart = "restart"
+        ></GameOverMask>
+      </div>
+      <div class="game-tools">
+        <TokenCards
+          ref = "tokenCards"
+          :tokenCards = "tokenCards"
+        ></TokenCards>
+      </div>
     </div>
+
+
   </div>
 
   <div class="info">
-    <h1>{{ title }}</h1>
+    <h2>{{ title }}</h2>
     <p class="description">{{ description }}</p>
     <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>
     <p v-if="stageAttrInfo"><span class="challenge">属性加成：</span>
@@ -375,11 +391,25 @@ export default{
     }
 
   }
-  .game-wrapper{
+  .content{
     flex: 1;
     position: relative;
     width: 100%;
+    display: flex;
+    .game-wrapper{
+      flex: 1;
+      position: relative;
+      width: 100%;
+    }
+    .game-tools{
+      width: 100px;
+      background-color: black;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
   }
+
 }
 
 .buttons{
@@ -423,10 +453,12 @@ select {
 }
 
 .info{
-  h1{
+  h1,h2{
     text-align: center;
+    margin: 10 0;
   }
   .description{
+    text-align: center;
     font-size: 15px;
     color: #555555;
   }

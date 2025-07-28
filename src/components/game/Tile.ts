@@ -25,6 +25,7 @@ class Tile{
   heightType: string;
 
   textureObj: THREE.Mesh;
+  previewTexture: THREE.Mesh = null;
   cube: Mesh;
   object: Object3D;
   border: BoxHelper;
@@ -182,6 +183,8 @@ class Tile{
       sideMaterial, sideMaterial, sideMaterial, sideMaterial, topMaterial, topMaterial
     ]); 
 
+    this.cube['tile'] = this;
+
     this.object.add(this.cube);
   }
 
@@ -206,6 +209,38 @@ class Tile{
       texture.scale.set(bannedSize,bannedSize,1);
       bannedTexture.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.15);
       this.object.add(bannedTexture)
+    }else{
+
+    }
+  }
+
+  public initPreviewTexture(){
+    //没有装置、并且没有ban格子的话，就生成一个占位符texture
+    if(!this.trap && !this.isBanned && this.buildableType === "MELEE"){
+      const textureSize = this.gameManager.getPixelSize(this.width * 0.9);
+      const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
+      const textureMat = new THREE.MeshBasicMaterial({
+        map: null,
+        transparent: true
+      });
+      this.previewTexture = new THREE.Mesh( textureGeo, textureMat );
+      this.previewTexture.position.setZ(this.gameManager.getPixelSize(this.height / 2) + 0.15);
+      this.previewTexture.visible = false;
+
+      this.object.add(this.previewTexture);
+    }
+  }
+
+  public updatePreviewImage(texture: THREE.Texture){
+    if(this.previewTexture){
+      const material = this.previewTexture.material as THREE.MeshBasicMaterial;
+      material.map = texture;
+    }
+  }
+
+  public hiddenPreviewTexture(){
+    if(this.previewTexture){
+      this.previewTexture.visible = false;
     }
   }
 

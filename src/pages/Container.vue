@@ -103,6 +103,7 @@ const updateLabelPosAndSize = () => {
 
     const tempV = new THREE.Vector3();
     enemy.skeletonMesh.getWorldPosition(tempV);
+    //将 3D 世界坐标投影到相机的 2D 屏幕空间
     tempV.project(gameCanvas.camera);
     const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
     const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;

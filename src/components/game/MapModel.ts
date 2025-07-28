@@ -11,10 +11,11 @@ import assetsManager from "@/components/assetManager/assetsManager"
 import * as THREE from "three"
 import { unitizeFbx  } from "./FbxHelper";
 
-import { getTrapsKey, getSpinesKey } from "@/api/assets";
+import { getTrapsKey, getSpinesKey, getTokenCards } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
+import TokenCard from "./TokenCard";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -23,6 +24,7 @@ class MapModel{
   public runesHelper: RunesHelper;
 
   public mapTiles: MapTiles; //地图tiles
+  public tokenCards: TokenCard[];
   public trapDatas: trapData[] = [];
   public actionDatas: ActionData[][] = [];
   public enemyDatas: EnemyData[] = [];
@@ -44,6 +46,8 @@ class MapModel{
     
     //获取trap数据
     await this.getTrapDatas();
+    //获取可使用的装置图标
+    await this.getTokenCards();
 
     //解析敌人路径
     this.parseEnemyRoutes();
@@ -247,6 +251,40 @@ class MapModel{
       }
     }
 
+  }
+
+  private async getTokenCards(){
+
+    const tokenCards = this.sourceData.predefines?.tokenCards;
+    if(tokenCards){
+      this.tokenCards = tokenCards.map(tokenCard => {
+        return new TokenCard({
+          initialCnt: tokenCard.initialCnt,
+          hidden: tokenCard.hidden,
+          alias: tokenCard.alias,
+          characterKey: tokenCard.inst.characterKey,
+          level: tokenCard.inst.level,
+        })
+      })
+      const keys = this.tokenCards.map(tokenCard => tokenCard.characterKey);
+      const res = await getTokenCards(keys);
+      
+      const urls = [];
+      res.data?.forEach(item => {
+        const find = this.tokenCards.find(tokenCard => tokenCard.characterKey === item.name);
+        if(find){
+          find.url = `${GameConfig.BASE_URL}trap/image/${item.image}.png`;
+          urls.push(find.url);
+        }
+      })
+
+      assetsManager.loadTexture(urls).then((res: THREE.Texture[]) => {
+        for(let i = 0; i < this.tokenCards.length; i++){
+          this.tokenCards[i].texture = res[i];
+        }
+      })
+    }
+    
   }
 
   private getRunes(){
