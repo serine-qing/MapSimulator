@@ -48,7 +48,7 @@ class MapModel{
     await this.getTrapDatas();
     //获取可使用的装置图标
     await this.getTokenCards();
-
+    
     //解析敌人路径
     this.parseEnemyRoutes();
 
@@ -278,11 +278,13 @@ class MapModel{
         }
       })
 
-      assetsManager.loadTexture(urls).then((res: THREE.Texture[]) => {
-        for(let i = 0; i < this.tokenCards.length; i++){
-          this.tokenCards[i].texture = res[i];
-        }
-      })
+      if(urls.length > 0){
+        assetsManager.loadTexture(urls).then((res: THREE.Texture[]) => {
+          for(let i = 0; i < this.tokenCards.length; i++){
+            this.tokenCards[i].texture = res[i];
+          }
+        })
+      }
     }
     
   }

@@ -60,7 +60,7 @@ class GameManager{
   public start(){
     
     assetsManager.allOnload.then( () => {
-
+      
       this.restart();
       
       eventBus.emit("gameStart")
