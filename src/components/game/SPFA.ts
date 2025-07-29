@@ -277,6 +277,11 @@ class SPFA{
 
     return currentNode;
   }
+
+  public reset(){
+    this.pathMaps = [];
+    this.generatepathMaps();
+  }
 }
 
 export default SPFA;

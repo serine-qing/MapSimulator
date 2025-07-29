@@ -58,7 +58,20 @@
         />
       </div>
     </el-popover>
-    
+
+    <div 
+      class="trap-dialog"
+      v-show="trapDialog.visible"
+      :style="{
+        left:trapDialog.left + 'px',
+        top:trapDialog.top + 'px',
+        transform: `scale(${trapDialog.scale})`
+      }"
+    >
+      <img class="exit" :src="exitImg" @click="handleRemoveTrap"></img>
+      <div class="border"></div>
+      <img class="icon" :src="trapDialog.iconUrl">
+    </div>
   </div>
 </template>
 
@@ -70,13 +83,17 @@ import * as THREE from "three";
 import Enemy from '@/components/enemy/Enemy';
 import { ref, defineEmits, defineProps, watch } from 'vue';
 import GameConfig from '@/components/utilities/GameConfig';
+import exitImg from '@/assets/images/escape.png'
+import Trap from '@/components/game/Trap';
 
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
 const enemyLabels = ref([]);
 
+let gameManager: GameManager;
 let waveManager: WaveManager;
+let tokens: Trap[];
 let enemies: Enemy[];
-
+let scale: number;
 //FUNCTION                                           
 //FUNCTION                                           
 //FUNCTION  敌人label数据绑定                         
@@ -92,8 +109,8 @@ const updateLabelVisible = () => {
 
 const updateLabelPosAndSize = () => {
 
-  const scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
-  
+  scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
+
   waveManager.getEnemiesInMap().forEach(enemy => {
     if(!enemy.spine) return;
     const {skelSize, skelOffset} = enemy;
@@ -146,11 +163,7 @@ const updateDatas = () => {
   })
 }
 
-const update = () => {
-  updateLabelVisible();
-  updateLabelPosAndSize();
-  updateDatas()
-}
+
 
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
@@ -166,24 +179,17 @@ const initEnemyLabels = () => {
   })
 }
 
-const animate = () => {
-  requestAnimationFrame(()=>{
-    if(waveManager){
-      update();
-    }
-    animate();
-  });
-}
 
-animate();
-
-const changeGameManager = (gameManager: GameManager) => {
-  if(gameManager){
+const changeGameManager = (_gameManager: GameManager) => {
+  if(_gameManager){
+    gameManager = _gameManager;
     waveManager = gameManager.waveManager;
+    tokens = gameManager.tokens;
     enemies = waveManager.enemies;
 
     initEnemyLabels();
   }else{
+    gameManager = null;
     waveManager = null;
     enemies = [];
     enemyLabels.value = [];
@@ -264,6 +270,67 @@ const showDetail = (enemyId: number) => {
   console.log(find);
 }
 
+//FUNCTION                                           
+//FUNCTION                                           
+//FUNCTION  与地图装置的交互                          
+//FUNCTION                                           
+//FUNCTION                                           
+
+let activeTrap: Trap;
+const trapDialog = ref({
+  left: 0,
+  top: 0,
+  iconUrl: "",
+  scale: 0,
+  visible: false
+});
+
+const updateTraps = () => {
+  const find = tokens.find(trap => trap.isSelected);
+
+  if(find){
+    activeTrap = find;
+
+    const tempV = new THREE.Vector3();
+    find.object.getWorldPosition(tempV);
+    tempV.project(gameCanvas.camera);
+    const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
+    const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
+
+    trapDialog.value.left = x -50;
+    trapDialog.value.top = y -50;
+    trapDialog.value.iconUrl = find.iconUrl;
+    trapDialog.value.scale = 2 * scale;
+    trapDialog.value.visible = true;
+  }else{
+    trapDialog.value.visible = false;
+  }
+
+}
+
+const handleRemoveTrap = () => {
+  gameManager.handleRemoveTrap(activeTrap);
+}
+
+
+const update = () => {
+  updateLabelVisible();
+  updateLabelPosAndSize();
+  updateDatas();
+  updateTraps();
+}
+
+const animate = () => {
+  requestAnimationFrame(()=>{
+    if(waveManager){
+      update();
+    }
+    animate();
+  });
+}
+
+animate();
+
 // defineExpose 来显式指定在组件中要暴露出去的属性。
 defineExpose({
   changeGameManager
@@ -326,5 +393,43 @@ defineExpose({
   display: block;
   font-size: 12px;
   margin-bottom: 7px;
+}
+
+.trap-dialog{
+  user-select: none;
+  position: absolute;
+  height: 100px;
+  width: 100px;
+  
+  .border{
+    position: absolute;
+    left: -10px;
+    top: -15px;
+    height: 120px;
+    width: 120px;
+    border: 2px solid #fefefe;
+    order: 2px solid #fefefe;
+    transform:rotateX(45deg)  rotateZ(45deg);
+    box-shadow: inset 0 0 16px hsla(0 , 0%, 94%, 0.9);
+  }
+  .exit{
+    cursor: pointer;
+    position: absolute;
+    left: -5px;
+    top: 0px;
+    height: 30px;
+    width: 30px;
+    z-index: 1000;
+    transform:rotateX(25deg);
+  }
+  .icon{
+    position: absolute;
+    left: 75px;
+    top: 60px;
+    height: 40px;
+    width: 40px;
+    z-index: 1000;
+    transform:rotateX(25deg);
+  }
 }
 </style>

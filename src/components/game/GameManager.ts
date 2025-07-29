@@ -12,6 +12,8 @@ import { gameCanvas } from "./GameCanvas";
 import TokenCard from "./TokenCard";
 import Tile from "./Tile";
 import MapTiles from "./MapTiles";
+import Trap from "./Trap";
+import SPFA from "./SPFA";
 
 //游戏控制器
 class GameManager{
@@ -19,6 +21,8 @@ class GameManager{
   private clock: THREE.Clock = new THREE.Clock();
 
   public mapModel: MapModel;
+  private SPFA: SPFA;
+  public tokens: Trap[] = [];      //手动部署的装置
   public mapTiles: MapTiles;
   private simulateData: any;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
@@ -37,11 +41,12 @@ class GameManager{
   public isFinished: boolean = false;
 
   private tokenCards: TokenCard[];
-  private tokenCardActived: boolean = false;
+  private activeTokenCard: TokenCard;
 
   constructor(mapModel: MapModel){
     //初始化敌人控制类
     this.mapModel = mapModel;
+    this.SPFA = mapModel.SPFA;
     this.mapTiles = mapModel.mapTiles;
     this.tokenCards = mapModel.tokenCards;
 
@@ -49,11 +54,6 @@ class GameManager{
       mapModel,
       this
     );
-
-    this.waveManager.traps.forEach(trap => {
-      trap.gameManager = this;
-    })
-
 
   }
 
@@ -68,6 +68,7 @@ class GameManager{
       this.gameView = new GameView(this);
 
       this.handleMouseMove();
+      this.handleClick();
 
       this.animate();
 
@@ -155,38 +156,144 @@ class GameManager{
     
   }
 
+  private intersectObjects(x: number, y: number): any{
+
+    // 1. 计算标准化设备坐标 (NDC)
+    // 在将鼠标的屏幕坐标转换为标准化设备坐标（NDC）时，我们需要将坐标从屏幕坐标系（以像素为单位）
+    // 转换到WebGL的NDC坐标系（范围为[-1, 1]）。这个转换过程是通过线性变换完成的。
+    // 我们需要转换为NDC坐标系（WebGL，原点在中心，范围[-1,1]）：
+    // x:从左到右为-1到1
+    // y: 从下到上为-1到1（注意：屏幕坐标的y轴方向与NDC的y轴方向相反）
+    gameCanvas.mouse.x = (x / gameCanvas.wrapper.offsetWidth) * 2 - 1;
+    gameCanvas.mouse.y = -(y / gameCanvas.wrapper.offsetHeight) * 2 + 1;
+
+    // 2. 更新射线
+    gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
+
+    //检测与trap的交点
+    if(this.tokens.length > 0){
+      const tokenObjs = this.tokens.map(token => token.object);
+      //这里考虑使用gameView.trapObjects 但是性能低一点
+      const tokenIntersects = gameCanvas.raycaster.intersectObjects(tokenObjs, true);
+      if (tokenIntersects.length > 0) {
+        const firstIntersect = tokenIntersects[0];
+        const trap: Trap = firstIntersect.object?.parent?.userData?.trap;
+
+        if(trap) return trap;
+      }
+    }
+
+    // 检测与tile的交点
+    const tileIntersects = gameCanvas.raycaster.intersectObjects(this.gameView.tileObjects.children, true);
+    if (tileIntersects.length > 0) {
+      const firstIntersect = tileIntersects[0];
+      const tile: Tile = firstIntersect.object?.parent?.userData?.tile;
+      
+      if(tile) return tile;
+    }
+
+    return null;
+  } 
+
   private handleMouseMove(){
     // 监听鼠标移动
     gameCanvas.wrapper.addEventListener('mousemove', (event) => {
-      if( !this.tokenCardActived ) return;
 
       this.mapTiles.hiddenPreviewTextures();
-      // 1. 计算标准化设备坐标 (NDC)
-      // 在将鼠标的屏幕坐标转换为标准化设备坐标（NDC）时，我们需要将坐标从屏幕坐标系（以像素为单位）
-      // 转换到WebGL的NDC坐标系（范围为[-1, 1]）。这个转换过程是通过线性变换完成的。
-      // 我们需要转换为NDC坐标系（WebGL，原点在中心，范围[-1,1]）：
-      // x:从左到右为-1到1
-      // y: 从下到上为-1到1（注意：屏幕坐标的y轴方向与NDC的y轴方向相反）
-      gameCanvas.mouse.x = (event.offsetX / gameCanvas.wrapper.offsetWidth) * 2 - 1;
-      gameCanvas.mouse.y = -(event.offsetY / gameCanvas.wrapper.offsetHeight) * 2 + 1;
-
-      // 2. 更新射线
-      gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
       
-      // 检测与所有物体的交点
-      const intersects = gameCanvas.raycaster.intersectObjects(this.gameView.tileMeshs);
-      if (intersects.length > 0) {
-        const firstIntersect = intersects[0];
-        const tile: Tile = firstIntersect.object['tile'];
-        if(tile.previewTexture){
+      const find = this.intersectObjects(event.offsetX, event.offsetY);
 
-          tile.previewTexture.visible = true;
+      if(find){
+        switch (find.constructor) {
+          case Trap:
+            this.handleTrapFocus(find);
+            break;
+          case Tile:
+            this.handleTileFocus(find);
+            break;
         }
       }
     });
   }
 
-  public activeTokenCard(card: TokenCard){
+  private handleClick(){
+    gameCanvas.wrapper.addEventListener("click", (event) => {
+
+      this.tokens.forEach(trap => trap.isSelected = false)
+
+      const find = this.intersectObjects(event.offsetX, event.offsetY);
+
+      if(find){
+        switch (find.constructor) {
+          case Trap:
+            this.handleTrapSelect(find);
+            break;
+          case Tile:
+            this.addTrapToTile(find);
+            break;
+        }
+      }
+
+    })
+  }
+
+  private handleTileFocus(tile: Tile){
+    if( this.activeTokenCard ) {
+      if(tile.previewTexture && !tile.trap){
+        gameCanvas.wrapper.style.cursor = "pointer";
+        tile.previewTexture.visible = true;
+      }else{
+        gameCanvas.wrapper.style.cursor = "default";
+      }
+    }else{
+      gameCanvas.wrapper.style.cursor = "default"
+    }
+  }
+
+
+  private handleTrapFocus(trap: Trap){
+    if(trap){
+      gameCanvas.wrapper.style.cursor = "pointer";
+    }else{
+      gameCanvas.wrapper.style.cursor = "default";
+    }
+  }
+
+  private handleTrapSelect(trap: Trap){
+    trap.isSelected = true;
+  }
+
+  public handleRemoveTrap(trap: Trap){
+    this.gameView.mapContainer.remove(trap.object);
+    trap.tile.removeTrap();
+
+    this.tokens.remove(trap);
+    //障碍物需要重新计算寻路
+    if(trap.key === "trap_001_crate"){
+      this.SPFA.reset();
+    }
+  }
+
+  private addTrapToTile(tile: Tile){
+
+    if(this.activeTokenCard && tile.previewTexture){
+      const trap = new Trap(this.activeTokenCard.trapData);
+      trap.iconUrl = this.activeTokenCard.url;
+      tile.addTrap(trap);
+      trap.initMesh();
+      
+      this.gameView.mapContainer.add(trap.object)
+      
+      this.tokens.push(trap);
+      //障碍物需要重新计算寻路
+      if(trap.key === "trap_001_crate"){
+        this.SPFA.reset();
+      }
+    }
+
+  }
+
+  public handleSelectTokenCard(card: TokenCard){
     this.tokenCards.forEach((tokenCard: TokenCard) => {
       if(tokenCard.characterKey !== card.characterKey){
         tokenCard.selected = false;
@@ -196,10 +303,10 @@ class GameManager{
 
     if(card.selected){
       this.mapTiles.updatePreviewImage(card.texture)
-      this.tokenCardActived = true;
+      this.activeTokenCard = card;
     }else{
       this.mapTiles.hiddenPreviewTextures();
-      this.tokenCardActived = false;
+      this.activeTokenCard = null;
     }
   }
 

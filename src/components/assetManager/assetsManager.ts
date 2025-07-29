@@ -66,11 +66,14 @@ class AssetsManager{
       
       resTextures.push(this.textureLoader.load(texture));
     })
-
+    
     const textureOnload = new Promise((resolve , reject)=>{
 
+      const onLoad = this.loadManager.onLoad;
       this.loadManager.onLoad = () => {
+        if(onLoad) onLoad();
         resolve(resTextures);
+        this.loadManager.onLoad = null;
       };
     })
 

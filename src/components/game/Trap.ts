@@ -8,6 +8,8 @@ import Tile from "./Tile";
 class Trap{
   gameManager: GameManager;
   data: trapData;  //原始数据
+  isTokenCard: boolean = false;  //是否是待部署区装置
+  iconUrl: string; 
 
   key: string;
   alias: string;            //地图内装置id
@@ -27,14 +29,18 @@ class Trap{
   textureMesh: THREE.Mesh;
 
   tile: Tile;   //装置位于的地块
+
+  isSelected: boolean = false;       //是否被鼠标选中
   constructor(data: trapData){
     this.data = data;
+    this.isTokenCard = data.isTokenCard;
     this.key = data.key;
     this.alias = data.alias;
     this.direction = data.direction;
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;
     this.visible = !data.hidden;
+
   }
 
   initMesh(){
@@ -66,6 +72,8 @@ class Trap{
     this.object.position.y = coordinate.y;
 
     this.object.visible = this.visible;
+    
+    this.object.userData.trap = this;
     //初始化技能（目前就是影响一些外观）
     this.initSkill();
   }
@@ -162,6 +170,13 @@ class Trap{
   public set(state){
     const { visible } = state;
     visible? this.show() : this.hide();
+  }
+
+  public destroy() {
+    this.object.children.forEach((mesh: THREE.Mesh) => {
+      mesh.geometry?.dispose();
+      (mesh.material as THREE.MeshMatcapMaterial)?.dispose();
+    })
   }
 }
 

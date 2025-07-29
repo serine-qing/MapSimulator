@@ -183,7 +183,7 @@ class Tile{
       sideMaterial, sideMaterial, sideMaterial, sideMaterial, topMaterial, topMaterial
     ]); 
 
-    this.cube['tile'] = this;
+    this.object.userData.tile = this;
 
     this.object.add(this.cube);
   }
@@ -296,6 +296,18 @@ class Tile{
 
   public getPixelHeight(){
     return this.gameManager.getPixelSize(this.height)
+  }
+
+  public addTrap(trap: Trap){
+    this.trap = trap;
+    trap.tile = this;
+    trap.position = this.position;
+    trap.gameManager = this.gameManager;
+  }
+
+  public removeTrap(){
+    this.trap.destroy();
+    this.trap = null;
   }
 
   public destroy() {

@@ -76,8 +76,7 @@ class MapTiles{
     traps.forEach(trap => {
       const tile = this.get(trap.position);
       if(tile){
-        tile.trap = trap;
-        trap.tile = tile;
+        tile.addTrap(trap);
 
       }else{
         console.error(`${trap.key} 获取tile出错！`)

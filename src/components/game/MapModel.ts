@@ -44,10 +44,10 @@ class MapModel{
     this.mapTiles = new MapTiles(this.sourceData.mapData);
     this.runesHelper.checkBannedTiles(this.mapTiles);
     
-    //获取trap数据
-    await this.getTrapDatas();
     //获取可使用的装置图标
     await this.getTokenCards();
+    //获取trap数据
+    await this.getTrapDatas();
     
     //解析敌人路径
     this.parseEnemyRoutes();
@@ -93,8 +93,47 @@ class MapModel{
 
   }
 
+  private async getTokenCards(){
+
+    const tokenCards = this.sourceData.predefines?.tokenCards;
+    if(tokenCards){
+
+      this.tokenCards = tokenCards.map(tokenCard => {
+        return new TokenCard({
+          initialCnt: tokenCard.initialCnt,
+          hidden: tokenCard.hidden,
+          alias: tokenCard.alias,
+          characterKey: tokenCard.inst.characterKey,
+          level: tokenCard.inst.level,
+          mainSkillLvl: tokenCard.mainSkillLvl
+        })
+      })
+      const keys = this.tokenCards.map(tokenCard => tokenCard.characterKey);
+      const res = await getTokenCards(keys);
+      
+      const urls = [];
+      res.data?.forEach(item => {
+        const find = this.tokenCards.find(tokenCard => tokenCard.characterKey === item.name);
+        if(find){
+          find.url = `${GameConfig.BASE_URL}trap/image/${item.image}.png`;
+          urls.push(find.url);
+        }
+      })
+
+      if(urls.length > 0){
+        assetsManager.loadTexture(urls).then((res: THREE.Texture[]) => {
+          for(let i = 0; i < this.tokenCards.length; i++){
+            this.tokenCards[i].texture = res[i];
+          }
+        })
+      }
+    }
+    
+  }
+
   private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
+
     this.runesHelper.checkPredefines(tokenInsts);
     if(tokenInsts){
 
@@ -120,6 +159,7 @@ class MapModel{
         }
 
         this.trapDatas.push({
+          isTokenCard: false,
           alias,
           key,
           hidden,
@@ -129,6 +169,22 @@ class MapModel{
         });
 
         trapKeys.add(key);
+      })
+
+      this.tokenCards.forEach(tokenCard => {
+        const trapData = {
+          isTokenCard: true,
+          alias: tokenCard.alias,
+          key: tokenCard.characterKey,
+          hidden: tokenCard.hidden,
+          direction: "UP",
+          position: null,
+          mainSkillLvl: tokenCard.mainSkillLvl
+        };
+        this.trapDatas.push(trapData);
+
+        tokenCard.trapData = trapData;
+        trapKeys.add(tokenCard.characterKey);
       })
       
       const res = await getTrapsKey(Array.from(trapKeys));
@@ -229,8 +285,8 @@ class MapModel{
         })
 
         const textureMats = {};
-        assetsManager.loadTexture(textureReq).then((res:THREE.Texture[]) => {
 
+        assetsManager.loadTexture(textureReq).then((res:THREE.Texture[]) => {
           res.forEach((texture, index) => {
             const currentImage = images[index];
 
@@ -251,42 +307,6 @@ class MapModel{
       }
     }
 
-  }
-
-  private async getTokenCards(){
-
-    const tokenCards = this.sourceData.predefines?.tokenCards;
-    if(tokenCards){
-      this.tokenCards = tokenCards.map(tokenCard => {
-        return new TokenCard({
-          initialCnt: tokenCard.initialCnt,
-          hidden: tokenCard.hidden,
-          alias: tokenCard.alias,
-          characterKey: tokenCard.inst.characterKey,
-          level: tokenCard.inst.level,
-        })
-      })
-      const keys = this.tokenCards.map(tokenCard => tokenCard.characterKey);
-      const res = await getTokenCards(keys);
-      
-      const urls = [];
-      res.data?.forEach(item => {
-        const find = this.tokenCards.find(tokenCard => tokenCard.characterKey === item.name);
-        if(find){
-          find.url = `${GameConfig.BASE_URL}trap/image/${item.image}.png`;
-          urls.push(find.url);
-        }
-      })
-
-      if(urls.length > 0){
-        assetsManager.loadTexture(urls).then((res: THREE.Texture[]) => {
-          for(let i = 0; i < this.tokenCards.length; i++){
-            this.tokenCards[i].texture = res[i];
-          }
-        })
-      }
-    }
-    
   }
 
   private getRunes(){

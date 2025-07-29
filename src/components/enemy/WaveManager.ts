@@ -34,8 +34,10 @@ class WaveManager{
 
   private initTraps(){
     this.mapModel.trapDatas.forEach(trapData => {
-      const trap = new Trap(trapData);
-      this.traps.push(trap);
+      if(!trapData.isTokenCard){
+        const trap = new Trap(trapData);
+        this.traps.push(trap);
+      }
     });
     this.mapModel.mapTiles.bindTraps(this.traps);
   }

@@ -12,8 +12,9 @@ import { GC_Sweep } from "./GC"
 
 class GameView{
   
-  private mapContainer: THREE.Object3D;
-  public tileMeshs: THREE.Mesh[] = [];
+  public mapContainer: THREE.Object3D;
+  public tileObjects = new THREE.Group();
+  public trapObjects = new THREE.Group();
 
   private mapTiles: MapTiles;
   private traps: Trap[];
@@ -39,9 +40,9 @@ class GameView{
     this.mapTiles.tiles.flat().forEach((tile: Tile)=>{
       tile.gameManager = this.gameManager;
       tile.initMeshs();
-      this.mapContainer.add(tile.object);
-      this.tileMeshs.push(tile.cube);
+      this.tileObjects.add(tile.object);
     })
+    this.mapContainer.add(this.tileObjects);
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
     this.mapContainer.position.x = - this.mapTiles.width / 2 * GameConfig.TILE_SIZE;
@@ -54,8 +55,9 @@ class GameView{
   private initTraps(){
     this.traps.forEach(trap => {
       trap.initMesh();
-      this.mapContainer.add(trap.object);
+      this.trapObjects.add(trap.object);
     })
+    this.mapContainer.add(this.trapObjects);
   } 
 
   public initEnemys(){

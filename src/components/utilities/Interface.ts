@@ -114,6 +114,7 @@ declare global {
   }
 
   interface trapData{
+    isTokenCard: boolean,   //是否是待部署区装置
     key: string,
     alias: string,          //地图里的装置id
     direction: string,
@@ -124,6 +125,22 @@ declare global {
     mesh?: THREE.Mesh,     //fbx数据有mesh
     skeletonData?: any,     //spine数据有skeletonData
     textureMat?: THREE.MeshBasicMaterial  //texture数据才有
+  }
+
+  interface Array<T> {
+    /**
+     * 自定义方法：删除数组中某个元素
+     */
+    remove(T);
+    
+  }
+}
+
+
+Array.prototype.remove = function(item){
+  const index = this.findIndex(i => i === item);
+  if(index > -1){
+    this.splice(index, 1)
   }
 }
 

@@ -20,7 +20,7 @@ const { tokenCards } = defineProps(["tokenCards"])
 let gameManager: GameManager;
 
 const handleSelect = (card: TokenCard) => {
-  gameManager.activeTokenCard(card);
+  gameManager.handleSelectTokenCard(card);
 }
 
 const changeGameManager = (_gameManager: GameManager) => {
