@@ -3,9 +3,9 @@ import { ref } from 'vue';
 import Menu from '@/pages/Menu.vue';
 import Game from "@/pages/Game.vue"
 
-const mapData = ref();
+const game = ref();
 const handleChangeStage = (map: any) => {
-  mapData.value = map;
+  game.value.newGame(map);
 }
 
 </script>
@@ -13,7 +13,9 @@ const handleChangeStage = (map: any) => {
 <template>
 <div class="index">
   <Menu  @changeStage = "handleChangeStage"/>
-  <Game :mapData = "mapData"/>
+  <Game 
+    ref="game"
+  />
 </div>
   
 </template>

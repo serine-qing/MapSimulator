@@ -1,10 +1,11 @@
 import AliasHelper from "./AliasHelper";
 import Tile from "./Tile";
 import Trap from "./Trap";
+import TrapManager from "./TrapManager";
 
 class MapTiles{
   public tiles: Tile[][] = [];
-
+  public flatTiles: Tile[] = [];
   public height: number;    //矩阵高度(y)
   public width: number;    //矩阵宽度(x)
   constructor(mapData:any){
@@ -44,10 +45,12 @@ class MapTiles{
       })
     })
 
+    this.flatTiles = this.tiles.flat();
+
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
-  public get(x: number | Vec2, y?: number): Tile | null{
+  public getTile(x: number | Vec2, y?: number): Tile | null{
     const _x = typeof x === "number"? x : x.x; 
     const _y = typeof x === "number"? y : x.y; 
 
@@ -62,19 +65,19 @@ class MapTiles{
 
   //获取某个地板是否可地面通行
   isTilePassable(x: number, y: number): boolean{
-    const tile = this.get(x, y);
+    const tile = this.getTile(x, y);
     return tile !== null && tile.passableMask === "ALL";
   }
 
   //获取某个地板是否可飞行
   isTileFlyable(x: number, y: number): boolean{
-    const tile = this.get(x, y);
+    const tile = this.getTile(x, y);
     return tile !== null && (tile.passableMask === "FLY_ONLY" || tile.passableMask === "ALL");
   }
 
-  bindTraps(traps: Trap[]){
-    traps.forEach(trap => {
-      const tile = this.get(trap.position);
+  bindTraps(trapManager: TrapManager){
+    trapManager.traps.forEach(trap => {
+      const tile = this.getTile(trap.position);
       if(tile){
         tile.addTrap(trap);
 
@@ -103,6 +106,21 @@ class MapTiles{
       //生成预览texture
       tile.hiddenPreviewTexture();
     })
+  }
+
+  get(){
+    const state = {
+      tileStates: this.flatTiles.map(tile => tile.get())
+    };
+
+    return state;
+  }
+
+  set(state){
+    for(let i = 0; i < this.flatTiles.length; i++){
+      const tile = this.flatTiles[i];
+      tile.set(state.tileStates[i]);
+    }
   }
 }
 

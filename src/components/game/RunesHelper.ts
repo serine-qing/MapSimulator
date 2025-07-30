@@ -227,7 +227,7 @@ class RunesHelper{
   //检查ban格子
   public checkBannedTiles(mapTiles: MapTiles){
     this.bannedTiles.forEach(vec2 => {
-      const tile: Tile = mapTiles.get(vec2);
+      const tile: Tile = mapTiles.getTile(vec2);
       if(tile){
         tile.isBanned = true;
       }

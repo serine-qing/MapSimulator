@@ -9,6 +9,7 @@ import { gameCanvas } from '@/components/game/GameCanvas';
 import Trap from "./Trap"
 import GameManager from "./GameManager"
 import { GC_Sweep } from "./GC"
+import TrapManager from "./TrapManager"
 
 class GameView{
   
@@ -17,16 +18,16 @@ class GameView{
   public trapObjects = new THREE.Group();
 
   private mapTiles: MapTiles;
-  private traps: Trap[];
   private gameManager: GameManager;
+  private trapManager: TrapManager;
   private waveManager: WaveManager;
 
   constructor(gameManager: GameManager){
     this.gameManager = gameManager;
-    const { mapModel, waveManager } = gameManager;
+    const { mapModel, waveManager, trapManager } = gameManager;
     this.mapTiles = mapModel.mapTiles;
     this.waveManager = waveManager;
-    this.traps = waveManager.traps;
+    this.trapManager = trapManager;
 
     this.mapContainer = new THREE.Object3D();
     
@@ -53,8 +54,8 @@ class GameView{
   }
 
   private initTraps(){
-    this.traps.forEach(trap => {
-      trap.initMesh();
+    this.trapManager.initMeshs();
+    this.trapManager.traps.forEach(trap => {
       this.trapObjects.add(trap.object);
     })
     this.mapContainer.add(this.trapObjects);
@@ -73,6 +74,8 @@ class GameView{
   }
 
   public render(delta: number){
+    if(this.gameManager.isSimulate) return;
+    
     gameCanvas.render();
 
     this.waveManager.enemies.forEach(
@@ -80,7 +83,7 @@ class GameView{
       enemy => enemy.render( delta )
     )
 
-    this.traps.forEach(
+    this.trapManager.traps.forEach(
       trap => trap.skeletonMesh?.update(delta)
     )
   }

@@ -14,13 +14,15 @@
 <script lang="ts" setup>
 import GameManager from '@/components/game/GameManager';
 import TokenCard from '@/components/game/TokenCard';
+import { toRaw } from 'vue';
 
 const { tokenCards } = defineProps(["tokenCards"])
 
 let gameManager: GameManager;
 
 const handleSelect = (card: TokenCard) => {
-  gameManager.handleSelectTokenCard(card);
+  card.selected = !card.selected;
+  gameManager.handleSelectTokenCard(toRaw(card));
 }
 
 const changeGameManager = (_gameManager: GameManager) => {

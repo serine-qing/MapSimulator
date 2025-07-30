@@ -59,7 +59,7 @@ class SPFA{
 
   }
 
-  private generatepathMap(target: Vec2, motionMode: string){
+  private generatepathMap(target: Vec2, motionMode: string): PathMap{
     const findMap = this.generatepathMapsByVec(target, motionMode);
     const pathMap: PathMap = {
       motionMode: motionMode,
@@ -150,7 +150,7 @@ class SPFA{
 
   private getDistanceWeight(x: number, y: number): number{
     let distanceWeight: number;
-    const tile = this.mapTiles.get(x, y);
+    const tile = this.mapTiles.getTile(x, y);
 
     switch (tile.tileKey) {
       case "tile_hole":
@@ -265,22 +265,46 @@ class SPFA{
   }
 
   //motionMode：飞行还是地面 targetPoint：检查点目标点 position：当前光标位置
-  public getPathNode(targetPoint: Vec2, motionMode: string, position: THREE.Vector2): PathNode{
+  public getPathNode(targetPoint: Vec2, motionMode: string, position: THREE.Vector2 | Vec2): PathNode{
     const offset = 0.5;
     const x = Math.floor(position.x + offset);
     const y = Math.floor(position.y + offset);
 
     const pathMap = this.getPathMap(targetPoint, motionMode);
-    // console.log(pathMap)
+
     const map = pathMap?.map;
     let currentNode = map? map[y]? map[y][x] : null : null;
 
     return currentNode;
   }
 
-  public reset(){
+  public regenerate(): boolean{
+    const old = this.pathMaps;
     this.pathMaps = [];
     this.generatepathMaps();
+    const blocked = this.checkBlocked();
+    if(blocked){
+      this.pathMaps = old;
+    }
+
+    return !blocked;
+  }
+
+  //检查路线是否堵住
+  private checkBlocked(): boolean{
+    return !!this.enemyRoutes.find(route => {
+      const { startPosition, motionMode, endPosition } = route;
+      const node = this.getPathNode(startPosition, motionMode, endPosition)
+      return node.distance >= 1000;
+    })
+  }
+
+  get(){
+    return this.pathMaps;
+  }
+
+  set(state){
+    this.pathMaps = state;
   }
 }
 

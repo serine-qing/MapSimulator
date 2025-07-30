@@ -413,6 +413,7 @@ class MapModel{
           index: routeIndex,
           allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
           startPosition: RowColToVec2(sourceRoute.startPosition),
+          endPosition: RowColToVec2(sourceRoute.endPosition),
           motionMode: AliasHelper(sourceRoute.motionMode, "motionMode"),
           spawnOffset: sourceRoute.spawnOffset,
           spawnRandomRange: sourceRoute.spawnRandomRange,

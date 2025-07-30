@@ -2,17 +2,18 @@ import Action from "../game/Action";
 import GameManager from "../game/GameManager";
 import MapModel from "../game/MapModel";
 import Trap from "../game/Trap";
+import TrapManager from "../game/TrapManager";
 import Enemy from "./Enemy"
 import eventBus from "@/components/utilities/EventBus";
 
 //敌人状态管理
 class WaveManager{
   public gameManager: GameManager;
+  public trapManager: TrapManager;
   public mapModel: MapModel;
 
   public actions: Action[][] = [];  
   public enemies: Enemy[] = []; //敌人对象数组
-  public traps: Trap[] = []; //地图装置
   public enemiesInMap: number[] = []; //需要在地图上渲染的enemy
 
   private waveIndex: number = 0;
@@ -21,25 +22,15 @@ class WaveManager{
   public waveSecond: number = 0;     //当前波次时间
   public allWaveFinished: boolean = false;  //全部波次已经结束
   
-  constructor(mapModel: MapModel, gameManager: GameManager,){
+  constructor(gameManager: GameManager,){
     this.gameManager = gameManager;
-    this.mapModel = mapModel;
+    this.trapManager = gameManager.trapManager;
+    this.mapModel = gameManager.mapModel;
 
     //通过actionData生成action对象 并且和enemy trap绑定
-    this.initTraps();
     this.mapModel.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
     this.initActions();
     
-  }
-
-  private initTraps(){
-    this.mapModel.trapDatas.forEach(trapData => {
-      if(!trapData.isTokenCard){
-        const trap = new Trap(trapData);
-        this.traps.push(trap);
-      }
-    });
-    this.mapModel.mapTiles.bindTraps(this.traps);
   }
 
   public initActions(){
@@ -69,7 +60,7 @@ class WaveManager{
             break;
           
           case "ACTIVATE_PREDEFINED":
-            action.trap = this.traps.find(trap => actionData.trapData.alias === trap.alias);
+            action.trap = this.trapManager.getTrap(actionData.trapData.alias);
             break;
         }
       })
@@ -195,30 +186,27 @@ class WaveManager{
 
   public update(delta: number){
     if(this.allWaveFinished) return;
+    this.gameSecond = this.gameManager.gameSecond;
+    this.waveSecond += delta;
 
-    this.removeEnemies();
-    this.checkWaveFinished();
-    this.checkFinished();
+    this.handleAction();
 
     if(this.allWaveFinished) return;
-
     this.getEnemiesInMap().forEach(
       enemy => {
           enemy.update(delta)
       }
     )
 
-    this.handleAction();
-    
-    this.gameSecond += delta;
-    this.waveSecond += delta;
-
+    this.removeEnemies();
+    this.checkWaveFinished();
+    this.checkFinished();
   }
 
   public get(){
     const actionStates = [];
     const enemyStates = [];
-    const trapStates = [];
+
 
     this.actions.forEach(innerActions => {
       innerActions.forEach(action => {
@@ -230,14 +218,11 @@ class WaveManager{
       enemyStates.push(enemy.get());
     })
 
-    this.traps.forEach(trap => {
-      trapStates.push(trap.get());
-    })
+
 
     let state = {
       actionStates,
       enemyStates,
-      trapStates,
       enemiesInMap: [...this.enemiesInMap],
       actionIndex: this.actionIndex,
       waveIndex: this.waveIndex,
@@ -259,7 +244,6 @@ class WaveManager{
       allWaveFinished, 
       actionStates,
       enemyStates,
-      trapStates,
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
@@ -282,13 +266,6 @@ class WaveManager{
       const enemy = this.enemies[i];
 
       enemy.set(eState);
-    }
-
-    for(let i = 0; i< trapStates.length; i++){
-      const tState = trapStates[i];
-      const trap = this.traps[i];
-
-      trap.set(tState);
     }
     
     eventBus.emit("action_index_change", actionIndex, waveIndex);

@@ -14,6 +14,8 @@ import Tile from "./Tile";
 import MapTiles from "./MapTiles";
 import Trap from "./Trap";
 import SPFA from "./SPFA";
+import TrapManager from "./TrapManager";
+import { ElMessage } from 'element-plus'
 
 //游戏控制器
 class GameManager{
@@ -22,12 +24,14 @@ class GameManager{
 
   public mapModel: MapModel;
   private SPFA: SPFA;
-  public tokens: Trap[] = [];      //手动部署的装置
   public mapTiles: MapTiles;
   private simulateData: any;
+  private isDynamicsSimulate: boolean = false; 
+  public maxSecond: number;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
   private gameView: GameView;
   public waveManager: WaveManager;
+  public trapManager: TrapManager;
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -43,6 +47,8 @@ class GameManager{
   private tokenCards: TokenCard[];
   private activeTokenCard: TokenCard;
 
+  private mouseMoveProcessing: boolean = false;
+
   constructor(mapModel: MapModel){
     //初始化敌人控制类
     this.mapModel = mapModel;
@@ -50,11 +56,14 @@ class GameManager{
     this.mapTiles = mapModel.mapTiles;
     this.tokenCards = mapModel.tokenCards;
 
-    this.waveManager = new WaveManager(
-      mapModel,
-      this
-    );
+    this.trapManager = new TrapManager(mapModel.trapDatas, this);
+    this.waveManager = new WaveManager(this);
+    
+    this.mapTiles.bindTraps(this.trapManager);
 
+    const simData = this.startSimulate();
+    this.setSimulateData(simData);
+    this.start();
   }
 
   public start(){
@@ -116,6 +125,7 @@ class GameManager{
     }
 
     requestAnimationFrame(()=>{
+      this.mouseMoveProcessing = false;
       this.animate();
     });
 
@@ -126,17 +136,30 @@ class GameManager{
     let delta = 0;
 
     if(!this.pause && !this.isFinished){
-      
+      delta = this.singleFrameTime * this.gameSpeed;
+
+      //动态模拟
+      if(!this.isSimulate && this.isDynamicsSimulate){
+        
+        const find = this.simulateData.byFrame.find(sim => {
+          return sim.gameSecond <= this.gameSecond && 
+            sim.gameSecond > this.gameSecond - delta;
+        })
+        if(find){
+          this.setData = find;
+        }
+      }
+
       if(this.setData){
         this.set(this.setData);
       }
-      delta = this.singleFrameTime * this.gameSpeed;
-
+      
+      this.gameSecond += delta;
       this.update(delta);
 
       if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
       
-      this.gameSecond += delta;
+      
     }
 
     if(!this.isSimulate) eventBus.emit("update:isFinished", this.isFinished);
@@ -157,7 +180,6 @@ class GameManager{
   }
 
   private intersectObjects(x: number, y: number): any{
-
     // 1. 计算标准化设备坐标 (NDC)
     // 在将鼠标的屏幕坐标转换为标准化设备坐标（NDC）时，我们需要将坐标从屏幕坐标系（以像素为单位）
     // 转换到WebGL的NDC坐标系（范围为[-1, 1]）。这个转换过程是通过线性变换完成的。
@@ -169,22 +191,22 @@ class GameManager{
 
     // 2. 更新射线
     gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
+    const { trapObjects, tileObjects } = this.gameView;
 
     //检测与trap的交点
-    if(this.tokens.length > 0){
-      const tokenObjs = this.tokens.map(token => token.object);
+    if(trapObjects.children.length > 0){
       //这里考虑使用gameView.trapObjects 但是性能低一点
-      const tokenIntersects = gameCanvas.raycaster.intersectObjects(tokenObjs, true);
+      const tokenIntersects = gameCanvas.raycaster.intersectObjects(trapObjects.children, true);
       if (tokenIntersects.length > 0) {
         const firstIntersect = tokenIntersects[0];
         const trap: Trap = firstIntersect.object?.parent?.userData?.trap;
-
+        
         if(trap) return trap;
       }
     }
 
     // 检测与tile的交点
-    const tileIntersects = gameCanvas.raycaster.intersectObjects(this.gameView.tileObjects.children, true);
+    const tileIntersects = gameCanvas.raycaster.intersectObjects(tileObjects.children, true);
     if (tileIntersects.length > 0) {
       const firstIntersect = tileIntersects[0];
       const tile: Tile = firstIntersect.object?.parent?.userData?.tile;
@@ -197,8 +219,11 @@ class GameManager{
 
   private handleMouseMove(){
     // 监听鼠标移动
-    gameCanvas.wrapper.addEventListener('mousemove', (event) => {
+    gameCanvas.wrapper.onmousemove = (event) => {
+      //控制事件 1帧只能触发一次
+      if(this.mouseMoveProcessing) return;
 
+      this.mouseMoveProcessing = true;
       this.mapTiles.hiddenPreviewTextures();
       
       const find = this.intersectObjects(event.offsetX, event.offsetY);
@@ -213,13 +238,13 @@ class GameManager{
             break;
         }
       }
-    });
+    };
   }
 
   private handleClick(){
-    gameCanvas.wrapper.addEventListener("click", (event) => {
+    gameCanvas.wrapper.onclick = (event) => {
 
-      this.tokens.forEach(trap => trap.isSelected = false)
+      this.trapManager.resetSelected();
 
       const find = this.intersectObjects(event.offsetX, event.offsetY);
 
@@ -234,7 +259,7 @@ class GameManager{
         }
       }
 
-    })
+    }
   }
 
   private handleTileFocus(tile: Tile){
@@ -252,7 +277,7 @@ class GameManager{
 
 
   private handleTrapFocus(trap: Trap){
-    if(trap){
+    if(trap && trap.isTokenCard){
       gameCanvas.wrapper.style.cursor = "pointer";
     }else{
       gameCanvas.wrapper.style.cursor = "default";
@@ -260,34 +285,42 @@ class GameManager{
   }
 
   private handleTrapSelect(trap: Trap){
-    trap.isSelected = true;
+    if(trap.isTokenCard){
+      trap.isSelected = true;
+    }
   }
 
   public handleRemoveTrap(trap: Trap){
-    this.gameView.mapContainer.remove(trap.object);
-    trap.tile.removeTrap();
+    this.gameView.trapObjects.remove(trap.object);
 
-    this.tokens.remove(trap);
+    this.trapManager.removeTrap(trap);
     //障碍物需要重新计算寻路
     if(trap.key === "trap_001_crate"){
-      this.SPFA.reset();
+      this.reStartSimulate();
+      this.SPFA.regenerate();
     }
   }
 
   private addTrapToTile(tile: Tile){
 
     if(this.activeTokenCard && tile.previewTexture){
-      const trap = new Trap(this.activeTokenCard.trapData);
-      trap.iconUrl = this.activeTokenCard.url;
-      tile.addTrap(trap);
-      trap.initMesh();
-      
-      this.gameView.mapContainer.add(trap.object)
-      
-      this.tokens.push(trap);
+      const trap = this.trapManager.createTrap(this.activeTokenCard, tile);
+
       //障碍物需要重新计算寻路
       if(trap.key === "trap_001_crate"){
-        this.SPFA.reset();
+        const success = this.SPFA.regenerate();
+
+        //判断是否封死道路
+        if(success){
+          this.gameView.trapObjects.add(trap.object);
+          this.reStartSimulate();
+        }else{
+          this.trapManager.removeTrap(trap);
+          ElMessage({
+            message: '禁止封死道路！',
+            type: 'warning',
+          })
+        }
       }
     }
 
@@ -299,7 +332,6 @@ class GameManager{
         tokenCard.selected = false;
       }
     });
-    card.selected = !card.selected;
 
     if(card.selected){
       this.mapTiles.updatePreviewImage(card.texture)
@@ -337,16 +369,37 @@ class GameManager{
     let state = {
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
+      SPFAState: this.SPFA.get(),
+      trapState: this.trapManager.get(),
+      tileState: this.mapTiles.get(),
       eManagerState: this.waveManager.get()
     }
     return state;
   }
 
   public set(state){
-    const {gameSecond, isFinished, eManagerState} = state;
+    this.trapManager.resetSelected();
+
+    const {gameSecond, isFinished, SPFAState, trapState, tileState, eManagerState} = state;
     
     this.gameSecond = gameSecond;
-    this.waveManager.set(eManagerState)
+    this.trapManager.set(trapState);
+    this.mapTiles.set(tileState);
+    this.SPFA.set(SPFAState);
+    
+    if(this.gameView){
+      const trapObjects = this.gameView.trapObjects;
+      while (trapObjects.children.length > 0) {
+        let child = trapObjects.children[0];
+        trapObjects.remove(child);
+      }
+      
+      this.trapManager.traps.forEach(trap => {
+        trapObjects.add(trap.object);
+      })
+    }
+    
+    this.waveManager.set(eManagerState);
     this.isFinished = isFinished;
 
     this.setData = null;
@@ -356,7 +409,6 @@ class GameManager{
     //如果游戏已经结束或者正在暂停，那么就直接设置data，
     //如果还未结束，需要在某次循环开头读取data
     this.setData = data;
-    const isFinished = this.isFinished;
 
     if(this.isFinished || this.pause){
       this.set(this.setData);
@@ -364,11 +416,82 @@ class GameManager{
 
   }
 
+  //获取模拟数据
+  private startSimulate(startTime?: number){
+    //模拟环境禁用console.log
+    const cacheFunc = console.log;
+    
+    console.log = ()=>{
+      return;
+    }
+
+    this.isSimulate = true;
+    const simData = {
+      byAction: [],
+      byTime: [],
+      byFrame: []
+    };
+    const fuc = () => {
+      simData.byAction.push(this.get());
+    };
+    eventBus.on("action_index_change", fuc);
+
+    let time = startTime? startTime : 0;
+    const cachePause = this.pause;
+    this.pause = false;
+    while( !this.isFinished && this.gameSecond < 3600 ){
+      if(this.gameSecond >= time){
+        simData.byTime.push(this.get());
+        time += GameConfig.SIMULATE_STEP;
+      }
+      this.gameLoop();
+    }
+    this.pause = cachePause;
+    this.maxSecond = simData.byTime.length - 1 + (startTime? startTime : 0);
+
+    eventBus.emit("update:maxSecond", this.maxSecond);
+    eventBus.remove("action_index_change", fuc);
+
+    this.isSimulate = false;
+
+    console.log = cacheFunc;
+
+    return simData;
+  }
+
+  //重新计算当前时间点之后的模拟数据
+  private reStartSimulate(){
+    const currentState = this.get();
+    const startTime = Math.ceil(this.gameSecond);
+    const simData = this.startSimulate(startTime);
+
+    const prevStates =  this.simulateData.byTime.slice(0, startTime);
+    this.simulateData.byTime = [...prevStates, ...simData.byTime];
+
+    const findIndex = this.simulateData.byFrame.findIndex(simData => {
+      return simData.gameSecond > currentState.gameSecond;
+    });
+
+    //游戏时间靠前的操作会重置所有靠后的操作
+    if(findIndex > -1){
+      this.simulateData.byFrame = this.simulateData.byFrame.slice(0, findIndex);
+    }
+    
+    this.simulateData.byFrame.push(currentState);
+    
+
+    this.set(currentState);
+
+    this.isDynamicsSimulate = true;
+  }
+
   public destroy(){
     this.clock.stop();
     this.isFinished = true;
     eventBus.remove("jump_to_enemy_index");
     eventBus.remove("jump_to_time_index");
+    gameCanvas.wrapper.onmousemove = null;
+    gameCanvas.wrapper.onclick = null;
 
     this.gameView?.destroy();
     this.waveManager?.destroy();

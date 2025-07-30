@@ -71,6 +71,7 @@ declare global {
     allowDiagonalMove: boolean,  //是否允许斜角路径
     checkpoints: Array<CheckPoint>,
     startPosition: Vec2,
+    endPosition: Vec2,
     motionMode: string,
     spawnOffset: any,
     spawnRandomRange: any,
@@ -132,7 +133,7 @@ declare global {
      * 自定义方法：删除数组中某个元素
      */
     remove(T);
-    
+    equal(T);
   }
 }
 
@@ -142,6 +143,17 @@ Array.prototype.remove = function(item){
   if(index > -1){
     this.splice(index, 1)
   }
+}
+
+Array.prototype.equal = function(array: any[]): boolean{
+  if(this.length !== array.length) return false;
+  
+  for(let i = 0; i < this.length; i++){
+    const findIndex = array.findIndex(item => item === this[i]);
+    if( findIndex === -1 ) return false;
+  }
+
+  return true;
 }
 
 export {Stage, Vec2, TileData, ActionData, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}

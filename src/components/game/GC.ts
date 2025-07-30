@@ -6,7 +6,7 @@ let collection = [];
 
 const GC_Add = (object: any) => {
   collection.push(object);
-}
+} 
 
 const GC_Sweep = () => {
   collection.forEach(obj => {

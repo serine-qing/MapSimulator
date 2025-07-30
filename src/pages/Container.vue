@@ -85,13 +85,14 @@ import { ref, defineEmits, defineProps, watch } from 'vue';
 import GameConfig from '@/components/utilities/GameConfig';
 import exitImg from '@/assets/images/escape.png'
 import Trap from '@/components/game/Trap';
+import TrapManager from '@/components/game/TrapManager';
 
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
 const enemyLabels = ref([]);
 
 let gameManager: GameManager;
 let waveManager: WaveManager;
-let tokens: Trap[];
+let trapManager: TrapManager;
 let enemies: Enemy[];
 let scale: number;
 //FUNCTION                                           
@@ -184,7 +185,7 @@ const changeGameManager = (_gameManager: GameManager) => {
   if(_gameManager){
     gameManager = _gameManager;
     waveManager = gameManager.waveManager;
-    tokens = gameManager.tokens;
+    trapManager = gameManager.trapManager;
     enemies = waveManager.enemies;
 
     initEnemyLabels();
@@ -286,7 +287,7 @@ const trapDialog = ref({
 });
 
 const updateTraps = () => {
-  const find = tokens.find(trap => trap.isSelected);
+  const find = trapManager.getSelected();
 
   if(find){
     activeTrap = find;

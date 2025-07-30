@@ -199,7 +199,7 @@ class Enemy{
   //到达终点，退出地图
   public finishedMap(){
     this.isFinished = true;
-    if(this.spine){
+    if(!this.gameManager.isSimulate){
       //敌人退出地图的渐变
       this.gradientHide();
     }else{
@@ -255,7 +255,7 @@ class Enemy{
   }
 
   public setSpinePosition(x: number, y: number){
-    if(!this.spine) return;
+    if(this.gameManager.isSimulate || !this.spine) return;
 
     const Vec2 = this.gameManager.getCoordinate(x, y);
 
@@ -372,11 +372,11 @@ class Enemy{
 
   //飞行单位根据是否在高台，修改阴影高度
   updateShadowHeight(){
-    if(!this.spine || !this.isFly()) return;
+    if(this.gameManager.isSimulate || !this.isFly()) return;
     
     const x = Math.round(this.position.x);
     const y = Math.round(this.position.y);
-    const currentTile = this.mapTiles.get(x, y);
+    const currentTile = this.mapTiles.getTile(x, y);
     if( currentTile.passableMask === "ALL" ){
       //地面
       this.shadow.position.z = this.shadowHeight
@@ -426,7 +426,7 @@ class Enemy{
           this.motion = "FLY";
           this.notCountInTotal = true;
           this.action.dontBlockWave = true;
-            const tile = this.mapTiles.get(this.getIntPosition());
+            const tile = this.mapTiles.getTile(this.getIntPosition());
             this.skeletonZOffset = tile.height;
 
           if(this.skeletonMesh){
@@ -622,7 +622,7 @@ class Enemy{
   //视图相关的更新
   public render(delta: number){
 
-    if(this.spine){
+    if(!this.gameManager.isSimulate){
       this.handleGradient();
 
       //锁定spine朝向向相机，防止梯形畸变
@@ -790,18 +790,18 @@ class Enemy{
 
   public show(){
     this.exit = false;
-    if(this.spine) this.spine.visible = true;
+    if(!this.gameManager.isSimulate) this.spine.visible = true;
   }
 
   public hide(){  
     this.exit = true;
-    if(this.spine) this.spine.visible = false;
+    if(!this.gameManager.isSimulate) this.spine.visible = false;
   }
 
   //渐变退出
   private gradientHide(){  
     this.exit = true;
-    if(this.spine) {
+    if(!this.gameManager.isSimulate) {
       this.exitCountDown = 1;
     }
   }
@@ -844,7 +844,7 @@ class Enemy{
     if(this.velocity.x < -0.001) this.faceToward = -1;
     
 
-    if(this.spine) this.skeletonMesh.scale.x = this.faceToward;
+    if(!this.gameManager.isSimulate) this.skeletonMesh.scale.x = this.faceToward;
   }
 
   private idle(){
@@ -874,7 +874,7 @@ class Enemy{
   //更改动画
   private changeAnimation(){
     this.simulateTrackTime = 0;
-    if(!this.spine) return;
+    if(this.gameManager.isSimulate) return;
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
     

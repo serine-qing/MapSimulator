@@ -206,7 +206,7 @@ class Tile{
       const bannedTexture = getTexture(
         "tile_banned"
       );
-      texture.scale.set(bannedSize,bannedSize,1);
+      bannedTexture.scale.set(bannedSize,bannedSize,1);
       bannedTexture.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.15);
       this.object.add(bannedTexture)
     }else{
@@ -302,7 +302,6 @@ class Tile{
     this.trap = trap;
     trap.tile = this;
     trap.position = this.position;
-    trap.gameManager = this.gameManager;
   }
 
   public removeTrap(){
@@ -315,6 +314,18 @@ class Tile{
     this.object = null;
     this.gameManager = null;
     
+  }
+
+  public get(){
+    const state = {
+      trap: this.trap
+    };
+
+    return state;
+  }
+
+  public set(state){
+    this.trap = state.trap;
   }
 }
 

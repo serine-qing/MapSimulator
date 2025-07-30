@@ -1,5 +1,4 @@
 <script lang="ts">
-import Game from "@/components/game/Game"
 import {setupCanvas} from '@/components/game/GameCanvas.ts';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
@@ -11,8 +10,8 @@ import TokenCards from "@/pages/TokenCards.vue"
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
 
+let mapData = null;
 let mapModel: MapModel;
-let game: Game = new Game();
 let gameManager: GameManager;
 
 export default{
@@ -41,33 +40,14 @@ export default{
       enemyDatas: null,
       tokenCards: null,
 
+      isStart: false,
       isFinished: false
     }
   },
-  props:["mapData"],
   components:{ Container, DataTable, GameOverMask, TokenCards},
   watch:{
     async mapData(){
-      this.isFinished = false;
-      this.$refs["container"].changeGameManager(null);
-      this.loading = true;
-
-      mapModel = new MapModel(this.mapData);
-
-      await mapModel.init();
-      await game.startGame(mapModel);
-      this.tokenCards = mapModel.tokenCards;
-
-      gameManager = game.gameManager;
-
-      this.generateStageInfo();
-      this.handleEnemyDatas(mapModel.enemyDatas);
-      this.reset();
-      this.gameSpeed = GameConfig.GAME_SPEED;
-      this.maxSecond = game.maxSecond;
-      
-      this.$refs["container"].changeGameManager(gameManager);
-      this.$refs["tokenCards"].changeGameManager(gameManager);
+      this.newGame()
 
     },
     pause(){
@@ -81,6 +61,9 @@ export default{
     eventBus.on("gameStart", () => {
       this.loading = false;
     })
+    eventBus.on("update:maxSecond", (maxSecond) => {
+      this.maxSecond = maxSecond;
+    })
     eventBus.on("update:isFinished", (isFinished) => {
       this.isFinished = isFinished;
     })
@@ -89,6 +72,33 @@ export default{
     setupCanvas(this.$refs.wrapper);
   },
   methods:{
+    async newGame(map){
+      mapData = map;
+      
+      this.isStart = true;
+      this.isFinished = false;
+      this.$refs["container"].changeGameManager(null);
+      this.loading = true;
+
+      mapModel = new MapModel(mapData);
+
+      await mapModel.init();
+      if(gameManager){
+        gameManager.destroy();
+      }
+      
+      this.tokenCards = mapModel.tokenCards;
+
+      this.generateStageInfo();
+      this.handleEnemyDatas(mapModel.enemyDatas);
+      this.reset();
+      this.gameSpeed = GameConfig.GAME_SPEED;
+
+      gameManager = new GameManager(mapModel);
+      
+      this.$refs["container"].changeGameManager(gameManager);
+      this.$refs["tokenCards"].changeGameManager(gameManager);
+    },
     reset(){
       this.maxSecond = 0;
       this.currentSecond = 0;
@@ -145,7 +155,7 @@ export default{
     },
     //生成关卡详情
     generateStageInfo(){
-      const {levelId, operation, cn_name, challenge, description} = this.mapData;
+      const {levelId, operation, cn_name, challenge, description} = mapData;
       console.log(levelId)
       this.title = `${operation} ${cn_name}`;
       this.challenge = challenge;
@@ -280,7 +290,7 @@ export default{
 <div class="main">
 
   <div class="game" v-loading="loading">
-    <div class="toolbar" v-show="mapData">
+    <div class="toolbar" v-show="isStart">
       <span class="ms">{{ MS }}</span>
       <div class="time-slider">
         <el-slider 
