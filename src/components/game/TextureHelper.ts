@@ -74,10 +74,13 @@ const tileTextures = {
     }
   },
   tile_yinyang_road:{
+    top: gray,
     yin: pureBlack,
     yang: pureWhite
   },
   tile_yinyang_wall:{
+    top: white,
+    side: darkGray,
     yin: pureBlack,
     yang: pureWhite
   },
@@ -148,6 +151,7 @@ const getTile = (key: string, buildableType: string, heightType: string): any =>
       defaultMat = tileTextures["tile_road"];
     }
   }
+
   const tileTexture = tileTextures[key]? tileTextures[key] : defaultMat;
 
   return tileTexture;

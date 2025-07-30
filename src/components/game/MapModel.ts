@@ -133,7 +133,7 @@ class MapModel{
 
   private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
-
+    
     this.runesHelper.checkPredefines(tokenInsts);
     if(tokenInsts){
 

@@ -163,6 +163,7 @@ class SPFA{
     }
 
     const trapKey = tile.trap?.key;
+
     // console.log(trapKey)
     switch (trapKey) {
       case "trap_001_crate":
@@ -184,6 +185,7 @@ class SPFA{
       case "trap_163_foolcrate":
       case "trap_405_xbroadblock":
       case "trap_480_roadblockxb":
+        
         distanceWeight = 1000;
         break;
     

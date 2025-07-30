@@ -57,10 +57,9 @@ class GameManager{
     this.tokenCards = mapModel.tokenCards;
 
     this.trapManager = new TrapManager(mapModel.trapDatas, this);
+    this.mapTiles.bindTraps(this.trapManager);
     this.waveManager = new WaveManager(this);
     
-    this.mapTiles.bindTraps(this.trapManager);
-
     const simData = this.startSimulate();
     this.setSimulateData(simData);
     this.start();

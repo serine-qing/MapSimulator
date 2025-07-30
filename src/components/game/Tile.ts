@@ -158,7 +158,6 @@ class Tile{
 
         const {yin, yang}  = tileTexture;
         const dynamic = this.tileData?.blackboard?.find(arr => arr.key === "dynamic");
-
         const huimingMat = dynamic?.value === 0? yin : yang;
         const huiming = new THREE.Mesh( geometry, huimingMat );
 
