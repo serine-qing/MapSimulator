@@ -1,11 +1,14 @@
 import * as THREE from "three";
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
+import Stats from 'three/examples/js/libs/stats.min.js'; //引入帧率检测
+
 class GameCanvas{
   public wrapper: HTMLDivElement;
   public canvas: HTMLCanvasElement;
   public camera: THREE.PerspectiveCamera;
   public scene: THREE.Scene;
   public renderer: THREE.WebGLRenderer;
+  public stats: Stats;
   private width: number;
   private height: number;
 
@@ -20,6 +23,8 @@ class GameCanvas{
     this.initRenderer();
     this.animate();
 
+    // this.stats = new Stats() //定义帧率检测
+    // this.wrapper.appendChild(this.stats.dom);
     // const controls = new OrbitControls(this.camera, this.renderer.domElement);
   }
 
@@ -81,6 +86,7 @@ class GameCanvas{
       this.animate();
     });
     
+
   }
 
   public resize(){

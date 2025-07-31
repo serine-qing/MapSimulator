@@ -1,5 +1,5 @@
 import { accuracyNum, toCamelCase } from "@/components/utilities/utilities"
-import MapTiles from "./MapTiles";
+import TileManager from "./TileManager";
 import Tile from "./Tile";
 
 class RunesHelper{
@@ -133,6 +133,11 @@ class RunesHelper{
         //todo tile修改
         case "map_tile_blackb_add":
           break;
+
+        //单位再部署时间增加
+        case "char_respawntime_add":
+        case "char_respawntime_mul":
+          break;
       }
 
     })
@@ -225,9 +230,9 @@ class RunesHelper{
   }
 
   //检查ban格子
-  public checkBannedTiles(mapTiles: MapTiles){
+  public checkBannedTiles(tileManager: TileManager){
     this.bannedTiles.forEach(vec2 => {
-      const tile: Tile = mapTiles.getTile(vec2);
+      const tile: Tile = tileManager.getTile(vec2);
       if(tile){
         tile.isBanned = true;
       }

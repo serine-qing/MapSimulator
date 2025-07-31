@@ -46,21 +46,17 @@ class WaveManager{
         switch (action.actionType) {
           
           case "SPAWN":
-            const enemy = new Enemy(actionData);
+            const enemy = new Enemy(actionData, this.gameManager);
             //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
             enemy.id = enemyId++;
-            enemy.gameManager = this.gameManager;
             enemy.waveManager = this;
-            enemy.mapTiles = this.mapModel.mapTiles;
-            enemy.SPFA = this.mapModel.SPFA;
-
             action.enemy = enemy;
             enemy.action = action;
             this.enemies.push(enemy);
             break;
           
           case "ACTIVATE_PREDEFINED":
-            action.trap = this.trapManager.getTrap(actionData.trapData.alias);
+            action.trap = this.trapManager.createTrap(actionData.trapData);
             break;
         }
       })
@@ -170,6 +166,15 @@ class WaveManager{
       const action: Action = currentActions[i];
       
       if(!action.isStarted && action.startTime <= this.waveSecond){
+        switch (action.actionType) {
+          case "SPAWN":
+            action.enemy.start();
+            break;
+          case "ACTIVATE_PREDEFINED":
+            this.trapManager.bindTile(action.trap);
+            action.trap.show();
+            break;
+        }
         action.start();
         
         if(action.enemy){

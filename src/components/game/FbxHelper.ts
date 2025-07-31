@@ -83,7 +83,7 @@ const specialTrap = {
     scaleRate: 1.23
   },
   trap_134_condtr:{
-    scaleRate: 0.9,
+    scaleRate: 1.2,
     direction: Direction.LEFT,
   },
   trap_137_winfire:{

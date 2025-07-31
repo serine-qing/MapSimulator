@@ -11,11 +11,12 @@ import assetsManager from "@/components/assetManager/assetsManager"
 import { gameCanvas } from "./GameCanvas";
 import TokenCard from "./TokenCard";
 import Tile from "./Tile";
-import MapTiles from "./MapTiles";
+import TileManager from "./TileManager";
 import Trap from "./Trap";
 import SPFA from "./SPFA";
 import TrapManager from "./TrapManager";
 import { ElMessage } from 'element-plus'
+import { CountdownManager } from "./CountdownManager";
 
 //游戏控制器
 class GameManager{
@@ -23,8 +24,8 @@ class GameManager{
   private clock: THREE.Clock = new THREE.Clock();
 
   public mapModel: MapModel;
-  private SPFA: SPFA;
-  public mapTiles: MapTiles;
+  public SPFA: SPFA;
+  public tileManager: TileManager;
   private simulateData: any;
   private isDynamicsSimulate: boolean = false; 
   public maxSecond: number;
@@ -32,6 +33,7 @@ class GameManager{
   private gameView: GameView;
   public waveManager: WaveManager;
   public trapManager: TrapManager;
+  public countdownManager: CountdownManager;
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -44,7 +46,7 @@ class GameManager{
 
   public isFinished: boolean = false;
 
-  private tokenCards: TokenCard[];
+  public tokenCards: TokenCard[];
   private activeTokenCard: TokenCard;
 
   private mouseMoveProcessing: boolean = false;
@@ -53,16 +55,22 @@ class GameManager{
     //初始化敌人控制类
     this.mapModel = mapModel;
     this.SPFA = mapModel.SPFA;
-    this.mapTiles = mapModel.mapTiles;
-    this.tokenCards = mapModel.tokenCards;
+    this.tileManager = mapModel.tileManager;
+    this.countdownManager = new CountdownManager();
+
+    this.tokenCards = mapModel.tokenCards.map(data =>{
+      const tokenCard = new TokenCard(data, this);
+      return tokenCard;
+    });
 
     this.trapManager = new TrapManager(mapModel.trapDatas, this);
-    this.mapTiles.bindTraps(this.trapManager);
     this.waveManager = new WaveManager(this);
     
+
     const simData = this.startSimulate();
     this.setSimulateData(simData);
     this.start();
+    
   }
 
   public start(){
@@ -168,6 +176,7 @@ class GameManager{
   }
 
   private update(delta: number){
+    this.countdownManager.update(delta);
     this.waveManager.update(delta);
   }
 
@@ -223,7 +232,7 @@ class GameManager{
       if(this.mouseMoveProcessing) return;
 
       this.mouseMoveProcessing = true;
-      this.mapTiles.hiddenPreviewTextures();
+      this.tileManager.hiddenPreviewTextures();
       
       const find = this.intersectObjects(event.offsetX, event.offsetY);
 
@@ -295,15 +304,15 @@ class GameManager{
     this.trapManager.removeTrap(trap);
     //障碍物需要重新计算寻路
     if(trap.key === "trap_001_crate"){
-      this.reStartSimulate();
       this.SPFA.regenerate();
+      this.reStartSimulate();
     }
   }
 
   private addTrapToTile(tile: Tile){
 
     if(this.activeTokenCard && tile.previewTexture){
-      const trap = this.trapManager.createTrap(this.activeTokenCard, tile);
+      const trap = this.trapManager.createTokenTrap(this.activeTokenCard, tile);
 
       //障碍物需要重新计算寻路
       if(trap.key === "trap_001_crate"){
@@ -311,6 +320,10 @@ class GameManager{
 
         //判断是否封死道路
         if(success){
+
+          this.activeTokenCard.handleDeploy();
+          this.activeTokenCard = null;
+          
           this.gameView.trapObjects.add(trap.object);
           this.reStartSimulate();
         }else{
@@ -325,7 +338,11 @@ class GameManager{
 
   }
 
-  public handleSelectTokenCard(card: TokenCard){
+  public handleSelectTokenCard(characterKey: string){
+
+    const card = this.tokenCards.find(tc => tc.characterKey === characterKey);
+    card.handleSelected();
+
     this.tokenCards.forEach((tokenCard: TokenCard) => {
       if(tokenCard.characterKey !== card.characterKey){
         tokenCard.selected = false;
@@ -333,10 +350,10 @@ class GameManager{
     });
 
     if(card.selected){
-      this.mapTiles.updatePreviewImage(card.texture)
+      this.tileManager.updatePreviewImage(card.texture)
       this.activeTokenCard = card;
     }else{
-      this.mapTiles.hiddenPreviewTextures();
+      this.tileManager.hiddenPreviewTextures();
       this.activeTokenCard = null;
     }
   }
@@ -370,8 +387,9 @@ class GameManager{
       isFinished: this.isFinished,
       SPFAState: this.SPFA.get(),
       trapState: this.trapManager.get(),
-      tileState: this.mapTiles.get(),
-      eManagerState: this.waveManager.get()
+      tileState: this.tileManager.get(),
+      eManagerState: this.waveManager.get(),
+      countdownState: this.countdownManager.get()
     }
     return state;
   }
@@ -379,11 +397,11 @@ class GameManager{
   public set(state){
     this.trapManager.resetSelected();
 
-    const {gameSecond, isFinished, SPFAState, trapState, tileState, eManagerState} = state;
+    const {gameSecond, isFinished, SPFAState, trapState, tileState, eManagerState, countdownState} = state;
     
     this.gameSecond = gameSecond;
     this.trapManager.set(trapState);
-    this.mapTiles.set(tileState);
+    this.tileManager.set(tileState);
     this.SPFA.set(SPFAState);
     
     if(this.gameView){
@@ -399,6 +417,8 @@ class GameManager{
     }
     
     this.waveManager.set(eManagerState);
+    this.countdownManager.set(countdownState);
+
     this.isFinished = isFinished;
 
     this.setData = null;
@@ -420,9 +440,9 @@ class GameManager{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    console.log = ()=>{
-      return;
-    }
+    // console.log = ()=>{
+    //   return;
+    // }
 
     this.isSimulate = true;
     const simData = {
@@ -468,7 +488,7 @@ class GameManager{
     this.simulateData.byTime = [...prevStates, ...simData.byTime];
 
     const findIndex = this.simulateData.byFrame.findIndex(simData => {
-      return simData.gameSecond > currentState.gameSecond;
+      return simData.gameSecond >= currentState.gameSecond;
     });
 
     //游戏时间靠前的操作会重置所有靠后的操作
@@ -478,7 +498,6 @@ class GameManager{
     
     this.simulateData.byFrame.push(currentState);
     
-
     this.set(currentState);
 
     this.isDynamicsSimulate = true;

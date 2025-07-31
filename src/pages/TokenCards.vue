@@ -1,7 +1,7 @@
 <template>
   <div class="tokens">
     <div 
-      v-for="card in tokenCards"
+      v-for="card in cards"
       class="token"
       @click="handleSelect(card)"
       :class="{active: card.selected}"
@@ -14,15 +14,32 @@
 <script lang="ts" setup>
 import GameManager from '@/components/game/GameManager';
 import TokenCard from '@/components/game/TokenCard';
-import { toRaw } from 'vue';
+import { ref, watch } from 'vue';
 
 const { tokenCards } = defineProps(["tokenCards"])
 
 let gameManager: GameManager;
 
-const handleSelect = (card: TokenCard) => {
-  card.selected = !card.selected;
-  gameManager.handleSelectTokenCard(toRaw(card));
+const cards = ref([]);
+watch(() => tokenCards, () => {
+
+  cards.value = tokenCards.map(tc => {
+    const obj = {
+      characterKey: tc.characterKey,
+      url: tc.url,
+      selected: tc.selected
+    }
+
+    return obj;
+  })
+
+  tokenCards.forEach((tc, index) => {
+    tc.cardVue = cards.value[index];
+  })
+})
+
+const handleSelect = (card) => {
+  gameManager.handleSelectTokenCard(card.characterKey);
 }
 
 const changeGameManager = (_gameManager: GameManager) => {

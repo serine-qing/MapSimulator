@@ -6,14 +6,15 @@ import GameManager from "../game/GameManager";
 import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } from "@/components/utilities/SpineHelper"
 import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
-import MapTiles from "../game/MapTiles";
+import TileManager from "../game/TileManager";
 import WaveManager from "./WaveManager";
 import Action from "../game/Action";
 import { gameCanvas } from "../game/GameCanvas";
+import { Countdown } from "../game/CountdownManager";
 
 class Enemy{
   enemyData: EnemyData;  //原始data数据
-  mapTiles: MapTiles;
+  tileManager: TileManager;
 
   id: number;    //WaveManager中使用的id
   key: string;
@@ -56,7 +57,7 @@ class Enemy{
   
   currentSecond: number = 0;      //敌人的当前时间
 
-  private countDowns: any[] = [];  //倒计时
+  public countdown: Countdown;  //倒计时
 
   isStarted: boolean = false;
   isFinished: boolean = false;
@@ -90,7 +91,11 @@ class Enemy{
   public gameManager: GameManager;
   public waveManager: WaveManager;
   
-  constructor(action: ActionData){
+  constructor(action: ActionData, gameManager: GameManager){
+    this.gameManager = gameManager;
+    this.tileManager = gameManager.tileManager;
+    this.SPFA = gameManager.SPFA;
+
     this.enemyData = action.enemyData;
     this.startTime = action.startTime;
     this.fragmentTime = action.fragmentTime;
@@ -138,6 +143,8 @@ class Enemy{
 
     this.initOptions();
 
+    const countdownManager = this.gameManager.countdownManager;
+    this.countdown = countdownManager.getCountdownInst();
   }
 
   public start(){
@@ -156,7 +163,6 @@ class Enemy{
     );
     this.isStarted = false;
     this.isFinished = false;
-    this.countDowns = [];
     this.targetNode = null;
     this.animateState = 'idle';
     this.changeAnimation();
@@ -376,7 +382,7 @@ class Enemy{
     
     const x = Math.round(this.position.x);
     const y = Math.round(this.position.y);
-    const currentTile = this.mapTiles.getTile(x, y);
+    const currentTile = this.tileManager.getTile(x, y);
     if( currentTile.passableMask === "ALL" ){
       //地面
       this.shadow.position.z = this.shadowHeight
@@ -394,12 +400,11 @@ class Enemy{
 
     //模拟动画时间
     this.currentSecond += delta;
-    this.applyCountDown(delta);
     this.handleRush();
 
     this.simulateTrackTime += this.deltaTrackTime(delta);
 
-    if(this.getCountDown("checkPoint") > 0) return;
+    if(this.countdown.getCountdownTime("checkPoint") > 0) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
     const {type, time, reachOffset} = checkPoint;
@@ -426,7 +431,7 @@ class Enemy{
           this.motion = "FLY";
           this.notCountInTotal = true;
           this.action.dontBlockWave = true;
-            const tile = this.mapTiles.getTile(this.getIntPosition());
+            const tile = this.tileManager.getTile(this.getIntPosition());
             this.skeletonZOffset = tile.height;
 
           if(this.skeletonMesh){
@@ -560,7 +565,7 @@ class Enemy{
             break;
         }
         
-        this.addCountDown("checkPoint", countDownTime, () => {
+        this.countdown.addCountdown("checkPoint", countDownTime, () => {
           this.nextCheckPoint();
         });
         
@@ -588,34 +593,6 @@ class Enemy{
 
     this.velocity.x = 0;
     this.velocity.y = 0;
-
-  }
-
-
-  private addCountDown(name: string, time: number, callback?: Function){
-    this.countDowns.push({
-      name, time, callback
-    })
-  }
-
-  public getCountDown(name: string): number{
-    const find = this.countDowns.find(countDown => countDown.name === name);
-    return find? find.time : -1;
-  }
-
-  private applyCountDown(delta: number){
-    for(let i = 0; i < this.countDowns.length; i++){
-      const countDown = this.countDowns[i];
-      countDown.time = Math.max(countDown.time - delta, 0);
-      if(countDown.time === 0){
-        this.countDowns.splice(i, 1);
-        i--;
-
-        if(countDown.callback){
-          countDown.callback();
-        }
-      }
-    }
 
   }
 
@@ -714,7 +691,7 @@ class Enemy{
           waitTime = duration || interval;
           const callback = () => {};
           if( waitTime ){
-            this.addCountDown("checkPoint", waitTime, () => {
+            this.countdown.addCountdown("checkPoint", waitTime, () => {
               switch (this.key) {
                 //念旧
                 case "enemy_10057_cjstel":
@@ -731,7 +708,7 @@ class Enemy{
         case "timeup":  //prts 岁相等
           waitTime = duration || interval;
           if(waitTime){
-            this.addCountDown("end", waitTime - this.waveManager.gameSecond, () => {
+            this.countdown.addCountdown("end", waitTime - this.waveManager.gameSecond, () => {
               this.finishedMap();
             });
           }
@@ -754,7 +731,7 @@ class Enemy{
             const growup2 = this.getTalent("growup2");
             countdown += growup1.interval + growup2.interval;
           }
-          this.addCountDown("end", countdown, () => {
+          this.countdown.addCountdown("end", countdown, () => {
             this.finishedMap();
           })
           break;
@@ -904,7 +881,6 @@ class Enemy{
       checkPointIndex: this.checkPointIndex,
       faceToward: this.faceToward,
       targetNode: this.targetNode,
-      countDowns: this.countDowns.map( countDown => {return {...countDown} }),
       isStarted: this.isStarted,
       currentSecond: this.currentSecond,
       isFinished: this.isFinished,
@@ -925,7 +901,7 @@ class Enemy{
       checkPointIndex, 
       faceToward,
       targetNode, 
-      countDowns,
+      // countDowns,
       isStarted, 
       isFinished, 
       animateState,
@@ -942,7 +918,6 @@ class Enemy{
     this.checkPointIndex = checkPointIndex;
     this.faceToward = faceToward;
     this.targetNode = targetNode;
-    this.countDowns = countDowns.map( countDown => {return {...countDown} });
     this.isStarted = isStarted;
     this.exit = exit;
     this.currentSecond = currentSecond;

@@ -24,16 +24,6 @@ class Action{
 
   public start(){
     this.isStarted = true;
-
-    switch (this.actionType) {
-      case "SPAWN":
-        this.enemy.start();
-        break;
-      case "ACTIVATE_PREDEFINED":
-        this.trap.show();
-        break;
-    }
-    
   } 
 
   public get(){

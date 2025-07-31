@@ -1,9 +1,7 @@
 import AliasHelper from "./AliasHelper";
 import Tile from "./Tile";
-import Trap from "./Trap";
-import TrapManager from "./TrapManager";
 
-class MapTiles{
+class TileManager{
   public tiles: Tile[][] = [];
   public flatTiles: Tile[] = [];
   public height: number;    //矩阵高度(y)
@@ -75,18 +73,6 @@ class MapTiles{
     return tile !== null && (tile.passableMask === "FLY_ONLY" || tile.passableMask === "ALL");
   }
 
-  bindTraps(trapManager: TrapManager){
-    trapManager.traps.forEach(trap => {
-      const tile = this.getTile(trap.position);
-      if(tile){
-        tile.addTrap(trap);
-
-      }else{
-        console.error(`${trap.key} 获取tile出错！`)
-      }
-    })
-  }
-
   initPreviewTextures(){
     this.tiles.flat().forEach(tile => {
       //生成预览texture
@@ -124,4 +110,4 @@ class MapTiles{
   }
 }
 
-export default MapTiles;
+export default TileManager;

@@ -1,4 +1,5 @@
 import GameManager from "./GameManager";
+import TileManager from "./TileManager";
 import Tile from "./Tile";
 import TokenCard from "./TokenCard";
 import Trap from "./Trap";
@@ -7,17 +8,21 @@ class TrapManager{
   trapDatas: trapData[];
   traps: Trap[] = [];
   gameManager: GameManager;
+  tileManager: TileManager;
 
   constructor(trapDatas: trapData[], gameManager: GameManager){
     this.gameManager = gameManager;
     this.trapDatas = trapDatas;
+    this.tileManager = gameManager.tileManager;
+
     trapDatas.forEach(trapData => {
-      if(!trapData.isTokenCard){
-        const trap = new Trap(trapData);
-        trap.gameManager = gameManager;
-        this.traps.push(trap);
+      if(!trapData.isTokenCard && !trapData.hidden){
+        const trap = this.createTrap(trapData);
+        this.bindTile(trap);
       }
     });
+
+    
   }
 
   initMeshs(){
@@ -30,6 +35,13 @@ class TrapManager{
     return this.traps.find(trap => key === trap.alias);
   }
 
+  bindTile(trap: Trap){
+    if(!trap.tile){
+      const tile = this.tileManager.getTile(trap.position);
+      tile.addTrap(trap);
+    }
+  }
+
   getSelected(): Trap{
     return this.traps.find(trap => trap.isSelected);
   }
@@ -38,14 +50,19 @@ class TrapManager{
     this.traps.forEach(trap => trap.isSelected = false);
   }
 
-  createTrap(tokenCard: TokenCard, tile: Tile): Trap{
-    const trap = new Trap(tokenCard.trapData);
-    trap.iconUrl = tokenCard.url;
+  createTrap(trapData: trapData): Trap{
+    const trap = new Trap(trapData);
     trap.gameManager = this.gameManager;
-    tile.addTrap(trap);
-    trap.initMesh();
     this.traps.push(trap);
 
+    return trap;
+  }
+
+  createTokenTrap(tokenCard: TokenCard, tile: Tile): Trap{
+    const trap = this.createTrap(tokenCard.trapData);
+    tile.addTrap(trap);
+    trap.iconUrl = tokenCard.url;
+    trap.initMesh();
     return trap;
   }
 

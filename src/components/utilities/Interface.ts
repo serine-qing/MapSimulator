@@ -129,9 +129,6 @@ declare global {
   }
 
   interface Array<T> {
-    /**
-     * 自定义方法：删除数组中某个元素
-     */
     remove(T);
     equal(T);
   }
@@ -155,5 +152,3 @@ Array.prototype.equal = function(array: any[]): boolean{
 
   return true;
 }
-
-export {Stage, Vec2, TileData, ActionData, EnemyData, CheckPoint, EnemyRoute, PathNode, PathMap, EnemyRef}

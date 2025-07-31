@@ -1,6 +1,6 @@
 import {RowColToVec2} from "@/components/utilities/utilities"
 import RunesHelper from "./RunesHelper";
-import MapTiles from "./MapTiles"
+import TileManager from "./TileManager"
 import {getEnemiesData} from "@/api/stages"
 import AliasHelper from "./AliasHelper";
 import spine from "@/assets/script/spine-threejs.js";
@@ -23,8 +23,8 @@ class MapModel{
   private sourceData: any;
   public runesHelper: RunesHelper;
 
-  public mapTiles: MapTiles; //地图tiles
-  public tokenCards: TokenCard[];
+  public tileManager: TileManager; //地图tiles
+  public tokenCards: any[] = [];
   public trapDatas: trapData[] = [];
   public actionDatas: ActionData[][] = [];
   public enemyDatas: EnemyData[] = [];
@@ -41,8 +41,8 @@ class MapModel{
 
     this.getRunes();
 
-    this.mapTiles = new MapTiles(this.sourceData.mapData);
-    this.runesHelper.checkBannedTiles(this.mapTiles);
+    this.tileManager = new TileManager(this.sourceData.mapData);
+    this.runesHelper.checkBannedTiles(this.tileManager);
     
     //获取可使用的装置图标
     await this.getTokenCards();
@@ -87,7 +87,7 @@ class MapModel{
       }
     })
     
-    this.SPFA = new SPFA(this.mapTiles, this.enemyRoutes);
+    this.SPFA = new SPFA(this.tileManager, this.enemyRoutes);
 
     this.sourceData = null;
 
@@ -98,16 +98,22 @@ class MapModel{
     const tokenCards = this.sourceData.predefines?.tokenCards;
     if(tokenCards){
 
-      this.tokenCards = tokenCards.map(tokenCard => {
-        return new TokenCard({
-          initialCnt: tokenCard.initialCnt,
-          hidden: tokenCard.hidden,
-          alias: tokenCard.alias,
-          characterKey: tokenCard.inst.characterKey,
-          level: tokenCard.inst.level,
-          mainSkillLvl: tokenCard.mainSkillLvl
-        })
+      tokenCards.forEach(tokenCard => {
+        //障碍物
+        if(tokenCard.inst.characterKey === "trap_001_crate"){
+          this.tokenCards.push({
+            initialCnt: tokenCard.initialCnt,
+            hidden: tokenCard.hidden,
+            alias: tokenCard.alias,
+            characterKey: tokenCard.inst.characterKey,
+            level: tokenCard.inst.level,
+            mainSkillLvl: tokenCard.mainSkillLvl,
+            cost: 5,
+            respawntime: 5
+          });
+        }
       })
+      
       const keys = this.tokenCards.map(tokenCard => tokenCard.characterKey);
       const res = await getTokenCards(keys);
       

@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import MapTiles from "./MapTiles"
+import TileManager from "./TileManager"
 
 import Tile from "./Tile"
 import WaveManager from "../enemy/WaveManager"
@@ -17,7 +17,7 @@ class GameView{
   public tileObjects = new THREE.Group();
   public trapObjects = new THREE.Group();
 
-  private mapTiles: MapTiles;
+  private tileManager: TileManager;
   private gameManager: GameManager;
   private trapManager: TrapManager;
   private waveManager: WaveManager;
@@ -25,7 +25,7 @@ class GameView{
   constructor(gameManager: GameManager){
     this.gameManager = gameManager;
     const { mapModel, waveManager, trapManager } = gameManager;
-    this.mapTiles = mapModel.mapTiles;
+    this.tileManager = mapModel.tileManager;
     this.waveManager = waveManager;
     this.trapManager = trapManager;
 
@@ -38,7 +38,7 @@ class GameView{
 
   //初始化地图tiles
   private initMap(){
-    this.mapTiles.tiles.flat().forEach((tile: Tile)=>{
+    this.tileManager.tiles.flat().forEach((tile: Tile)=>{
       tile.gameManager = this.gameManager;
       tile.initMeshs();
       this.tileObjects.add(tile.object);
@@ -46,10 +46,10 @@ class GameView{
     this.mapContainer.add(this.tileObjects);
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
-    this.mapContainer.position.x = - this.mapTiles.width / 2 * GameConfig.TILE_SIZE;
-    this.mapContainer.position.y = - this.mapTiles.height / 2 * GameConfig.TILE_SIZE + 7;
+    this.mapContainer.position.x = - this.tileManager.width / 2 * GameConfig.TILE_SIZE;
+    this.mapContainer.position.y = - this.tileManager.height / 2 * GameConfig.TILE_SIZE + 7;
 
-    this.mapTiles.initPreviewTextures();
+    this.tileManager.initPreviewTextures();
     gameCanvas.scene.add(this.mapContainer);
   }
 
@@ -74,6 +74,7 @@ class GameView{
   }
 
   public render(delta: number){
+    gameCanvas.stats?.begin();
     if(this.gameManager.isSimulate) return;
     
     gameCanvas.render();
@@ -86,17 +87,20 @@ class GameView{
     this.trapManager.traps.forEach(
       trap => trap.skeletonMesh?.update(delta)
     )
+
+    gameCanvas.stats?.end();
+
   }
 
   public destroy(){ 
   
     gameCanvas.scene.remove(this.mapContainer);
 
-    this.mapTiles.tiles.flat().forEach(tile => tile.destroy());
+    this.tileManager.tiles.flat().forEach(tile => tile.destroy());
     GC_Sweep();
     
     this.mapContainer = null;
-    this.mapTiles = null;
+    this.tileManager = null;
     this.waveManager = null;
   }
 }

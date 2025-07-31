@@ -95,12 +95,8 @@ let waveManager: WaveManager;
 let trapManager: TrapManager;
 let enemies: Enemy[];
 let scale: number;
-//FUNCTION                                           
-//FUNCTION                                           
-//FUNCTION  敌人label数据绑定                         
-//FUNCTION                                           
-//FUNCTION                                           
 
+//#region  敌人label数据绑定                         
 const updateLabelVisible = () => {
   enemies.forEach(enemy => {
     const label = enemyLabels.value[enemy.id];
@@ -146,9 +142,9 @@ const updateDatas = () => {
     label.currentCheckPoint = enemy.checkPointIndex;
 
     const unMoveable = enemy.unMoveable;
-    const countDown = enemy.getCountDown("checkPoint");
-    const endCountDown = enemy.getCountDown("end");
-    
+    const countDown = enemy.countdown.getCountdownTime("checkPoint");
+    const endCountDown = enemy.countdown.getCountdownTime("end");
+
     label.unMoveable = unMoveable;
     if(countDown > 0){
       label.countDown = Math.floor(countDown);
@@ -195,14 +191,11 @@ const changeGameManager = (_gameManager: GameManager) => {
     enemies = [];
     enemyLabels.value = [];
   }
-
 }
+//#endregion
 
-//FUNCTION                                           
-//FUNCTION                                           
-//FUNCTION  与弹出框的交互                            
-//FUNCTION                                           
-//FUNCTION                                           
+
+//#region  与弹出框的交互                            
 
 const {attackRangeCheckAll, countDownCheckAll} = defineProps(["attackRangeCheckAll", "countDownCheckAll"])
 
@@ -270,13 +263,10 @@ const showDetail = (enemyId: number) => {
   const find = enemies.find(enemy => enemy.id === enemyId);
   console.log(find);
 }
+//#endregion
 
-//FUNCTION                                           
-//FUNCTION                                           
-//FUNCTION  与地图装置的交互                          
-//FUNCTION                                           
-//FUNCTION                                           
 
+//#region  与地图装置的交互                          
 let activeTrap: Trap;
 const trapDialog = ref({
   left: 0,
@@ -313,6 +303,7 @@ const handleRemoveTrap = () => {
   gameManager.handleRemoveTrap(activeTrap);
 }
 
+//#endregion
 
 const update = () => {
   updateLabelVisible();

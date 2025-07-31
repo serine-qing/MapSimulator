@@ -1,14 +1,14 @@
-import MapTiles from "./MapTiles";
+import TileManager from "./TileManager";
 import {bresenhamLine} from "@/components/utilities/utilities"
 import * as THREE from "three"
 
 class SPFA{
   public pathMaps: PathMap[] = []; //寻路地图
-  public mapTiles: MapTiles; //地图tiles
+  public tileManager: TileManager; //地图tiles
   public enemyRoutes: EnemyRoute[] = [];
-  constructor(mapTiles: MapTiles, enemyRoutes: EnemyRoute[]){
+  constructor(tileManager: TileManager, enemyRoutes: EnemyRoute[]){
     
-    this.mapTiles = mapTiles;
+    this.tileManager = tileManager;
     this.enemyRoutes = enemyRoutes; 
     
   }
@@ -16,8 +16,8 @@ class SPFA{
   //生成寻路地图需要用到的拷贝对象
   private generateTileMapping(): PathNode[][]{
     const mapping = [];
-    const y = this.mapTiles.height;
-    const x = this.mapTiles.width;
+    const y = this.tileManager.height;
+    const x = this.tileManager.width;
 
     for(let i=0; i<y;i++){
       mapping[i] = [];
@@ -115,8 +115,8 @@ class SPFA{
 
         //扫描地板是可通行地板
         if(
-          motionMode === "WALK" && this.mapTiles.isTilePassable(_x,_y) || 
-          motionMode === "FLY" && this.mapTiles.isTileFlyable(_x,_y)
+          motionMode === "WALK" && this.tileManager.isTilePassable(_x,_y) || 
+          motionMode === "FLY" && this.tileManager.isTileFlyable(_x,_y)
         ){
 
           if(mapping[_y][_x] === null){
@@ -150,7 +150,7 @@ class SPFA{
 
   private getDistanceWeight(x: number, y: number): number{
     let distanceWeight: number;
-    const tile = this.mapTiles.getTile(x, y);
+    const tile = this.tileManager.getTile(x, y);
 
     switch (tile.tileKey) {
       case "tile_hole":
@@ -237,11 +237,11 @@ class SPFA{
         const y = p3[1];
 
         if(motionMode === "FLY"){
-          return !this.mapTiles.isTileFlyable(x, y);
+          return !this.tileManager.isTileFlyable(x, y);
         }
         else if(motionMode === "WALK"){
           const isBlockedOrHole = this.getDistanceWeight(x, y) >= 1000;
-          return !this.mapTiles.isTilePassable(x, y) || isBlockedOrHole;
+          return !this.tileManager.isTilePassable(x, y) || isBlockedOrHole;
         }
       })
       if(!blocked){
