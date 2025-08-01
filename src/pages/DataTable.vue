@@ -145,7 +145,15 @@
     }}</el-descriptions-item>
     <el-descriptions-item label="目标价值">{{ dialogData.lifePointReduce }}</el-descriptions-item>
     <el-descriptions-item label="地位">{{ levelType[dialogData.levelType] }}</el-descriptions-item>
-    <el-descriptions-item label="描述">{{ dialogData.description }}</el-descriptions-item>
+    <el-descriptions-item label="能力">
+      <p class="ability-line" v-for="(ability, index) in dialogData.abilityList">
+        <span class="pre" v-if="ability.textFormat === 'NORMAL'">·</span>
+        <span class="pre" v-else-if="ability.textFormat === 'SILENCE'">※</span>
+        <span :class="{ title : ability.textFormat === 'TITLE' }">
+          {{ ability.text.replace(/<\$[\s\S]*?\/?>|<\/>/g, '') }}
+        </span>
+      </p>
+    </el-descriptions-item>
   </el-descriptions>
 
   <el-descriptions
@@ -274,5 +282,18 @@ const showDetail = (data) => {
 
 .immune-tag{
   margin-right: 5px;
+}
+
+.ability-line{
+  display: flex;
+  .pre{
+    font-size: 16px;
+    font-weight: bolder;
+  }
+  .title{
+    font-weight: bolder;
+    font-size: 20px;
+    color: #d63131;
+  }
 }
 </style>

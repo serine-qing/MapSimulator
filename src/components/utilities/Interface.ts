@@ -56,6 +56,7 @@ declare global {
     idleAnimate: string,     //不动时的skel动画名
     lifePointReduce: number,   //目标生命
     immunes: string[],       //异常抗性
+    abilityList: any,        //能力描述
   }
 
   //敌人路径检查点
