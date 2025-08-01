@@ -389,7 +389,8 @@ class GameManager{
       trapState: this.trapManager.get(),
       tileState: this.tileManager.get(),
       eManagerState: this.waveManager.get(),
-      countdownState: this.countdownManager.get()
+      countdownState: this.countdownManager.get(),
+      tokenCardState: this.tokenCards.map(tc => tc.get())
     }
     return state;
   }
@@ -397,13 +398,15 @@ class GameManager{
   public set(state){
     this.trapManager.resetSelected();
 
-    const {gameSecond, isFinished, SPFAState, trapState, tileState, eManagerState, countdownState} = state;
+    const {gameSecond, isFinished, SPFAState, trapState, tileState, eManagerState, countdownState, tokenCardState} = state;
     
     this.gameSecond = gameSecond;
     this.trapManager.set(trapState);
     this.tileManager.set(tileState);
     this.SPFA.set(SPFAState);
-    
+    this.tokenCards.forEach((tc, index) => {
+      tc.set(tokenCardState[index]);
+    })
     if(this.gameView){
       const trapObjects = this.gameView.trapObjects;
       while (trapObjects.children.length > 0) {

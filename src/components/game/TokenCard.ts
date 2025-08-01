@@ -49,17 +49,33 @@ class TokenCard{
 
   //选择
   handleSelected(){
-    this.selected = !this.selected;
-    this.cardVue.selected = this.selected;
+    if(this.cnt > 0 ){
+      const respawnTime = this.countdown.getCountdownTime("respawn");
+      if(respawnTime === -1){
+        this.selected = !this.selected;
+        this.cardVue.selected = this.selected;
+      }
+    }
   }
 
   //部署
   handleDeploy(){
     this.selected = false;
     this.cardVue.selected = false;
-    this.countdown.addCountdown("respawn", this.respawntime, () => {
-      //todo
-    })  
+    this.cnt--;
+    if(this.cnt > 0){
+      this.countdown.addCountdown("respawn", this.respawntime)  
+    }
+  }
+
+  get(){
+    return {
+      cnt: this.cnt
+    }
+  }
+
+  set(state){
+    this.cnt = state.cnt;
   }
 }
 

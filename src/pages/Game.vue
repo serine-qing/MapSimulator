@@ -101,6 +101,7 @@ const restart = () => {
 
 onMounted(() => {
   setupCanvas(wrapperRef.value);
+
 })
 
 watch(pause, () => {
@@ -288,10 +289,20 @@ const handleEnemyDatas = (_enemyDatas) => {
 }
 //#endregion
 
+//绑定快捷键
+document.addEventListener("keydown", (event) => {
+  if(event.code === "Digit1"){ 
+    changeGameSpeed();
+  }else if(event.code === "Digit2"){
+    changePause();
+  }
+})
+
 const attackRangeCheckAll = ref(false);
 const attackRangeIndet = ref(false);
 const countDownCheckAll = ref(true);
 const countDownIndet = ref(false);
+
 
 defineExpose({
   newGame
