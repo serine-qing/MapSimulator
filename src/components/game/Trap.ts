@@ -49,22 +49,17 @@ class Trap{
     this.skeletonData = this.data.skeletonData;
     this.textureMat = this.data.textureMat;
 
-    const height = this.tile.height? this.tile.height : 0;
-
     if( this.data.mesh){
 
       this.initFbx();
-      
-      //调整高台装置的高度
-      this.object.position.z = this.tile.getPixelHeight();    
 
     }else if(this.skeletonData){
 
       this.initSpine();
-      this.object.position.z = this.gameManager.getPixelSize(height + 1/14) ;
+
     }else if(this.textureMat){
       this.initTexture()
-      this.object.position.z = this.gameManager.getPixelSize(height) + 0.15;
+
     }
 
     const coordinate = this.gameManager.getCoordinate(this.position);
@@ -76,6 +71,23 @@ class Trap{
     this.object.userData.trap = this;
     //初始化技能（目前就是影响一些外观）
     this.initSkill();
+  }
+
+  initHeight(){
+    const height = this.tile.height? this.tile.height : 0;
+    if( this.data.mesh){
+      
+      //调整高台装置的高度
+      this.object.position.z = this.tile.getPixelHeight();    
+
+    }else if(this.skeletonData){
+
+      this.object.position.z = this.gameManager.getPixelSize(height + 1/14) ;
+
+    }else if(this.textureMat){
+      this.object.position.z = this.gameManager.getPixelSize(height) + 0.15;
+
+    }
   }
 
   initFbx(){

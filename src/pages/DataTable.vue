@@ -12,11 +12,11 @@
           <img :src="scope.row.icon" :alt="scope.row.name">
         </div>
       </template>
-    </el-table-column>
+    </el-table-column> 
     <el-table-column align="center" prop="name" label="名称"  width="100"/>
     <el-table-column sortable align="center" prop="count" label="数量" width="60" />
     
-    <el-table-column sortable align="center" prop="levelType" label="地位">
+    <el-table-column sortable align="center" prop="levelType" label="地位" width="60">
       <template #default="scope">
         <div>
           {{ levelType[scope.row.levelType] }}
@@ -28,6 +28,7 @@
 
     <el-table-column 
       v-for="(name, key) in attrColumns"
+      width="80"
       align="center" 
       :label="name"
       sortable
@@ -66,6 +67,7 @@
       label="攻击间隔"
       sortable
       :sort-method="attackSpeedSort"
+      width="80"
     >
 
       <template #default="scope">
@@ -91,13 +93,85 @@
       </template>
     </el-table-column>
 
-    <el-table-column sortable align="center" prop="lifePointReduce" label="目标价值"/>
+    <el-table-column sortable align="center" prop="lifePointReduce" label="目标价值" width="70"/>
+    <el-table-column sortable align="center" prop="lifePointReduce" label="查看详情">
+      <template #default="scope">
+        <span 
+          class="detail-link"
+          @click="showDetail(scope.row)"
+        >详情</span>
+      </template>
+    </el-table-column>
   </el-table>
 </div>
+
+<el-dialog v-model="dialogVisible" width="800">
+  <template #header="{ close, titleId, titleClass }">
+    <div>
+      <span>{{dialogData.name}}</span >
+      <span class="title-level">{{ "级别" + dialogData.level}}</span>
+    </div>
+  </template>
+  <el-descriptions
+    direction="vertical"
+    border
+  >
+    <el-descriptions-item
+      :rowspan="2"
+      :width="140"
+      label="头像"
+      align="center"
+    >
+      <el-image
+        style="width: 100px; height: 100px"
+        :src="dialogData.icon"
+      />
+    </el-descriptions-item>
+    <el-descriptions-item label="生命值">{{ dialogData.attributes.maxHp }}</el-descriptions-item>
+    <el-descriptions-item label="攻击力">{{ dialogData.attributes.atk }}</el-descriptions-item>
+    <el-descriptions-item label="防御力">{{ dialogData.attributes.def }}</el-descriptions-item>
+    <el-descriptions-item label="法术抗性">{{ dialogData.attributes.magicResistance }}</el-descriptions-item>
+  </el-descriptions>
+
+  <el-descriptions
+    direction="vertical"
+    border
+  >
+    <el-descriptions-item label="重量等级">{{ dialogData.attributes.massLevel }}</el-descriptions-item>
+    <el-descriptions-item label="移动速度">{{ dialogData.attributes.moveSpeed }}</el-descriptions-item>
+    <el-descriptions-item label="攻击范围">{{ dialogData.attributes.rangeRadius }}</el-descriptions-item>
+    <el-descriptions-item label="攻击间隔">{{ 
+      accuracyNum(dialogData.attributes['baseAttackTime'] * 100 /  dialogData.attributes['attackSpeed'])  
+    }}</el-descriptions-item>
+    <el-descriptions-item label="目标价值">{{ dialogData.lifePointReduce }}</el-descriptions-item>
+    <el-descriptions-item label="地位">{{ levelType[dialogData.levelType] }}</el-descriptions-item>
+    <el-descriptions-item label="描述">{{ dialogData.description }}</el-descriptions-item>
+  </el-descriptions>
+
+  <el-descriptions
+    direction="vertical"
+    border
+  >
+    <el-descriptions-item label="异常抗性">
+      <div v-if="dialogData.immunes.length > 0">
+        <el-tag 
+          v-for="(immune, index) in dialogData.immunes"
+          :key="index"
+          size="large"
+          class="immune-tag"
+        >{{immuneTable[immune]}}</el-tag>
+      </div>
+
+      <div v-else>无</div>
+    </el-descriptions-item>
+  </el-descriptions>
+</el-dialog>
 </template>
 
 <script setup lang="ts">
+import { immuneTable } from '@/components/utilities/Interface';
 import { accuracyNum } from '@/components/utilities/utilities';
+import { ref } from 'vue';
 
 const levelType = {
   NORMAL: "普通",
@@ -156,6 +230,14 @@ const attackSpeedSort = (a, b) => {
   const speedB = b.attributes.baseAttackTime / b.attributes.attackSpeed;
   return speedA - speedB;
 }
+
+const dialogVisible = ref(false);
+const dialogData = ref<EnemyData>(({} as EnemyData));
+//展示详情
+const showDetail = (data) => {
+  dialogVisible.value = true;
+  dialogData.value = data;
+}
 </script>
 
 <style lang="scss" scoped>
@@ -175,5 +257,22 @@ const attackSpeedSort = (a, b) => {
     color: red;
     cursor: pointer;
   }
+}
+
+.detail-link{
+  color: #409eff; 
+  cursor: pointer;
+  &:hover{
+    color: rgb(121, 187, 255);
+  }
+}
+
+.title-level{
+  margin-left: 6px;
+  color: #0048ef;
+}
+
+.immune-tag{
+  margin-right: 5px;
 }
 </style>

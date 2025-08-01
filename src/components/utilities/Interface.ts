@@ -54,6 +54,8 @@ declare global {
     skelWidth: number,
     moveAnimate: string,    //移动时的skel动画名
     idleAnimate: string,     //不动时的skel动画名
+    lifePointReduce: number,   //目标生命
+    immunes: string[],       //异常抗性
   }
 
   //敌人路径检查点
@@ -152,3 +154,18 @@ Array.prototype.equal = function(array: any[]): boolean{
 
   return true;
 }
+
+
+const immuneTable = {
+  stunImmune:"晕眩抗性",	
+  silenceImmune:"沉默抗性",
+  sleepImmune:"沉睡抗性",
+  frozenImmune:"冻结抗性",
+  levitateImmune:"浮空抗性	",
+  disarmedCombatImmune:"战栗抗性	",
+  fearedImmune:"恐惧抗性	",
+  palsyImmune:"麻痹抗性",
+  attractImmune:"诱导抗性"
+}
+
+export { immuneTable }

@@ -46,10 +46,9 @@ class WaveManager{
         switch (action.actionType) {
           
           case "SPAWN":
-            const enemy = new Enemy(actionData, this.gameManager);
+            const enemy = new Enemy(actionData, this.gameManager, this);
             //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
             enemy.id = enemyId++;
-            enemy.waveManager = this;
             action.enemy = enemy;
             enemy.action = action;
             this.enemies.push(enemy);

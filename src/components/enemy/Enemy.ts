@@ -91,8 +91,9 @@ class Enemy{
   public gameManager: GameManager;
   public waveManager: WaveManager;
   
-  constructor(action: ActionData, gameManager: GameManager){
+  constructor(action: ActionData, gameManager: GameManager, waveManager: WaveManager){
     this.gameManager = gameManager;
+    this.waveManager = waveManager;
     this.tileManager = gameManager.tileManager;
     this.SPFA = gameManager.SPFA;
 
@@ -601,7 +602,7 @@ class Enemy{
   //视图相关的更新
   public render(delta: number){
 
-    if(!this.gameManager.isSimulate){
+    if(!this.gameManager.isSimulate && this.skeletonMesh){
       this.handleGradient();
 
       //锁定spine朝向向相机，防止梯形畸变
@@ -791,6 +792,7 @@ class Enemy{
 
   private handleGradient(){
     const color = this.skeletonMesh.skeleton.color;
+
     if(this.exit){
       //退出渐变处理
       if(this.exitCountDown > 0){

@@ -16,6 +16,7 @@ import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
 import TokenCard from "./TokenCard";
+import { immuneTable } from "../utilities/Interface";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -587,6 +588,15 @@ class MapModel{
     enemyDatas.forEach(enemyData => {
       enemyData.talents = parseTalent(enemyData.talentBlackboard);
       enemyData.skills = parseSkill(enemyData.skills); 
+
+      enemyData.immunes = [];
+      //异常抗性
+      Object.keys(immuneTable).forEach(immuneKey => {
+        if(enemyData.attributes[immuneKey]){
+          enemyData.immunes.push(immuneKey);
+        }
+      })
+      
       this.runesHelper.checkEnemyAttribute(enemyData);
     })
 

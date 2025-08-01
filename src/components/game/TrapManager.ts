@@ -39,6 +39,7 @@ class TrapManager{
     if(!trap.tile){
       const tile = this.tileManager.getTile(trap.position);
       tile.addTrap(trap);
+      trap.initHeight();
     }
   }
 
