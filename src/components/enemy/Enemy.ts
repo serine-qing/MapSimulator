@@ -770,12 +770,12 @@ class Enemy{
 
   public show(){
     this.exit = false;
-    if(!this.gameManager.isSimulate) this.spine.visible = true;
+    if(!this.gameManager.isSimulate && this.spine) this.spine.visible = true;
   }
 
   public hide(){  
     this.exit = true;
-    if(!this.gameManager.isSimulate) this.spine.visible = false;
+    if(!this.gameManager.isSimulate && this.spine) this.spine.visible = false;
   }
 
   //渐变退出
@@ -825,7 +825,7 @@ class Enemy{
     if(this.velocity.x < -0.001) this.faceToward = -1;
     
 
-    if(!this.gameManager.isSimulate) this.skeletonMesh.scale.x = this.faceToward;
+    if(!this.gameManager.isSimulate && this.spine) this.skeletonMesh.scale.x = this.faceToward;
   }
 
   private idle(){
@@ -859,7 +859,7 @@ class Enemy{
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
     
-    if(animate){
+    if(animate && this.skeletonMesh){
       this.skeletonMesh.state.setAnimation(
         0, 
         animate, 
