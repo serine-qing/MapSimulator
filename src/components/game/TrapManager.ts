@@ -16,9 +16,16 @@ class TrapManager{
     this.tileManager = gameManager.tileManager;
 
     trapDatas.forEach(trapData => {
-      if(!trapData.isTokenCard && !trapData.hidden){
+      if(!trapData.isTokenCard){
         const trap = this.createTrap(trapData);
-        this.bindTile(trap);
+
+        if(!trap.tile){
+          const tile = this.tileManager.getTile(trap.position);
+          trap.bindTile(tile);
+          if(!trapData.hidden){
+            tile.bindTrap(trap);
+          }
+        }
       }
     });
 
@@ -33,14 +40,6 @@ class TrapManager{
 
   getTrap(key): Trap{
     return this.traps.find(trap => key === trap.alias);
-  }
-
-  bindTile(trap: Trap){
-    if(!trap.tile){
-      const tile = this.tileManager.getTile(trap.position);
-      tile.addTrap(trap);
-      trap.initHeight();
-    }
   }
 
   getSelected(): Trap{
@@ -61,7 +60,8 @@ class TrapManager{
 
   createTokenTrap(tokenCard: TokenCard, tile: Tile): Trap{
     const trap = this.createTrap(tokenCard.trapData);
-    tile.addTrap(trap);
+    trap.bindTile(tile);
+    tile.bindTrap(trap);
     trap.iconUrl = tokenCard.url;
     trap.initMesh();
     return trap;

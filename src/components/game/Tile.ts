@@ -297,10 +297,8 @@ class Tile{
     return this.gameManager.getPixelSize(this.height)
   }
 
-  public addTrap(trap: Trap){
+  public bindTrap(trap: Trap){
     this.trap = trap;
-    trap.tile = this;
-    trap.position = this.position;
   }
 
   public removeTrap(){

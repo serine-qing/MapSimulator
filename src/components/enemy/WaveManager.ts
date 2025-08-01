@@ -55,7 +55,7 @@ class WaveManager{
             break;
           
           case "ACTIVATE_PREDEFINED":
-            action.trap = this.trapManager.createTrap(actionData.trapData);
+            action.trap = this.trapManager.traps.find(trap => trap.alias === actionData.trapData.alias);
             break;
         }
       })
@@ -170,7 +170,7 @@ class WaveManager{
             action.enemy.start();
             break;
           case "ACTIVATE_PREDEFINED":
-            this.trapManager.bindTile(action.trap);
+            action.trap.tile.bindTrap(action.trap);
             action.trap.show();
             break;
         }

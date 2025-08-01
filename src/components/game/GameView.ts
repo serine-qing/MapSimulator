@@ -57,6 +57,7 @@ class GameView{
     this.trapManager.initMeshs();
     this.trapManager.traps.forEach(trap => {
       this.trapObjects.add(trap.object);
+      trap.initHeight();
     })
     this.mapContainer.add(this.trapObjects);
   } 

@@ -40,7 +40,6 @@ class Trap{
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;
     this.visible = !data.hidden;
-
   }
 
   initMesh(){
@@ -69,6 +68,7 @@ class Trap{
     this.object.visible = this.visible;
     
     this.object.userData.trap = this;
+    this.initHeight();
     //初始化技能（目前就是影响一些外观）
     this.initSkill();
   }
@@ -153,6 +153,11 @@ class Trap{
     
     }
 
+  }
+
+  bindTile(tile: Tile){
+    this.tile = tile;
+    this.position = tile.position;
   }
 
   public show(){
