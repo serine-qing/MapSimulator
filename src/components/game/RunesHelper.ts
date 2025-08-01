@@ -28,7 +28,7 @@ class RunesHelper{
         case "level_hidden_group_disable":
           this.enemyGroupDisable = [
             ...blackboard.map( i => i.valueStr),
-            ...this.enemyGroupEnable
+            ...this.enemyGroupDisable
           ]
           break; 
 
@@ -152,7 +152,6 @@ class RunesHelper{
         }
       })
     })
-
   }
 
   public checkEnemyGroup(group: string): boolean{

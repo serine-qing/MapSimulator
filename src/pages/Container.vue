@@ -161,7 +161,6 @@ const updateDatas = () => {
 }
 
 
-
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
     enemyLabels.value.push({

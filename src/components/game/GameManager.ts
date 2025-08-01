@@ -486,9 +486,13 @@ class GameManager{
     const currentState = this.get();
     const startTime = Math.ceil(this.gameSecond);
     const simData = this.startSimulate(startTime);
+    // console.log(this.simulateData)
+    const prevStatesByTime =  this.simulateData.byTime.slice(0, startTime);
 
-    const prevStates =  this.simulateData.byTime.slice(0, startTime);
-    this.simulateData.byTime = [...prevStates, ...simData.byTime];
+    this.simulateData.byTime = [...prevStatesByTime, ...simData.byTime];
+
+    const replaceLength = simData.byAction.length;
+    this.simulateData.byAction.splice(-replaceLength, replaceLength, ...simData.byAction);
 
     const findIndex = this.simulateData.byFrame.findIndex(simData => {
       return simData.gameSecond >= currentState.gameSecond;
@@ -504,6 +508,10 @@ class GameManager{
     this.set(currentState);
 
     this.isDynamicsSimulate = true;
+
+    this.waveManager.actions.flat().forEach((action, index) => {
+      action.actionTime = parseFloat(this.simulateData.byAction[index]?.gameSecond?.toFixed(1));
+    })
   }
 
   public destroy(){

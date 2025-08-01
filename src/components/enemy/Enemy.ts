@@ -475,65 +475,74 @@ class Enemy{
         // //光标距离最近地块中心的长度
         // const distanceToCenter = currentPosition.distanceTo(new THREE.Vector2(roundX, roundY))
         // console.log(distanceToCenter)
-        
-        //移动单位向量
-        const unitVector = new THREE.Vector2(
-          targetPos.x - currentPosition.x,
-          targetPos.y - currentPosition.y
-        ).normalize();
 
+        //让敌人移动更平滑
+        for(let i = 0; i < this.gameManager.gameSpeed; i++){
 
-        //todo 惯性系统bug多 暂时不用
+          const actualSpeed = this.actualSpeed();
+          //移动单位向量
+          const unitVector = new THREE.Vector2(
+            targetPos.x - currentPosition.x,
+            targetPos.y - currentPosition.y
+          ).normalize();
 
-        // //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
-        // //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
-        // //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
-        // // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
-        // // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
-        // const isWalk = this.motion === "WALK";
-        // const steeringFactor = isWalk? 8 : 20;
-        // const maxSteeringForce = isWalk? 10 : 100;
-        // //加速度
-        // this.acceleration = unitVector
-        //   .clone()
-        //   .multiplyScalar(this.actualSpeed())
-        //   .addScaledVector(this.inertialVector, -1)
-        //   .multiplyScalar(steeringFactor * this.gameManager.gameSpeed)
-        //   .clampLength(0, maxSteeringForce * this.gameManager.gameSpeed)
+          //todo 惯性需要计算避障力，避障力计算太过于变态，先搁置
+          // //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
+          // //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
+          // //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
+          // // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
+          // // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
+          // const isWalk = this.motion === "WALK";
+          // const steeringFactor = isWalk? 8 : 20;
+          // const maxSteeringForce = isWalk? 10 : 100;
+          // //加速度
+          // this.acceleration = unitVector
+          //   .clone()
+          //   .multiplyScalar(actualSpeed)
+          //   .addScaledVector(this.inertialVector, -1)
+          //   .multiplyScalar(steeringFactor)
+          //   .clampLength(0, maxSteeringForce)
 
-        // //再根据加速度计算本帧的移动速度向量：
-        // //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
-        // //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
-        // //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
-        // const moveSpeedVec = this.acceleration
-        //   .clone()
-        //   .multiplyScalar(1 / GameConfig.FPS )
-        //   .add(this.inertialVector)
-        //   .clampLength(0, this.actualSpeed())
-        
-        // this.inertialVector = moveSpeedVec;
-        
-        //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
-        const velocity = unitVector
-          .multiplyScalar( this.actualSpeed() * delta);
+          // //再根据加速度计算本帧的移动速度向量：
+          // //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
+          // //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
+          // //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
+          // const moveSpeedVec = this.acceleration
+          //   .clone()
+          //   .multiplyScalar(1 / GameConfig.FPS )
+          //   .add(this.inertialVector)
+          //   .clampLength(0, actualSpeed)
+          
+          // this.inertialVector = moveSpeedVec;
+          
+          // //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
+          // const velocity = moveSpeedVec
+          //   .clone()
+          //   .multiplyScalar( 1 / GameConfig.FPS);
 
-        this.setVelocity(velocity);
-        this.move();
+          const velocity = unitVector.multiplyScalar(actualSpeed * 1 / GameConfig.FPS);
+          this.setVelocity(velocity);
+          this.move();
+
+          const distanceToTarget = currentPosition.distanceTo(targetPos);
+
+          //第二种切换targetNode的逻辑，进入目标点中心一定范围
+          if( distanceToTarget <= arrivalDistance ){
+            this.targetNode = this.targetNode?.nextNode;
+
+            //完成最后一个寻路点
+            if( this.targetNode === null || this.targetNode === undefined ){
+              this.nextCheckPoint();
+            }
+            
+            break;
+          }
+        }
+
         this.changeFaceToward();
         this.updateShadowHeight();
 
-        const distanceToTarget = currentPosition.distanceTo(targetPos);
 
-
-        //第二种切换targetNode的逻辑，进入目标点中心一定范围
-        if( distanceToTarget <= arrivalDistance ){
-          this.targetNode = this.targetNode?.nextNode;
-
-          //完成最后一个寻路点
-          if( this.targetNode === null || this.targetNode === undefined ){
-            this.nextCheckPoint();
-          }
-        }
 
         // console.log(actionEnemy.position)
         break;
