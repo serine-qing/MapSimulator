@@ -17,12 +17,25 @@ const parseTalent = (talentBlackboard: any[]):{ [key: string]: any }  => {
     
   })
 
-  return Object.keys(talents).map(key => {
+  const res = Object.keys(talents).map(key => {
     return {
       key,
       value: talents[key]
     }
   });
+  
+  res.forEach(talent => {
+    switch (talent.key) {
+      case "rush":
+        const value = talent.value;
+        if(value.trigger_cnt){
+          //兼容两种不同的名字
+          value.trig_cnt = value.trigger_cnt;
+        }
+        break;
+    }
+  })
+  return res;
 }
 
 const parseSkill = (skills) => {

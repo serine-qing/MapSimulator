@@ -87,7 +87,6 @@ declare global {
     routeIndex: number,
     startTime: number,        //该波次开始时间
     fragmentTime: number,     //分支(FRAGMENT)开始时间
-    waveTime: number,         //波次(WAVE)开始时间
     hiddenGroup: string,      //敌人属于哪个分组
     dontBlockWave: boolean,   //是否不影响下一波次刷新
     blockFragment: boolean,   

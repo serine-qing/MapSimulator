@@ -39,6 +39,17 @@ const AliasMap = {
   actionType:{
     0: "SPAWN",
     6: "ACTIVATE_PREDEFINED"
+  },
+  levelType:{
+    0: "NORMAL",
+    1: "ELITE",
+    2: "BOSS",
+  },
+  applyWay:{
+    0: "NONE",
+    1: "MELEE",
+    2: "RANGED",
+    3: "ALL",
   }
 }
 const AliasHelper = (key, type) => {

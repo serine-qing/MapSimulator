@@ -146,13 +146,19 @@
     <el-descriptions-item label="目标价值">{{ dialogData.lifePointReduce }}</el-descriptions-item>
     <el-descriptions-item label="地位">{{ levelType[dialogData.levelType] }}</el-descriptions-item>
     <el-descriptions-item label="能力">
-      <p class="ability-line" v-for="(ability, index) in dialogData.abilityList">
-        <span class="pre" v-if="ability.textFormat === 'NORMAL'">·</span>
-        <span class="pre" v-else-if="ability.textFormat === 'SILENCE'">※</span>
-        <span :class="{ title : ability.textFormat === 'TITLE' }">
-          {{ ability.text.replace(/<\$[\s\S]*?\/?>|<\/>/g, '') }}
-        </span>
-      </p>
+      <div v-if="dialogData.abilityList?.length > 0">
+        <p class="ability-line" v-for="(ability, index) in dialogData.abilityList">
+          <span class="pre" v-if="ability.textFormat === 'NORMAL'">·</span>
+          <span class="pre" v-else-if="ability.textFormat === 'SILENCE'">※</span>
+          <span :class="{ title : ability.textFormat === 'TITLE' }">
+            {{ ability.text.replace(/<\$[\s\S]*?\/?>|<\/>/g, '') }}
+          </span>
+        </p>
+      </div>
+      <div v-else>
+        无
+      </div>
+      
     </el-descriptions-item>
   </el-descriptions>
 
@@ -177,6 +183,7 @@
 </template>
 
 <script setup lang="ts">
+import eventBus from '@/components/utilities/EventBus';
 import { immuneTable } from '@/components/utilities/Interface';
 import { accuracyNum } from '@/components/utilities/utilities';
 import { ref } from 'vue';
@@ -241,11 +248,16 @@ const attackSpeedSort = (a, b) => {
 
 const dialogVisible = ref(false);
 const dialogData = ref<EnemyData>(({} as EnemyData));
+
 //展示详情
 const showDetail = (data) => {
   dialogVisible.value = true;
   dialogData.value = data;
 }
+
+eventBus.on("showDetail", (data) => {
+  showDetail(data);
+})
 </script>
 
 <style lang="scss" scoped>

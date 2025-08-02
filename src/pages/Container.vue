@@ -46,7 +46,7 @@
       <div>
         <span class="enemy-key">{{ label.key }}</span>
         <span class="enemy-key">{{ `当前检查点：${label.currentCheckPoint + 1} / ${label.checkPointLength}` }}</span>
-        <el-button @click="showDetail(label.id)">查看数据</el-button>
+        <el-button @click="showDetail(label.id)">查看详情</el-button>
         <el-checkbox 
           :disabled="!enemies[index].isRanged()" 
           v-model="label.options.attackRangeVisible" label="显示攻击范围" 
@@ -86,6 +86,7 @@ import GameConfig from '@/components/utilities/GameConfig';
 import exitImg from '@/assets/images/escape.png'
 import Trap from '@/components/game/Trap';
 import TrapManager from '@/components/game/TrapManager';
+import eventBus from '@/components/utilities/EventBus';
 
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
 const enemyLabels = ref([]);
@@ -260,7 +261,8 @@ const handleCountDownCheck = () => {
 
 const showDetail = (enemyId: number) => {
   const find = enemies.find(enemy => enemy.id === enemyId);
-  console.log(find);
+  eventBus.emit("showDetail", find.enemyData);
+  console.log(find)
 }
 //#endregion
 

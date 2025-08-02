@@ -27,7 +27,6 @@ class Enemy{
 
   startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
-  waveTime: number;      //大波次开始时间
 
   applyWay: string;      //是否是远程 RANGED:远程 ALL:全部
   moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
@@ -100,7 +99,6 @@ class Enemy{
     this.enemyData = action.enemyData;
     this.startTime = action.startTime;
     this.fragmentTime = action.fragmentTime;
-    this.waveTime = action.waveTime;
 
     const {
       key, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
@@ -564,7 +562,7 @@ class Enemy{
             countDownTime = time - this.waveManager.waveSecond + this.fragmentTime;
             break;
           case "WAIT_CURRENT_WAVE_TIME": 
-            countDownTime = time - this.waveManager.waveSecond + this.waveTime;
+            countDownTime = time - this.waveManager.waveSecond;
             break;
         }
         

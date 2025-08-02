@@ -55,7 +55,10 @@ class WaveManager{
             break;
           
           case "ACTIVATE_PREDEFINED":
-            action.trap = this.trapManager.traps.find(trap => trap.alias === actionData.trapData.alias);
+            const trapData = actionData.trapData;
+            if(trapData){
+              action.trap = this.trapManager.traps.find(trap => trap.alias === trapData.alias);
+            }
             break;
         }
       })
@@ -170,8 +173,11 @@ class WaveManager{
             action.enemy.start();
             break;
           case "ACTIVATE_PREDEFINED":
-            action.trap.tile.bindTrap(action.trap);
-            action.trap.show();
+            if(action.trap){
+              action.trap.tile.bindTrap(action.trap);
+              action.trap.show();
+            }
+
             break;
         }
         action.start();

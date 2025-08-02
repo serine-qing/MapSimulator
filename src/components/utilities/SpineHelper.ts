@@ -2,7 +2,14 @@ import Enemy from "../enemy/Enemy";
 import Trap from "../game/Trap";
 
 const specialIdle = {
-  enemy_1536_ncrmcr: "Idle_b"       //boss领袖
+  enemy_1536_ncrmcr: "Idle_b",       //boss领袖
+  enemy_10116_ymgtop: "Skill_Loop",  //水遁忍者
+  enemy_10116_ymgtop_2: "Skill_Loop",  //水遁忍者
+}
+
+const specialMove = {
+  enemy_10116_ymgtop: "Skill_Loop",
+  enemy_10116_ymgtop_2: "Skill_Loop",
 }
 
 export const getAnimation = (key: string, animations: any, state: string) => {
@@ -24,6 +31,9 @@ export const getAnimation = (key: string, animations: any, state: string) => {
 }
 
 const getMoveAnimation = (key:string, animations: any) => {
+  const special = specialMove[key];
+  if(special) return special;
+
   const moveStates = ["Run_Loop","Move_Loop","Run","Move"];
 
   for(let i=0; i<moveStates.length; i++){

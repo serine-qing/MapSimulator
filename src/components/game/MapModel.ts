@@ -27,10 +27,14 @@ class MapModel{
   public tileManager: TileManager; //地图tiles
   public tokenCards: any[] = [];
   public trapDatas: trapData[] = [];
-  public actionDatas: ActionData[][] = [];
-  public enemyDatas: EnemyData[] = [];
-  public enemyRoutes: EnemyRoute[] = [];
 
+  public actionDatas: ActionData[][] = [];
+  public brancheDatas = [];
+
+  public enemyDatas: EnemyData[] = [];
+
+  public routes: EnemyRoute[] = [];
+  public extraRoutes: EnemyRoute[] = [];
 
   public SPFA: SPFA;  //寻路对象
   constructor(data: any){
@@ -51,10 +55,13 @@ class MapModel{
     await this.getTrapDatas();
     
     //解析敌人路径
-    this.parseEnemyRoutes();
+    this.routes = this.parseEnemyRoutes(this.sourceData.routes);
+    this.extraRoutes = this.parseEnemyRoutes(this.sourceData.extraRoutes);
 
     //解析波次数据
-    this.parseActions(this.sourceData.waves)
+    this.parseWaves(this.sourceData.waves);
+    this.parseBranch(this.sourceData.branches);
+
     await this.initEnemyData(this.sourceData.enemyDbRefs);
     //获取哪些敌人的spine是可用的
     const spineUrls = await this.getEnemySpineUrls();
@@ -64,7 +71,7 @@ class MapModel{
     //绑定route和enemydata 或trap
     this.actionDatas.flat().forEach( wave => {
       //route可能为null
-      const findRoute: EnemyRoute = this.enemyRoutes.find( route => route.index === wave.routeIndex );
+      const findRoute: EnemyRoute = this.routes.find( route => route.index === wave.routeIndex );
       let findEnemyData: EnemyData;
       let findTrap: trapData;
       switch (wave.actionType) {
@@ -88,7 +95,7 @@ class MapModel{
       }
     })
     
-    this.SPFA = new SPFA(this.tileManager, this.enemyRoutes);
+    this.SPFA = new SPFA(this.tileManager, this.routes);
 
     this.sourceData = null;
 
@@ -334,83 +341,104 @@ class MapModel{
 
 
   //解析波次
-  private parseActions(waves: any[]){ 
+  private parseWaves(waves: any[]){ 
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
     waves.forEach((wave: any) => {
 
       //有时候会有空的wave 例如圣徒boss战
       if(wave.fragments.length === 0) return;
 
-      let currentTime = 0;
+      let currentTime = wave.preDelay;
       
-      const innerWaves: ActionData[] = [];
-      currentTime += wave.preDelay;
-      let waveTime = currentTime;
-      wave.fragments.forEach((fragment: any) => {
-        
-        currentTime += fragment.preDelay;
-        let fragmentTime = currentTime;
-        let lastTime = currentTime;//action波次的最后一只怪出现时间
-
-        fragment.actions.forEach((action: any) =>{
-          for(let i=0; i<action.count; i++){
-            //检查敌人分组
-            const check = this.runesHelper.checkEnemyGroup(action.hiddenGroup);
-
-            if(!check) return;
-
-            let startTime = currentTime + action.preDelay + action.interval*i;
-            lastTime = Math.max(lastTime, startTime);
-            action.actionType = AliasHelper(action.actionType, "actionType");
-
-            //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
-            //虽然不会加入波次里面，但是该算的preDelay还是要算的
-            let actionKey;
-            switch (action.actionType) {
-              case "SPAWN":
-                actionKey = this.runesHelper.checkEnemyChange( action.key );
-                break;
-              case "ACTIVATE_PREDEFINED": //激活装置
-                actionKey = action.key;
-                break;
-            }
-            
-            if(actionKey){
-              let eAction: ActionData = {
-                actionType: action.actionType,
-                key: actionKey,
-                routeIndex : action.routeIndex,
-                startTime,
-                fragmentTime,
-                waveTime,
-                dontBlockWave: action.dontBlockWave,
-                blockFragment: action.blockFragment,
-                hiddenGroup: action.hiddenGroup
-              }
-
-              innerWaves.push(eAction);
-            }
-          }
-        })
-
-        currentTime = lastTime;
-
-      })
+      const innerWaves = this.parseActions(wave.fragments, currentTime)
       
-      innerWaves.sort((a, b)=>{
-        return a.startTime - b.startTime;
-      })
-
       this.actionDatas.push(innerWaves);
+
+      //todo postDelay实际上没应用
       currentTime += wave.postDelay;
     });
     
   }
 
+  //额外出怪
+  private parseBranch(branches){
+    Object.keys(branches).forEach(key => {
+      const fragments = branches[key].phases;
+      const innerWaves = this.parseActions(fragments, 0);
+      this.brancheDatas.push({
+        key, actions: innerWaves
+      })
+    })
+
+    console.log(this.brancheDatas)
+  }
+
+  private parseActions(fragments: any, currentTime: number): ActionData[]{
+
+    const innerWaves: ActionData[] = [];
+
+    fragments.forEach((fragment: any) => { 
+        
+      currentTime += fragment.preDelay;
+      let fragmentTime = currentTime;
+      let lastTime = currentTime;//action波次的最后一只怪出现时间
+
+      fragment.actions.forEach((action: any) =>{
+        for(let i=0; i<action.count; i++){
+          //检查敌人分组
+          const check = this.runesHelper.checkEnemyGroup(action.hiddenGroup);
+
+          if(!check) return;
+
+          let startTime = currentTime + action.preDelay + action.interval*i;
+          lastTime = Math.max(lastTime, startTime);
+          action.actionType = AliasHelper(action.actionType, "actionType");
+
+          //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
+          //虽然不会加入波次里面，但是该算的preDelay还是要算的
+          let actionKey;
+          switch (action.actionType) {
+            case "SPAWN":
+              actionKey = this.runesHelper.checkEnemyChange( action.key );
+              break;
+            case "ACTIVATE_PREDEFINED": //激活装置
+              actionKey = action.key;
+              break;
+          }
+          
+          if(actionKey){
+            let eAction: ActionData = {
+              actionType: action.actionType,
+              key: actionKey,
+              routeIndex : action.routeIndex,
+              startTime,
+              fragmentTime,
+              dontBlockWave: action.dontBlockWave,
+              blockFragment: action.blockFragment,
+              hiddenGroup: action.hiddenGroup
+            }
+
+            innerWaves.push(eAction);
+          }
+        }
+      })
+
+      currentTime = lastTime;
+
+    })
+
+    innerWaves.sort((a, b)=>{
+      return a.startTime - b.startTime;
+    })
+
+    return innerWaves;
+  }
+
   //解析敌人路径
-  private parseEnemyRoutes(){
+  private parseEnemyRoutes(source){
     let routeIndex = 0;
-    this.sourceData.routes.forEach( (sourceRoute: any) =>{
+    const routes = [];
+    source.forEach( (sourceRoute: any) =>{
 
       //某些敌人(例如提示)没有路径route，所以会出现null，做下兼容处理
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
@@ -448,11 +476,12 @@ class MapModel{
           randomizeReachOffset: false
         })
 
-        this.enemyRoutes.push(route);
+        routes.push(route);
       }
       routeIndex ++;
     })
 
+    return routes;
   }
 
   //覆盖数据
@@ -586,6 +615,9 @@ class MapModel{
     })
 
     enemyDatas.forEach(enemyData => {
+      enemyData.motion = AliasHelper(enemyData.motion, "motionMode");
+      enemyData.levelType = AliasHelper(enemyData.levelType, "levelType");
+      enemyData.applyWay = AliasHelper(enemyData.applyWay, "applyWay");
       enemyData.talents = parseTalent(enemyData.talentBlackboard);
       enemyData.skills = parseSkill(enemyData.skills); 
 
