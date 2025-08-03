@@ -155,9 +155,6 @@ const specialTrap = {
   },
   trap_247_crfilm:{
     direction: Direction.RIGHT,
-  },
-  trap_252_pckstp:{
-    direction: Direction.RIGHT,
   }
 }
 

@@ -33,8 +33,8 @@ const AliasMap = {
   predefDirection:{
     0: "UP",
     1: "RIGHT",
-    2: "LEFT",
-    3: "DOWN"
+    2: "DOWN",
+    3: "LEFT",
   },
   actionType:{
     0: "SPAWN",
