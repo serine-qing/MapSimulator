@@ -744,9 +744,16 @@ class Enemy{
           break;
 
         case "endhole":  //土遁忍者
-
+          this.idleAnimate = "Invisible";
+          this.changeAnimation();
           this.countdown.addCountdown("checkPoint", duration, () => {
-
+            this.animationStateTransition({
+              moveAnimate: "Move",
+              idleAnimate: "Idle",
+              transAnimation: "Start",
+              animationScale: 0.4,
+              isWaitTrans: true
+            })
           });
           break;
       }
