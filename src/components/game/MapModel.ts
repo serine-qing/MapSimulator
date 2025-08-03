@@ -66,7 +66,7 @@ class MapModel{
     //获取哪些敌人的spine是可用的
     const spineUrls = await this.getEnemySpineUrls();
     //获取敌人spine
-    this.getEnemySpines(spineUrls);
+    await this.getEnemySpines(spineUrls);
 
     //绑定route和enemydata 或trap
     this.actionDatas.flat().forEach( wave => {
@@ -362,15 +362,18 @@ class MapModel{
 
   //额外出怪
   private parseBranch(branches){
-    Object.keys(branches).forEach(key => {
-      const fragments = branches[key].phases;
-      const innerWaves = this.parseActions(fragments, 0);
-      this.brancheDatas.push({
-        key, actions: innerWaves
+    if(branches){
+      Object.keys(branches).forEach(key => {
+        const fragments = branches[key].phases;
+        const innerWaves = this.parseActions(fragments, 0);
+        this.brancheDatas.push({
+          key, actions: innerWaves
+        })
       })
-    })
 
-    console.log(this.brancheDatas)
+      console.log(this.brancheDatas)
+    }
+
   }
 
   private parseActions(fragments: any, currentTime: number): ActionData[]{
@@ -618,8 +621,8 @@ class MapModel{
       enemyData.motion = AliasHelper(enemyData.motion, "motionMode");
       enemyData.levelType = AliasHelper(enemyData.levelType, "levelType");
       enemyData.applyWay = AliasHelper(enemyData.applyWay, "applyWay");
-      enemyData.talents = parseTalent(enemyData.talentBlackboard);
-      enemyData.skills = parseSkill(enemyData.skills); 
+      enemyData.talents = parseTalent(enemyData);
+      enemyData.skills = parseSkill(enemyData); 
 
       enemyData.immunes = [];
       //异常抗性
@@ -688,6 +691,12 @@ class MapModel{
         data.skeletonData = skeletonData;
         data.moveAnimate = moveAnimate;
         data.idleAnimate = idleAnimate;
+        data.animations = data.skeletonData.animations.map( animation => {
+          return {
+            duration: animation.duration,
+            name: animation.name
+          }
+        });
       }
     })
 

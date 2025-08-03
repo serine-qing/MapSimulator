@@ -12,6 +12,24 @@ import Action from "../game/Action";
 import { gameCanvas } from "../game/GameCanvas";
 import { Countdown } from "../game/CountdownManager";
 
+interface AnimateTransition{
+  //transAnimation: 是否有过渡动画
+  //animationScale: 过渡动画执行速率
+  //isWaitTrans: 进行过渡动画时是否停止移动
+  //callback：结束过渡动画后的回调函数
+  moveAnimate: string, 
+  idleAnimate: string, 
+  transAnimation: string, 
+  animationScale?: number,
+  isWaitTrans?: boolean, 
+  callback?: Function
+}
+
+interface Watcher{
+  function: Function,
+  name: string
+}
+
 class Enemy{
   enemyData: EnemyData;  //原始data数据
   tileManager: TileManager;
@@ -57,6 +75,7 @@ class Enemy{
   currentSecond: number = 0;      //敌人的当前时间
 
   public countdown: Countdown;  //倒计时
+  public watchers: Watcher[] = [];
 
   isStarted: boolean = false;
   isFinished: boolean = false;
@@ -85,6 +104,9 @@ class Enemy{
   private animateState: string = "idle";  //当前处于什么动画状态 idle/move
   private moveAnimate: string;   //skel 移动的动画名
   private idleAnimate: string;   //skel 站立的动画名
+  private animations: any[];
+  private animationScale: number = 1.0;  //动画执行速率
+
   public simulateTrackTime: number;      //动画执行time
 
   public gameManager: GameManager;
@@ -102,7 +124,7 @@ class Enemy{
 
     const {
       key, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
-      attributes, notCountInTotal, talents, skills, attrChanges
+      attributes, notCountInTotal, talents, skills, attrChanges, animations, moveAnimate, idleAnimate
     } = this.enemyData;
 
     this.key = key;
@@ -145,12 +167,15 @@ class Enemy{
     const countdownManager = this.gameManager.countdownManager;
     this.countdown = countdownManager.getCountdownInst();
 
-    this.handleTalents();
-    this.handleSkills();
+    this.animations = animations;
+    this.moveAnimate = moveAnimate;
+    this.idleAnimate = idleAnimate;
   }
 
   public start(){
     this.reset();
+    this.handleTalents();
+    this.handleSkills();
     this.isStarted = true;
     this.show();
   }
@@ -216,13 +241,10 @@ class Enemy{
   //初始化spine小人
   public initSpine(){
     //显示相关的数据为异步加载数据，会晚于构造函数调用
-    const {skeletonData, moveAnimate, idleAnimate} = this.enemyData;
+    const {skeletonData} = this.enemyData;
     if(!skeletonData) return;
 
     this.skeletonData = skeletonData;
-
-    this.moveAnimate = moveAnimate;
-    this.idleAnimate = idleAnimate;
 
     this.spine = new THREE.Object3D();
 
@@ -397,7 +419,13 @@ class Enemy{
 
   public update(delta: number){
     if(this.isFinished) return;
+    this.updateAction(delta);
 
+    const watcherFuncs = this.watchers.map(watcher => watcher.function);
+    watcherFuncs.forEach(watcherFunc => watcherFunc());
+  }
+
+  private updateAction(delta: number) {
     //模拟动画时间
     this.currentSecond += delta;
     this.handleRush();
@@ -411,6 +439,9 @@ class Enemy{
     
     switch (type) {
       case "MOVE":  
+
+        if(this.countdown.getCountdownTime("waitAnimationTrans") > 0) return;
+
         //部分0移速的怪也有移动指令，例如GO活动的装备
         if(this.unMoveable || this.attributes.moveSpeed === 0){
           return;
@@ -593,8 +624,7 @@ class Enemy{
     }
 
     this.velocity.x = 0;
-    this.velocity.y = 0;
-
+    this.velocity.y = 0; 
   }
 
   //视图相关的更新
@@ -616,9 +646,12 @@ class Enemy{
   }
 
   private deltaTrackTime(delta: number): number{
-    return  delta * 
-      Math.min(this.speedRate(), 4) * 
-      getAnimationSpeed(this.key);
+    const animationSpeed = getAnimationSpeed(this.key);
+    const speedRate = animationSpeed === 1? 1 : this.speedRate();
+    //只有更改了animationSpeed的敌人 需要通过当前移速修改动画速率
+    return  delta * this.animationScale *
+      Math.min(speedRate, 4) * 
+      animationSpeed;
   }
 
   //视图层面的设置
@@ -678,13 +711,7 @@ class Enemy{
         case "revive":   //萨卡兹魔剑士、恶咒者
         case "sleepwalking": //钵海收割者
           if( unmove_duration ){
-            this.checkpoints.unshift({
-              position: null,
-              reachOffset: null,
-              randomizeReachOffset: null,
-              time: unmove_duration,
-              type: "WAIT_FOR_SECONDS"
-            })
+            this.countdown.addCountdown("checkPoint", unmove_duration);
           }
           break;
         case "wait": //念旧
@@ -715,17 +742,26 @@ class Enemy{
           }
             
           break;
+
+        case "endhole":  //土遁忍者
+
+          this.countdown.addCountdown("checkPoint", duration, () => {
+
+          });
+          break;
       }
     })
   }
 
   private handleSkills(){
     // if(this.skills.length > 0) console.log(this.skills)
-
+    
     this.skills?.forEach(skill => {
+      let countdown =  skill.initCooldown;
+
       switch (skill.prefabKey) {
         case "doom":
-          let countdown =  skill.initCooldown;
+          
           if(this.key === "enemy_1521_dslily"){
             //昆图斯需要加上前两个阶段的时间
             const growup1 = this.getTalent("growup1");
@@ -736,7 +772,41 @@ class Enemy{
             this.finishedMap();
           })
           break;
+        case "switchmodetrigger":
+          if(this.key === "enemy_10116_ymgtop" || this.key === "enemy_10116_ymgtop_2"){ //水遁忍者
 
+            this.countdown.addCountdown("switchmodetrigger", countdown, () => {
+              this.animationStateTransition({
+                moveAnimate: "Skill_Loop",
+                idleAnimate: "Skill_Loop",
+                transAnimation: "Skill_Begin",
+                isWaitTrans: true
+              })
+            })
+          }
+
+          break;
+
+        case "takeoff":
+          //风遁忍者
+          if(this.key === "enemy_10117_ymggld" || this.key === "enemy_10117_ymggld_2"){
+            this.addWatcher({
+              name: "takeoff",
+              function: () => {
+                if(this.speedRate() >= 7){
+                  this.animationStateTransition({
+                    moveAnimate: "Fly_Move",
+                    idleAnimate: "Fly_Idle",
+                    transAnimation: "Fly_Begin",
+                    animationScale: 0.35,
+                    isWaitTrans: true
+                  });
+                  this.removeWatcher("takeoff");
+                }
+              }
+            });
+          }
+          break;
       }
     });
   }
@@ -749,6 +819,17 @@ class Enemy{
   private getSkill(key: string){
     const find = this.skills.find(skill => skill.prefabKey === key);
     return find? find : null;
+  }
+
+  private addWatcher(watcher: Watcher){
+    this.watchers.push(watcher);
+  }
+
+  private removeWatcher(name: string){
+    const index = this.watchers.findIndex(watcher => watcher.name === name);
+    if(index > -1){
+      this.watchers.splice(index, 1);
+    }
   }
 
   private handleRush(){
@@ -850,23 +931,61 @@ class Enemy{
     
   }
 
+  //动画状态机发生转换
+  private animationStateTransition(transition: AnimateTransition){
+
+    //transAnimation: 是否有过渡动画
+    //isWaitTrans: 进行过渡动画时是否停止移动
+    //callback：结束过渡动画后的回调函数
+    const { moveAnimate, idleAnimate, transAnimation, animationScale, isWaitTrans, callback } = transition;
+    const apply = () => {
+      this.moveAnimate = moveAnimate;
+      this.idleAnimate = idleAnimate;
+      this.animationScale = 1;
+      this.changeAnimation();
+      if( callback ) callback();
+    }
+
+    if(transAnimation){
+      
+      const animationFind = this.animations.find( animation => animation.name === transAnimation);
+      if(animationFind){
+        if(animationScale) this.animationScale = animationScale;
+        this.moveAnimate = transAnimation;
+        this.idleAnimate = transAnimation;
+        this.countdown.addCountdown( 
+          isWaitTrans ? "waitAnimationTrans" : "animationTrans",
+          animationFind.duration / this.animationScale, 
+          apply
+        );
+        this.changeAnimation();
+      }else{
+        apply();
+      }
+      
+    }else{
+      apply();
+    }
+  }
+
   //更改动画
   private changeAnimation(){
     this.simulateTrackTime = 0;
     if(this.gameManager.isSimulate) return;
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
+    const isLoop = this.countdown.getCountdownTime("waitAnimationTrans") === -1 &&
+      this.countdown.getCountdownTime("animationTrans") === -1;
     
     if(animate && this.skeletonMesh){
       this.skeletonMesh.state.setAnimation(
         0, 
         animate, 
-        true
+        isLoop
       );
     }else{
       console.error(`${this.key}动画名获取失败！`)
     }
-
 
   }
 
@@ -886,11 +1005,15 @@ class Enemy{
       isStarted: this.isStarted,
       currentSecond: this.currentSecond,
       isFinished: this.isFinished,
+      idleAnimate: this.idleAnimate,
+      moveAnimate: this.moveAnimate,
       animateState: this.animateState,
+      animationScale: this.animationScale,
       shadowHeight: this.shadowHeight,
       exit: this.exit,
       simulateTrackTime: this.simulateTrackTime,
-      motion: this.motion
+      motion: this.motion,
+      watchers: [...this.watchers]
     }
 
     return state;
@@ -902,16 +1025,19 @@ class Enemy{
       inertialVector,
       checkPointIndex, 
       faceToward,
-      targetNode, 
-      // countDowns,
+      targetNode,
       isStarted, 
       isFinished, 
       animateState,
+      idleAnimate,
+      moveAnimate,
+      animationScale,
       shadowHeight,
       exit,
       currentSecond,
       simulateTrackTime,
-      motion
+      motion,
+      watchers
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -925,10 +1051,14 @@ class Enemy{
     this.currentSecond = currentSecond;
     this.isFinished = isFinished;
     this.shadowHeight = shadowHeight;
+    this.idleAnimate = idleAnimate;
+    this.moveAnimate = moveAnimate;
     this.animateState = animateState;
+    this.animationScale = animationScale;
     this.simulateTrackTime = simulateTrackTime;
     this.motion = motion;
-    
+    this.watchers = [...watchers];
+
     if(this.spine){
       //恢复当前动画状态
       if(animateState){

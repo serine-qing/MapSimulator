@@ -1,4 +1,5 @@
-const parseTalent = (talentBlackboard: any[]):{ [key: string]: any }  => {
+const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
+  const talentBlackboard = enemyData.talentBlackboard;
   if(!talentBlackboard) return null;
   
   const talents: { [key: string]: any } = {};
@@ -32,15 +33,21 @@ const parseTalent = (talentBlackboard: any[]):{ [key: string]: any }  => {
           //兼容两种不同的名字
           value.trig_cnt = value.trigger_cnt;
         }
+
+        if(enemyData.key === "enemy_10117_ymggld" || enemyData.key === "enemy_10117_ymggld_2"){ 
+          //风遁忍者天赋倍率不对 需要额外处理
+          value.move_speed = 0.15;
+          value.trig_cnt = 43;
+        }
         break;
     }
   })
   return res;
 }
 
-const parseSkill = (skills) => {
+const parseSkill = (enemyData: EnemyData) => {
   const res = [];
-  
+  const skills = enemyData.skills;
   skills?.forEach(skill => {
     const skillClone = {...skill};
     skillClone.prefabKey = skillClone.prefabKey.toLowerCase();

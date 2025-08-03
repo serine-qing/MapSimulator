@@ -468,6 +468,7 @@ class GameManager{
       }
       this.gameLoop();
     }
+
     this.pause = cachePause;
     this.maxSecond = simData.byTime.length - 1 + (startTime? startTime : 0);
 

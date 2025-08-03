@@ -96,7 +96,7 @@ const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
   const tileHeight = 1 / height;
 
   const x = (index % width) * tileWidth;
-  const y = Math.floor(index / width) * tileHeight;
+  const y = (height -1 - Math.floor(index / width)) * tileHeight;
   const clone = texture.clone();
   //不设置needsUpdate 就会变成黑块
   clone.needsUpdate = true;
@@ -110,9 +110,10 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   const {texture1} = textures;
   texture1.encoding = THREE.sRGBEncoding;
   const keyArr = [
-    "tile_bigforce","tile_corrosion","tile_defup","tile_gazebo","tile_grass",
-    "tile_telout","tile_smog","tile_healing","tile_infection","tile_bigforce2",
-    "tile_flystart","tile_banned","tile_floor","tile_volcano","tile_telin"
+    null, "tile_banned", "tile_banned2", "tile_bigforce", "tile_bigforce2",
+    "tile_bnspck_road", "tile_corrosion", "tile_defup", "tile_floor", "tile_flystart",
+    "tile_gazebo", "tile_grass", "tile_healing", "tile_infection", "tile_smog",
+    "tile_telin", "tile_telout", "tile_volcano"
   ]
 
   keyArr.forEach( (key, index) => {

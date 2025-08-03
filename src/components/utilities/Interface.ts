@@ -57,6 +57,7 @@ declare global {
     lifePointReduce: number,   //目标生命
     immunes: string[],       //异常抗性
     abilityList: any,        //能力描述
+    animations: any[],        //动画状态
   }
 
   //敌人路径检查点

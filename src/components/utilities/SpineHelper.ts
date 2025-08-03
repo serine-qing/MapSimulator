@@ -3,13 +3,10 @@ import Trap from "../game/Trap";
 
 const specialIdle = {
   enemy_1536_ncrmcr: "Idle_b",       //boss领袖
-  enemy_10116_ymgtop: "Skill_Loop",  //水遁忍者
-  enemy_10116_ymgtop_2: "Skill_Loop",  //水遁忍者
 }
 
 const specialMove = {
-  enemy_10116_ymgtop: "Skill_Loop",
-  enemy_10116_ymgtop_2: "Skill_Loop",
+
 }
 
 export const getAnimation = (key: string, animations: any, state: string) => {
@@ -39,11 +36,19 @@ const getMoveAnimation = (key:string, animations: any) => {
   for(let i=0; i<moveStates.length; i++){
     const stateName = moveStates[i];
     const find = animations.find( (animation: any ) => {
-      return animation.name.includes(stateName);
+      return animation.name === stateName;
     })
       
     if(find){
       return find.name;
+    }
+
+    const fuzzyFind = animations.find( (animation: any ) => {
+      return animation.name.includes(stateName);
+    })
+
+    if(fuzzyFind){
+      return fuzzyFind.name;
     }
   }
 
@@ -60,11 +65,19 @@ const getIdleAnimation = (key:string, animations: any) => {
   for(let i=0; i<idleStates.length; i++){
     const stateName = idleStates[i];
     const find = animations.find( (animation: any ) => {
-      return animation.name.includes(stateName);
+      return animation.name === stateName;
     })
 
     if(find){
       return find.name;
+    }
+
+    const fuzzyFind = animations.find( (animation: any ) => {
+      return animation.name.includes(stateName);
+    })
+
+    if(fuzzyFind){
+      return fuzzyFind.name;
     }
   }
 
@@ -78,11 +91,19 @@ const getTrapIdleAnimation = (key:string, animations: any) => {
   for(let i=0; i<idleStates.length; i++){
     const stateName = idleStates[i];
     const find = animations.find( (animation: any ) => {
-      return animation.name.includes(stateName);
+      return animation.name === stateName;
     })
 
     if(find){
       return find.name;
+    }
+
+    const fuzzyFind = animations.find( (animation: any ) => {
+      return animation.name.includes(stateName);
+    })
+
+    if(fuzzyFind){
+      return fuzzyFind.name;
     }
   }
 
