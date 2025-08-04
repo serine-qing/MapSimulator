@@ -133,7 +133,7 @@ const newGame = async (map) => {
   
   tokenCards.value = gameManager.tokenCards;
   containerRef.value.changeGameManager(gameManager);
-  tokenCardsRef.value.changeGameManager(gameManager);
+  tokenCardsRef.value?.changeGameManager(gameManager);
 }
 //#endregion
 
@@ -370,7 +370,10 @@ defineExpose({
           @restart = "restart"
         ></GameOverMask>
       </div>
-      <div class="game-tools">
+      <div 
+        class="game-tools"
+        v-if="tokenCards.length > 0"
+      >
         <TokenCards
           ref = "tokenCardsRef"
           :tokenCards = "tokenCards"

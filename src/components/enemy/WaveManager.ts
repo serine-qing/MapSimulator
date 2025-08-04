@@ -13,14 +13,20 @@ class WaveManager{
   public mapModel: MapModel;
 
   public actions: Action[][] = [];  
+  public extraActions: any[] = [];  
+
   public enemies: Enemy[] = []; //敌人对象数组
-  public enemiesInMap: number[] = []; //需要在地图上渲染的enemy
+  public enemyCount: number = 0;
+  public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemy
 
   private waveIndex: number = 0;
   public actionIndex: number = -1;  //当前波次的actionIndex
   public gameSecond: number = 0; //当前游戏时间
   public waveSecond: number = 0;     //当前波次时间
   public allWaveFinished: boolean = false;  //全部波次已经结束
+
+  public actionId: number = 0;
+  public enemyId: number = 0;
   
   constructor(gameManager: GameManager,){
     this.gameManager = gameManager;
@@ -30,68 +36,74 @@ class WaveManager{
     //通过actionData生成action对象 并且和enemy trap绑定
     this.mapModel.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
     this.initActions();
-    
-  }
-
-  public initActions(){
-    let enemyId = 0;
-    let actionId = 0;
-    this.mapModel.actionDatas.forEach(actionDatas => {
-      const inner: Action[] = [];
-      actionDatas.forEach(actionData => {
-        const action = new Action(actionData);
-        action.id = actionId++;
-        inner.push(action);
-        
-        switch (action.actionType) {
-          
-          case "SPAWN":
-            const enemy = new Enemy(actionData, this.gameManager, this);
-            //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
-            enemy.id = enemyId++;
-            action.enemy = enemy;
-            enemy.action = action;
-            this.enemies.push(enemy);
-            break;
-          
-          case "ACTIVATE_PREDEFINED":
-            const trapData = actionData.trapData;
-            if(trapData){
-              action.trap = this.trapManager.traps.find(trap => trap.alias === trapData.alias);
-            }
-            break;
-        }
-      })
-
-      this.actions.push(inner);
-    })
+    this.initExtraActions();
 
     if(!this.gameManager.isSimulate){
       eventBus.emit("actions_init", this.actions);
     }
   }
 
+  public initActions(){
+
+    this.mapModel.actionDatas.forEach(datas => {
+      this.actions.push(this.createActions(datas));
+    })
+
+  }
+
+
+  public initExtraActions(){
+    this.trapManager.traps.forEach(trap => {
+      const extraWave = trap.data.extraWave;
+      if(extraWave){
+        trap.extraWave = this.createActions(trap.data.extraWave);
+      }
+    });
+
+  }
+
+  public createActions(actionDatas: ActionData[]){
+
+    const actions: Action[] = [];
+
+    actionDatas.forEach(actionData => {
+      const action = new Action(actionData);
+      action.id = this.actionId++;
+      actions.push(action);
+      
+      switch (action.actionType) {
+        
+        case "SPAWN":
+          const enemy = new Enemy(actionData, this.gameManager, this);
+          enemy.id = this.enemyId++;
+          //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
+          action.enemy = enemy;
+          action.waveManager = this;
+
+          enemy.action = action;
+          this.enemies.push(enemy);
+          break;
+        
+        case "ACTIVATE_PREDEFINED":
+          const trapData = actionData.trapData;
+          if(trapData){
+            action.trap = this.trapManager.traps.find(trap => trap.alias === trapData.alias);
+          }
+          break;
+      }
+    })
+  
+    return actions;
+  }
 
   private removeEnemies(){
-    const enemiesInMap = this.getEnemiesInMap();
-    for(let i = enemiesInMap.length - 1; i >= 0; i--){
-      const enemy = enemiesInMap[i];
+    for(let i = this.enemiesInMap.length - 1; i >= 0; i--){
+      const enemy = this.enemiesInMap[i];
       if(enemy.isFinished){
         this.enemiesInMap.splice(i, 1);
       }
     }
 
-  }
-
-  public getEnemiesInMap(): Enemy[]{
-    const enemies = [];
-
-    for(let i = 0; i< this.enemiesInMap.length; i++){
-      const id = this.enemiesInMap[i];
-      enemies.push(this.enemies[id]);
-    }
-
-    return enemies;
   }
 
   public currentActions(): Action[]{
@@ -161,16 +173,24 @@ class WaveManager{
     }
   }
 
-  private handleAction(){
-    const currentActions = this.actions[this.waveIndex];
-    for (let i=0; i<currentActions.length; i++){ 
+  public addExtraActions(actions: Action[]){
+    this.extraActions.push({
+      waveSecond: 0,
+      actions
+    })
+  }
 
-      const action: Action = currentActions[i];
+  public handleAction(actions: Action[], waveSecond: number, callback?){
+    
+    for (let i=0; i<actions.length; i++){ 
+
+      const action: Action = actions[i];
       
-      if(!action.isStarted && action.startTime <= this.waveSecond){
+      if(!action.isStarted && action.startTime <= waveSecond){
         switch (action.actionType) {
           case "SPAWN":
             action.enemy.start();
+            this.enemiesInMap.push(action.enemy);
             break;
           case "ACTIVATE_PREDEFINED":
             if(action.trap){
@@ -182,27 +202,39 @@ class WaveManager{
         }
         action.start();
         
-        if(action.enemy){
-          this.enemiesInMap.push(action.enemy.id);
-        }
-
-        this.actionIndex ++;
-        eventBus.emit("action_index_change", this.actionIndex, this.waveIndex)
+        if(callback) callback();
       }
     }
 
   }
-
 
   public update(delta: number){
     if(this.allWaveFinished) return;
     this.gameSecond = this.gameManager.gameSecond;
     this.waveSecond += delta;
 
-    this.handleAction();
+    const currentActions = this.actions[this.waveIndex];
+
+    this.handleAction(currentActions, this.waveSecond, () => {
+      //添加成功后的回调
+      this.actionIndex ++;
+      eventBus.emit("action_index_change", this.actionIndex, this.waveIndex)
+    });
+
+    for(let i = 0; i < this.extraActions.length; i++){
+      const extra = this.extraActions[i];
+      extra.waveSecond += delta;
+      this.handleAction(extra.actions, extra.waveSecond);
+
+      const allStarted = extra.actions.every(action => action.isStarted);
+      if(allStarted){
+        this.extraActions.splice(i, 1);
+        i--;
+      }
+    }
 
     if(this.allWaveFinished) return;
-    this.getEnemiesInMap().forEach(
+    this.enemiesInMap.forEach(
       enemy => {
           enemy.update(delta)
       }
@@ -217,6 +249,9 @@ class WaveManager{
     const actionStates = [];
     const enemyStates = [];
 
+    const extraActionStates = this.extraActions.map(extra => {
+      return {...extra};
+    });
 
     this.actions.forEach(innerActions => {
       innerActions.forEach(action => {
@@ -228,8 +263,6 @@ class WaveManager{
       enemyStates.push(enemy.get());
     })
 
-
-
     let state = {
       actionStates,
       enemyStates,
@@ -238,7 +271,8 @@ class WaveManager{
       waveIndex: this.waveIndex,
       gameSecond: this.gameSecond,
       waveSecond: this.waveSecond,
-      allWaveFinished: this.allWaveFinished
+      allWaveFinished: this.allWaveFinished,
+      extraActionStates
     }
 
     return state;
@@ -254,6 +288,7 @@ class WaveManager{
       allWaveFinished, 
       actionStates,
       enemyStates,
+      extraActionStates
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
@@ -277,6 +312,10 @@ class WaveManager{
 
       enemy.set(eState);
     }
+
+    this.extraActions = extraActionStates.map(extra => {
+      return {...extra};
+    })
     
     eventBus.emit("action_index_change", actionIndex, waveIndex);
   }

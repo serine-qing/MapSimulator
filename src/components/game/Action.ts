@@ -1,4 +1,5 @@
 import Enemy from "../enemy/Enemy"
+import WaveManager from "../enemy/WaveManager"
 import Trap from "./Trap"
 
 class Action{
@@ -9,6 +10,7 @@ class Action{
   blockFragment: boolean   
   enemy: Enemy            //绑定的敌人
   trap: Trap              //绑定的装置
+  waveManager: WaveManager;
 
   isStarted: boolean = false    //是否开始
   actionTime: number;           //实际执行时间
@@ -23,7 +25,9 @@ class Action{
 
 
   public start(){
+
     this.isStarted = true;
+    
   } 
 
   public get(){

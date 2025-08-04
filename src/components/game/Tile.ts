@@ -299,10 +299,10 @@ class Tile{
 
   public bindTrap(trap: Trap){
     this.trap = trap;
+    this.trap.start();
   }
 
   public removeTrap(){
-    this.trap.destroy();
     this.trap = null;
   }
 

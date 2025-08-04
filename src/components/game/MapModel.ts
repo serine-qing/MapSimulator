@@ -29,7 +29,7 @@ class MapModel{
   public trapDatas: trapData[] = [];
 
   public actionDatas: ActionData[][] = [];
-  public brancheDatas = [];
+  public extraActionDatas: ActionData[][] = [];
 
   public enemyDatas: EnemyData[] = [];
 
@@ -60,7 +60,6 @@ class MapModel{
 
     //解析波次数据
     this.parseWaves(this.sourceData.waves);
-    this.parseBranch(this.sourceData.branches);
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
     //获取哪些敌人的spine是可用的
@@ -68,34 +67,60 @@ class MapModel{
     //获取敌人spine
     await this.getEnemySpines(spineUrls);
 
+    this.parseExtraWave();
+
     //绑定route和enemydata 或trap
-    this.actionDatas.flat().forEach( wave => {
+    this.actionDatas.flat().forEach( action => {
       //route可能为null
-      const findRoute: EnemyRoute = this.routes.find( route => route.index === wave.routeIndex );
+      const findRoute: EnemyRoute = this.routes.find( route => route.index === action.routeIndex );
       let findEnemyData: EnemyData;
       let findTrap: trapData;
-      switch (wave.actionType) {
+      switch (action.actionType) {
         case "SPAWN":
-          findEnemyData = this.enemyDatas.find(e => e.waveKey === wave.key);
+          findEnemyData = this.enemyDatas.find(e => e.waveKey === action.key);
           break;
       
         case "ACTIVATE_PREDEFINED":
-          findTrap = this.trapDatas.find(data => data.alias === wave.key);
+          findTrap = this.trapDatas.find(data => data.alias === action.key);
           break;
       }
       
 
-      if(findRoute) wave.route = findRoute;
+      if(findRoute) action.route = findRoute;
       if(findEnemyData) {
-        wave.enemyData = findEnemyData
+        action.enemyData = findEnemyData
         findEnemyData.count ++;
       }else if(findTrap){
         //wave中的trap是指名道姓的实体
-        wave.trapData = findTrap;
+        action.trapData = findTrap;
       }
     })
-    
-    this.SPFA = new SPFA(this.tileManager, this.routes);
+
+    this.extraActionDatas.flat().forEach(action => {
+      const findRoute: EnemyRoute = this.extraRoutes.find( route => route.index === action.routeIndex );
+      let findEnemyData: EnemyData;
+      let findTrap: trapData;
+      switch (action.actionType) {
+        case "SPAWN":
+          findEnemyData = this.enemyDatas.find(e => e.waveKey === action.key);
+          break;
+      
+        case "ACTIVATE_PREDEFINED":
+          findTrap = this.trapDatas.find(data => data.alias === action.key);
+          break;
+      }
+      
+
+      if(findRoute) action.route = findRoute;
+      if(findEnemyData) {
+        action.enemyData = findEnemyData
+      }else if(findTrap){
+        //wave中的trap是指名道姓的实体
+        action.trapData = findTrap;
+      }
+    })
+
+    this.SPFA = new SPFA(this.tileManager, [...this.routes, ...this.extraRoutes]);
 
     this.sourceData = null;
 
@@ -154,7 +179,7 @@ class MapModel{
       const trapKeys:Set<string> = new Set();
 
       tokenInsts.forEach(data => {
-        const {alias, direction, hidden, position, inst, mainSkillLvl} = data;
+        const {alias, direction, hidden, position, inst, mainSkillLvl, overrideSkillBlackboard} = data;
         let key;
 
         switch (inst.characterKey) {
@@ -172,6 +197,17 @@ class MapModel{
 
         }
 
+        let extraData = null;
+        //额外数据
+        if(overrideSkillBlackboard){
+          extraData = overrideSkillBlackboard.map(item => {
+            return {
+              key: item.key,
+              value: item.valueStr === null? item.value : item.valueStr
+            }
+          });
+        }
+
         this.trapDatas.push({
           isTokenCard: false,
           alias,
@@ -179,7 +215,8 @@ class MapModel{
           hidden,
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
-          mainSkillLvl
+          mainSkillLvl,
+          extraData
         });
 
         trapKeys.add(key);
@@ -193,14 +230,15 @@ class MapModel{
           hidden: tokenCard.hidden,
           direction: "UP",
           position: null,
-          mainSkillLvl: tokenCard.mainSkillLvl
+          mainSkillLvl: tokenCard.mainSkillLvl,
+          extraData: null
         };
         this.trapDatas.push(trapData);
 
         tokenCard.trapData = trapData;
         trapKeys.add(tokenCard.characterKey);
       })
-      
+
       const res = await getTrapsKey(Array.from(trapKeys));
 
       const { fbx: fbxs, spine: spines, image: images } = res.data;
@@ -360,23 +398,7 @@ class MapModel{
     
   }
 
-  //额外出怪
-  private parseBranch(branches){
-    if(branches){
-      Object.keys(branches).forEach(key => {
-        const fragments = branches[key].phases;
-        const innerWaves = this.parseActions(fragments, 0);
-        this.brancheDatas.push({
-          key, actions: innerWaves
-        })
-      })
-
-      console.log(this.brancheDatas)
-    }
-
-  }
-
-  private parseActions(fragments: any, currentTime: number): ActionData[]{
+  private parseActions(fragments: any[], currentTime: number): ActionData[]{
 
     const innerWaves: ActionData[] = [];
 
@@ -387,6 +409,7 @@ class MapModel{
       let lastTime = currentTime;//action波次的最后一只怪出现时间
 
       fragment.actions.forEach((action: any) =>{
+        
         for(let i=0; i<action.count; i++){
           //检查敌人分组
           const check = this.runesHelper.checkEnemyGroup(action.hiddenGroup);
@@ -700,6 +723,35 @@ class MapModel{
       }
     })
 
+  }
+
+  private parseExtraWave(){
+
+    const branches = this.sourceData.branches;
+
+    this.trapDatas.forEach(trapData => {
+      const actionIndex = trapData.extraData?.find(item => item.key === "action_index")?.value;
+      const branchId = trapData.extraData?.find(item => item.key === "branch_id")?.value;
+      if(branchId){
+        const brancheData = branches[branchId]?.phases;
+        let actions: ActionData[];
+
+        if(actionIndex !== null || actionIndex !== undefined){
+          const findAction = brancheData[0]?.actions[actionIndex];
+          actions = this.parseActions([
+            {
+              preDelay: 0,
+              actions: [findAction]
+            }
+          ], 0);
+        }else{
+          actions = this.parseActions(brancheData, 0);
+        }
+
+        trapData.extraWave = actions;
+        this.extraActionDatas.push(actions);
+      }
+    })
   }
 
 }

@@ -28,7 +28,7 @@ class TrapManager{
         }
       }
     });
-
+    console.log(trapDatas)
     
   }
 
@@ -51,8 +51,7 @@ class TrapManager{
   }
 
   createTrap(trapData: trapData): Trap{
-    const trap = new Trap(trapData);
-    trap.gameManager = this.gameManager;
+    const trap = new Trap(trapData, this.gameManager);
     this.traps.push(trap);
 
     return trap;
@@ -70,6 +69,7 @@ class TrapManager{
   removeTrap(trap: Trap){
     trap.tile.removeTrap();
     this.traps.remove(trap);
+    trap.destroy();
   }
 
   get(){

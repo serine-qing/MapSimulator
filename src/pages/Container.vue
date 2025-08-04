@@ -98,6 +98,21 @@ let enemies: Enemy[];
 let scale: number;
 
 //#region  敌人label数据绑定                         
+const initEnemyLabels = () => {
+  enemies.forEach(enemy => {
+    enemyLabels.value.push({
+      id: enemy.id,
+      key: enemy.key,
+      name: enemy.name,
+      checkPointLength: enemy.checkpoints.length,
+      options: enemy.options,
+      style: {}
+    });
+    
+  })
+}
+
+
 const updateLabelVisible = () => {
   enemies.forEach(enemy => {
     const label = enemyLabels.value[enemy.id];
@@ -109,7 +124,7 @@ const updateLabelPosAndSize = () => {
 
   scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
 
-  waveManager.getEnemiesInMap().forEach(enemy => {
+  waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.spine) return;
     const {skelSize, skelOffset} = enemy;
     
@@ -137,7 +152,7 @@ const updateLabelPosAndSize = () => {
 }
 
 const updateDatas = () => {
-  waveManager.getEnemiesInMap().forEach(enemy => {
+  waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.spine) return;
     const label = enemyLabels.value[enemy.id];
     label.currentCheckPoint = enemy.checkPointIndex;
@@ -160,22 +175,6 @@ const updateDatas = () => {
     }
   })
 }
-
-
-const initEnemyLabels = () => {
-  enemies.forEach(enemy => {
-    enemyLabels.value.push({
-      id: enemy.id,
-      key: enemy.key,
-      name: enemy.name,
-      checkPointLength: enemy.checkpoints.length,
-      options: enemy.options,
-      style: {}
-    });
-    
-  })
-}
-
 
 const changeGameManager = (_gameManager: GameManager) => {
   if(_gameManager){

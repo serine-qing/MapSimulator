@@ -4,6 +4,8 @@ import GameConfig from "../utilities/GameConfig";
 import spine from "@/assets/script/spine-threejs.js";
 import { GC_Add } from "./GC";
 import Tile from "./Tile";
+import Action from "./Action";
+import { Countdown } from "./CountdownManager";
 
 class Trap{
   gameManager: GameManager;
@@ -31,7 +33,12 @@ class Trap{
   tile: Tile;   //装置位于的地块
 
   isSelected: boolean = false;       //是否被鼠标选中
-  constructor(data: trapData){
+
+  extraData: any;
+  extraWave: Action[];
+  countdown: Countdown;
+  constructor(data: trapData, gameManager: GameManager){
+    this.gameManager = gameManager;
     this.data = data;
     this.isTokenCard = data.isTokenCard;
     this.key = data.key;
@@ -40,6 +47,9 @@ class Trap{
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;
     this.visible = !data.hidden;
+
+    this.extraData = data.extraData;
+    this.countdown = this.gameManager.countdownManager.getCountdownInst();
   }
 
   initMesh(){
@@ -176,17 +186,43 @@ class Trap{
     
   }
 
+  public start(){
+
+    switch (this.key) {
+      //压力舒缓帮手
+      case "trap_253_boxnma":
+      case "trap_254_boxmac":
+        const duration = this.extraData.find(data => data.key === "born_duration")?.value;
+        //todo +1秒模拟动画?
+        this.countdown.addCountdown("born", duration + 1, () => {
+          this.gameManager.waveManager.addExtraActions(this.extraWave);
+          this.hide();
+        })
+        break;
+    
+    }
+
+  }
+
   public get(){
     const state = {
-      visible: this.visible
+      visible: this.visible,
+      extraWaveState: this.extraWave?.map(action => action.get())
     }
 
     return state;
   }
 
   public set(state){
-    const { visible } = state;
+    const { visible, extraWaveState } = state;
     visible? this.show() : this.hide();
+    
+    if(extraWaveState){
+      for(let i = 0; i < this.extraWave.length; i++){
+        this.extraWave[i].set(extraWaveState[i]);
+      }
+    }
+
   }
 
   public destroy() {
