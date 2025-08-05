@@ -11,6 +11,12 @@ import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 
+import btnPause from '@/assets/images/btn_pause.png';
+import btnPlay from '@/assets/images/btn_play.png';
+import btnSpeed1x from '@/assets/images/btn_speed_1x.png';
+import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
+import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
+
 
 //#region 游戏基础功能
 let mapData = null;
@@ -27,6 +33,8 @@ const wrapperRef = ref();
 const containerRef = ref();
 const tokenCardsRef = ref();
 const tokenCards = shallowRef([]);
+const maxEnemyCount  = ref(0);
+const finishedEnemyCount = ref(0);
 
 const isStart = ref(false);
 const isFinished = ref(false);
@@ -42,6 +50,8 @@ const reset = () => {
   isSliding.value = false;
   sliderValue.value = 0;
   attackRangeVisible.value = false;
+  maxEnemyCount.value = 0;
+  finishedEnemyCount.value = 0;
 }
 reset();
 
@@ -55,6 +65,9 @@ eventBus.on("second_change", (second: number) => {
 eventBus.on("gameStart", () => {
   loading.value = false;
 })
+eventBus.on("setData", (data) => {
+  finishedEnemyCount.value = data.finishedEnemyCount;
+})
 eventBus.on("update:maxSecond", (_maxSecond) => {
   maxSecond.value = _maxSecond;
 })
@@ -64,7 +77,7 @@ eventBus.on("update:isFinished", (_isFinished) => {
 
 
 const formatTooltip = (val: number) => {
-  return timeFormat(val * GameConfig.SIMULATE_STEP)
+  return val * GameConfig.SIMULATE_STEP + "秒"
 }
 
 const changeGameSpeed = () => {
@@ -92,7 +105,7 @@ const endSlider = () => {
 }
 
 const MS = computed(() => {
-  return timeFormat(currentSecond.value);
+  return currentSecond.value + "秒";
 })
 
 const restart = () => {
@@ -101,7 +114,6 @@ const restart = () => {
 
 onMounted(() => {
   setupCanvas(wrapperRef.value);
-
 })
 
 watch(pause, () => {
@@ -124,16 +136,19 @@ const newGame = async (map) => {
     gameManager.destroy();
   }
 
-  generateStageInfo();
-  handleEnemyDatas(mapModel.enemyDatas);
   reset();
   gameSpeed.value = GameConfig.GAME_SPEED;
 
   gameManager = new GameManager(mapModel);
-  
+  maxEnemyCount.value = gameManager.waveManager.maxEnemyCount;
+
   tokenCards.value = gameManager.tokenCards;
   containerRef.value.changeGameManager(gameManager);
   tokenCardsRef.value?.changeGameManager(gameManager);
+
+  generateStageInfo();
+  handleEnemyDatas(mapModel.enemyDatas);
+
 }
 //#endregion
 
@@ -311,11 +326,12 @@ defineExpose({
 </script>
 
 <template>
-<div class="main">
+<div class="main" v-loading="loading">
 
-  <div class="game" v-loading="loading">
-    <div class="toolbar" v-show="isStart">
-      <span class="ms">{{ MS }}</span>
+  <div class="game">
+
+    <div class="toolbar" v-show="isStart">  
+      <span class="lifepoint"> {{ finishedEnemyCount }} / {{maxEnemyCount}}</span>
       <div class="time-slider">
         <el-slider 
           v-model = "sliderValue" 
@@ -327,13 +343,21 @@ defineExpose({
       </div>
 
       <div class="buttons">
-        <button @click="changeGameSpeed()">{{gameSpeed}}X</button>
-        <button 
-          @click="changePause()"
-          class="play"
+        <div 
+          @click="changeGameSpeed()"
+          class="button"
         >
-          {{pause?"播放":"暂停"}}
-        </button>
+          <img v-show="gameSpeed === 1" :src="btnSpeed1x">
+          <img v-show="gameSpeed === 2" :src="btnSpeed2x">
+          <img v-show="gameSpeed === 4" :src="btnSpeed4x">
+        </div>
+        <div 
+          @click="changePause()"
+          class="button"
+        >
+          <img style="height: 80px;" v-show="!pause" :src="btnPause">
+          <img style="height: 80px;" v-show="pause" :src="btnPlay">
+        </div>
       </div>
 
       <div class="checkboxs">
@@ -419,14 +443,16 @@ defineExpose({
     height: 80px;
     background-color: black;
     padding-top: 10px;
-    .ms{
+    .lifepoint{
+      font-size: 18px;
+      margin-left: 20px;
+      width: 60px;
       color: white;
     }
     .time-slider{
-      width: 600px;
+      width: 400px;
       margin-left: 40px;
     }
-
   }
   .content{
     flex: 1;
@@ -450,21 +476,20 @@ defineExpose({
 }
 
 .buttons{
-  width: 140px;
+  width: 180px;
   display: flex;
-  margin-left: 40px;
+  margin-left: 20px;
+  margin-right: 20px;
   
-  button{
+  .button{
     user-select: none;
-    font-size: 30px;
     cursor: pointer;
     height: 60px;
-    background-color: white;
-  }
-  .play{
-    line-height: 0px;
-    margin-left: 20px;
-    font-size: 20px;
+    overflow: hidden;
+    text-align: center;
+    img{
+      height: 74px;
+    }
   }
 }
 

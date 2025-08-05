@@ -35,8 +35,14 @@ class Trap{
   isSelected: boolean = false;       //是否被鼠标选中
 
   extraData: any;
-  extraWave: Action[];
+  extraWaveId: number;
   countdown: Countdown;
+
+  labelVue: any;   //前台显示数据
+  //vue中可供更改的数据
+  options = {
+    countDownVisible: true
+  }
   constructor(data: trapData, gameManager: GameManager){
     this.gameManager = gameManager;
     this.data = data;
@@ -50,10 +56,21 @@ class Trap{
 
     this.extraData = data.extraData;
     this.countdown = this.gameManager.countdownManager.getCountdownInst();
+    this.initObject();
+  }
+
+  initObject(){
+    this.object = new THREE.Object3D();
+    const coordinate = this.gameManager.getCoordinate(this.position);
+    this.object.position.x = coordinate.x;
+    this.object.position.y = coordinate.y;
+
+    this.object.visible = this.visible;
+    
+    this.object.userData.trap = this;
   }
 
   initMesh(){
-    this.object = new THREE.Object3D();
     GC_Add(this.object);
     this.skeletonData = this.data.skeletonData;
     this.textureMat = this.data.textureMat;
@@ -71,13 +88,6 @@ class Trap{
 
     }
 
-    const coordinate = this.gameManager.getCoordinate(this.position);
-    this.object.position.x = coordinate.x;
-    this.object.position.y = coordinate.y;
-
-    this.object.visible = this.visible;
-    
-    this.object.userData.trap = this;
     this.initHeight();
     //初始化技能（目前就是影响一些外观）
     this.initSkill();
@@ -193,9 +203,10 @@ class Trap{
       case "trap_253_boxnma":
       case "trap_254_boxmac":
         const duration = this.extraData.find(data => data.key === "born_duration")?.value;
-        //todo +1秒模拟动画?
-        this.countdown.addCountdown("born", duration + 1, () => {
-          this.gameManager.waveManager.addExtraActions(this.extraWave);
+
+        this.countdown.addCountdown("waiting", duration, () => {
+          const waveManager =  this.gameManager.waveManager;
+          waveManager.startExtraAction(this.extraWaveId);
           this.hide();
         })
         break;
@@ -206,22 +217,15 @@ class Trap{
 
   public get(){
     const state = {
-      visible: this.visible,
-      extraWaveState: this.extraWave?.map(action => action.get())
+      visible: this.visible
     }
 
     return state;
   }
 
   public set(state){
-    const { visible, extraWaveState } = state;
+    const { visible } = state;
     visible? this.show() : this.hide();
-    
-    if(extraWaveState){
-      for(let i = 0; i < this.extraWave.length; i++){
-        this.extraWave[i].set(extraWaveState[i]);
-      }
-    }
 
   }
 

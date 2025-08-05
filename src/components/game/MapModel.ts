@@ -4,7 +4,7 @@ import TileManager from "./TileManager"
 import {getEnemiesData} from "@/api/stages"
 import AliasHelper from "./AliasHelper";
 import spine from "@/assets/script/spine-threejs.js";
-import { getAnimation } from "@/components/utilities/SpineHelper"
+import { checkAnimation, getAnimation } from "@/components/utilities/SpineHelper"
 import GameConfig from "../utilities/GameConfig";
 //资源一开始就加载完毕，所以放到这里处理
 import assetsManager from "@/components/assetManager/assetsManager"
@@ -644,6 +644,9 @@ class MapModel{
       enemyData.motion = AliasHelper(enemyData.motion, "motionMode");
       enemyData.levelType = AliasHelper(enemyData.levelType, "levelType");
       enemyData.applyWay = AliasHelper(enemyData.applyWay, "applyWay");
+      this.runesHelper.checkTalentChanges(enemyData);
+      this.runesHelper.checkEnemyAttribute(enemyData);
+
       enemyData.talents = parseTalent(enemyData);
       enemyData.skills = parseSkill(enemyData); 
 
@@ -654,8 +657,6 @@ class MapModel{
           enemyData.immunes.push(immuneKey);
         }
       })
-      
-      this.runesHelper.checkEnemyAttribute(enemyData);
     })
 
     this.enemyDatas = enemyDatas;
@@ -708,6 +709,7 @@ class MapModel{
           spineManager.get(skelUrl)
         );
 
+        checkAnimation(key, skeletonData.animations);
         const moveAnimate = getAnimation(key, skeletonData.animations, "Move");
         const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
 
@@ -731,7 +733,18 @@ class MapModel{
 
     this.trapDatas.forEach(trapData => {
       const actionIndex = trapData.extraData?.find(item => item.key === "action_index")?.value;
-      const branchId = trapData.extraData?.find(item => item.key === "branch_id")?.value;
+      let branchId = trapData.extraData?.find(item => item.key === "branch_id")?.value;
+      
+      if(actionIndex!== undefined && !branchId){
+        switch (trapData.key) {
+          //压力舒缓帮手
+          case "trap_253_boxnma":
+          case "trap_254_boxmac":
+            branchId = "boxnma_route"
+            break;
+        }
+      }
+
       if(branchId){
         const brancheData = branches[branchId]?.phases;
         let actions: ActionData[];

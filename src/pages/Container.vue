@@ -58,6 +58,44 @@
         />
       </div>
     </el-popover>
+    
+    <el-popover
+      v-for = "(label, index) in trapLabels"
+      :key = "index"
+      placement="top"
+      :title="'装置id:' + label.alias"
+      :width="200"
+      trigger="click"
+    >
+      <template #reference>
+        <div 
+          :style = "label.style"
+          v-show="label.visible"
+          class="label trap-label"
+          @click="handleLabelClick(index)"
+        >
+          <div  
+            class="countdown"
+            v-show="label.options.countDownVisible && label.countDown > -1"
+            :class="{
+              'big': label.countDown >= 1000,
+              'middle': label.countDown >= 100 && label.countDown < 1000,
+              'small': label.countDown < 100,
+            }"
+            
+          >{{ label.countDown > -1 ? label.countDown : "" }}
+          </div>
+
+        </div>
+      </template>
+
+      <div>
+        <el-checkbox 
+          v-model="label.options.countDownVisible" label="显示倒计时"
+          @change = "handleCountDownCheck"
+        />
+      </div>
+    </el-popover>
 
     <div 
       class="trap-dialog"
@@ -96,7 +134,8 @@ let waveManager: WaveManager;
 let trapManager: TrapManager;
 let enemies: Enemy[];
 let scale: number;
-
+let canvasHeight: number;
+let canvasWidth: number;
 //#region  敌人label数据绑定                         
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
@@ -113,16 +152,16 @@ const initEnemyLabels = () => {
 }
 
 
-const updateLabelVisible = () => {
+const updateEnemyVisible = () => {
   enemies.forEach(enemy => {
     const label = enemyLabels.value[enemy.id];
     label.visible = enemy.visible();
   });
 }
 
-const updateLabelPosAndSize = () => {
+const updateEnemyPosAndSize = () => {
 
-  scale =  gameCanvas.canvas.clientHeight / GameConfig.TILE_SIZE * 0.012;
+  scale =  canvasHeight / GameConfig.TILE_SIZE * 0.012;
 
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.spine) return;
@@ -133,10 +172,11 @@ const updateLabelPosAndSize = () => {
 
     const tempV = new THREE.Vector3();
     enemy.skeletonMesh.getWorldPosition(tempV);
+
     //将 3D 世界坐标投影到相机的 2D 屏幕空间
     tempV.project(gameCanvas.camera);
-    const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
-    const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
+    const x = (tempV.x *  .5 + .5) * canvasWidth;
+    const y = (tempV.y * -.5 + .5) * canvasHeight;
 
     const label = enemyLabels.value[enemy.id];
 
@@ -151,7 +191,7 @@ const updateLabelPosAndSize = () => {
   })
 }
 
-const updateDatas = () => {
+const updateEnemyDatas = () => {
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.spine) return;
     const label = enemyLabels.value[enemy.id];
@@ -176,21 +216,6 @@ const updateDatas = () => {
   })
 }
 
-const changeGameManager = (_gameManager: GameManager) => {
-  if(_gameManager){
-    gameManager = _gameManager;
-    waveManager = gameManager.waveManager;
-    trapManager = gameManager.trapManager;
-    enemies = waveManager.enemies;
-
-    initEnemyLabels();
-  }else{
-    gameManager = null;
-    waveManager = null;
-    enemies = [];
-    enemyLabels.value = [];
-  }
-}
 //#endregion
 
 
@@ -236,26 +261,19 @@ const handleAttackRangeCheck = () => {
   emit("update:attackRangeIndet",isIndeterminate);
 }
 
-//全选显示等待时间
-watch(() => countDownCheckAll, () => {
-  enemyLabels.value.forEach(label => {
-
-    label.options.countDownVisible = countDownCheckAll;
-    
-  })
-})
 
 const handleCountDownCheck = () => {
 
   let count = 0;
-  enemyLabels.value.forEach(label => {
+  const labels = [...enemyLabels.value, ...trapLabels.value];
+  labels.forEach(label => {
     if(label.options.countDownVisible){
       count++;
     }
   })
 
-  const isIndeterminate = count > 0 && count < enemyLabels.value.length;
-  emit("update:countDownIndet",isIndeterminate);
+  const isIndeterminate = count > 0 && count < labels.length;
+  emit("update:countDownIndet", isIndeterminate);
 }
 
 const showDetail = (enemyId: number) => {
@@ -263,6 +281,22 @@ const showDetail = (enemyId: number) => {
   eventBus.emit("showDetail", find.enemyData);
   console.log(find)
 }
+
+//全选显示等待时间
+watch(() => countDownCheckAll, () => {
+  enemyLabels.value.forEach(label => {
+
+    label.options.countDownVisible = countDownCheckAll;
+    
+  })
+
+  trapLabels.value.forEach(label => {
+
+    label.options.countDownVisible = countDownCheckAll;
+    
+  })
+})
+
 //#endregion
 
 
@@ -276,7 +310,7 @@ const trapDialog = ref({
   visible: false
 });
 
-const updateTraps = () => {
+const updateTrapSelected = () => {
   const find = trapManager.getSelected();
 
   if(find){
@@ -285,8 +319,8 @@ const updateTraps = () => {
     const tempV = new THREE.Vector3();
     find.object.getWorldPosition(tempV);
     tempV.project(gameCanvas.camera);
-    const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
-    const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
+    const x = (tempV.x *  .5 + .5) * canvasWidth;
+    const y = (tempV.y * -.5 + .5) * canvasHeight;
 
     trapDialog.value.left = x -50;
     trapDialog.value.top = y -50;
@@ -305,11 +339,89 @@ const handleRemoveTrap = () => {
 
 //#endregion
 
+
+//#region  装置label绑定                            
+let traps: Trap[] = [];
+const trapLabels = ref([]);
+
+const initTrapLabels = () => {
+  traps = trapManager.traps;
+  traps.forEach((trap, index) => {
+    trapLabels.value.push({
+      alias: trap.alias,
+      key: trap.key,
+      options: trap.options,
+      style: {}
+    });
+    trap.labelVue = trapLabels.value[index];
+  })
+}
+
+const updateTrapSize = () => {
+  const scale = canvasHeight / GameConfig.TILE_SIZE * 0.012;
+  traps.forEach(trap => {
+
+    const tempV = new THREE.Vector3();
+    trap.object.getWorldPosition(tempV);
+    tempV.project(gameCanvas.camera);
+
+    const x = (tempV.x *  .5 + .5) * canvasWidth;
+    const y = (tempV.y * -.5 + .5) * canvasHeight;
+    const label = trap.labelVue;
+    
+    const trapHeight = gameManager.getPixelSize(GameConfig.TILE_SIZE);
+    const trapWidth = trapHeight;
+
+    label.style = {
+      height: trapHeight + 'px',
+      width: trapWidth + 'px',
+      left: x - trapWidth / 2 + 'px', 
+      top: y - trapHeight / 2 + 'px',
+      transform: `scale(${scale})`
+    }
+
+  })
+}
+
+const updateTrapVisible = () => {
+  traps.forEach(trap => {
+    const label = trap.labelVue;
+    label.visible = trap.visible;
+  });
+}
+
+const updateTrapDatas = () => {
+  traps.forEach(trap => {
+    if(!trap.visible) return;
+
+    const label = trap.labelVue;
+
+    const countDown = trap.countdown.getCountdownTime("waiting");
+
+    if(countDown > 0){
+      label.countDown = Math.floor(countDown);
+    }else{
+      label.countDown = -1;
+    }
+
+
+  })
+}
+//#endregion
+
 const update = () => {
-  updateLabelVisible();
-  updateLabelPosAndSize();
-  updateDatas();
-  updateTraps();
+  canvasHeight = gameCanvas.canvas.clientHeight;
+  canvasWidth = gameCanvas.canvas.clientWidth;
+
+  updateEnemyVisible();
+  updateEnemyPosAndSize();
+  updateEnemyDatas();
+  updateTrapSelected();
+
+  updateTrapVisible();
+  updateTrapDatas();
+  updateTrapSize();
+  
 }
 
 const animate = () => {
@@ -322,6 +434,28 @@ const animate = () => {
 }
 
 animate();
+
+
+
+const changeGameManager = (_gameManager: GameManager) => {
+  if(_gameManager){
+    gameManager = _gameManager;
+    waveManager = gameManager.waveManager;
+    trapManager = gameManager.trapManager;
+    enemies = waveManager.enemies;
+
+    initEnemyLabels();
+    initTrapLabels();
+  }else{
+    gameManager = null;
+    waveManager = null;
+    trapManager = null;
+    enemies = [];
+    traps = [];
+    enemyLabels.value = [];
+    trapLabels.value = [];
+  }
+}
 
 // defineExpose 来显式指定在组件中要暴露出去的属性。
 defineExpose({
@@ -351,14 +485,16 @@ defineExpose({
   text-align: center;
   justify-content: center;
   align-items: flex-end;
+  z-index: 100;
   .countdown{
+    position: absolute;
     text-align: center;
-    line-height: 17px;
-    height: 18px;
-    width: 18px;
+    line-height: 22px;
+    height: 22px;
+    width: 22px;
     background-color: white;
     color: black;
-    border-radius: 13px;
+    border-radius: 22px;
     border: 1px solid black;
     margin-left: 2px;
     margin-right: 2px;
@@ -368,16 +504,25 @@ defineExpose({
     color: white;
   }
   .big{
-    height: 22px;
-    width: 22px;
-    line-height: 22px;
-    font-size: 10px;
+    height: 25px;
+    width: 25px;
+    line-height: 25px;
+    font-size: 11px;
   }
   .middle{
-    font-size: 10px;
+    font-size: 12px;
   }
   .small{
-    font-size: 14px;
+    font-size: 15px;
+  }
+
+  &.trap-label{
+    z-index: 10;
+    .countdown{
+      margin-bottom: 13px;
+      background-color: #1f4c9f;
+      color:white;
+    }
   }
 }
 

@@ -10,11 +10,29 @@ class RunesHelper{
   public attrChanges: { [ key:string ] : any } = {};     //敌人属性提升
   private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
   private bannedTiles: Vec2[] = [];
+  private talentChanges: any[] = [];
   constructor(runes: any){
     this.runes = runes;
 
     this.runes.forEach(rune => {
       const { difficultyMask, blackboard } = rune;
+
+      //敌人选择的预处理
+      let enemy;
+      let enemyExclude;
+
+      blackboard.forEach( item => {
+        const { key, valueStr } = item;
+        let camelKey = toCamelCase(key); 
+        switch (camelKey) {
+          case "enemy":
+            enemy = valueStr.split("|");
+            break;
+          case "enemyExclude":
+            enemyExclude = valueStr.split("|");
+            break;
+        }
+      })
 
       switch (rune.key) {
       
@@ -67,7 +85,7 @@ class RunesHelper{
           //enemy_exclude是指不包括的敌人
           //enemy指包括的敌人
           blackboard.forEach( item => {
-            const { key, value, valueStr } = item;
+            const { key, value } = item;
             let camelKey = toCamelCase(key); 
 
             if(
@@ -88,10 +106,10 @@ class RunesHelper{
 
             switch (camelKey) {
               case "enemyExclude":
+                val = enemyExclude;
               case "enemy":
-                val = valueStr.split("|");
+                val = enemy;
                 break;
-
               default:
                 val = value;
                 break;
@@ -137,6 +155,24 @@ class RunesHelper{
         //单位再部署时间增加
         case "char_respawntime_add":
         case "char_respawntime_mul":
+          break;
+
+        case "enemy_talent_blackb_max":
+          const change = {
+            enemy
+          }; 
+          blackboard.forEach(item => {
+            
+            switch (item.key) {
+              case "enemy":
+                break;
+              default:
+                change[item.key] = item.valueStr? item.valueStr:item.value;
+                break;
+            }
+          })
+
+          this.talentChanges.push(change);
           break;
       }
 
@@ -247,6 +283,18 @@ class RunesHelper{
         trap.hidden = true;
       }
     })
+  }
+
+  public checkTalentChanges(data: EnemyData){
+    const find = this.talentChanges.find(talentChange => talentChange.enemy.includes(data.key))
+    if(find){
+      data.talentBlackboard.forEach(tB => {
+        const changeVal = find[tB.key];
+        if(changeVal){
+          tB.value = changeVal;
+        }
+      })
+    }
   }
 }
 

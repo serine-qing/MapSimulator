@@ -16,7 +16,6 @@ class WaveManager{
   public extraActions: any[] = [];  
 
   public enemies: Enemy[] = []; //敌人对象数组
-  public enemyCount: number = 0;
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemy
 
   private waveIndex: number = 0;
@@ -27,7 +26,9 @@ class WaveManager{
 
   public actionId: number = 0;
   public enemyId: number = 0;
-  
+  public maxEnemyCount: number = 0;
+  public finishedEnemyCount: number = 0;
+
   constructor(gameManager: GameManager,){
     this.gameManager = gameManager;
     this.trapManager = gameManager.trapManager;
@@ -48,15 +49,29 @@ class WaveManager{
     this.mapModel.actionDatas.forEach(datas => {
       this.actions.push(this.createActions(datas));
     })
-
+    this.maxEnemyCount = this.enemyId;
   }
 
 
   public initExtraActions(){
+    let id = 0;
+
     this.trapManager.traps.forEach(trap => {
       const extraWave = trap.data.extraWave;
       if(extraWave){
-        trap.extraWave = this.createActions(trap.data.extraWave);
+        const actions = this.createActions(trap.data.extraWave);
+        actions.forEach(action => action.enemy.hasBirthAnimation = true);
+        
+        this.extraActions.push({
+          id,
+          isStart: false,
+          isFinish: false,
+          waveSecond: 0,
+          actions
+        })
+
+        trap.extraWaveId = id;
+        id++;
       }
     });
 
@@ -101,6 +116,10 @@ class WaveManager{
       const enemy = this.enemiesInMap[i];
       if(enemy.isFinished){
         this.enemiesInMap.splice(i, 1);
+        this.finishedEnemyCount++;
+        eventBus.emit("setData", {
+          finishedEnemyCount: this.finishedEnemyCount
+        });
       }
     }
 
@@ -173,11 +192,18 @@ class WaveManager{
     }
   }
 
-  public addExtraActions(actions: Action[]){
-    this.extraActions.push({
-      waveSecond: 0,
-      actions
-    })
+  public startExtraAction(id: number){
+    const extraAction = this.getExtraAction(id);
+    if(extraAction){
+      extraAction.isStart = true;
+      extraAction.isFinish = false;
+      extraAction.waveSecond = 0;
+    }
+  }
+
+  public getExtraAction(id: number){
+    const find = this.extraActions.find(extraAction => extraAction.id === id);
+    return find? find : null;
   }
 
   public handleAction(actions: Action[], waveSecond: number, callback?){
@@ -223,14 +249,16 @@ class WaveManager{
 
     for(let i = 0; i < this.extraActions.length; i++){
       const extra = this.extraActions[i];
-      extra.waveSecond += delta;
-      this.handleAction(extra.actions, extra.waveSecond);
+      if(extra.isStart && !extra.isFinish){
+        extra.waveSecond += delta;
+        this.handleAction(extra.actions, extra.waveSecond);
 
-      const allStarted = extra.actions.every(action => action.isStarted);
-      if(allStarted){
-        this.extraActions.splice(i, 1);
-        i--;
+        const allStarted = extra.actions.every(action => action.isStarted);
+        if(allStarted){
+          extra.isFinish = true;
+        }
       }
+
     }
 
     if(this.allWaveFinished) return;
@@ -250,7 +278,12 @@ class WaveManager{
     const enemyStates = [];
 
     const extraActionStates = this.extraActions.map(extra => {
-      return {...extra};
+      return {
+        isStart: extra.isStart,
+        isFinish: extra.isFinish,
+        waveSecond: extra.waveSecond,
+        actionStates: extra.actions.map(action => action.get())
+      };
     });
 
     this.actions.forEach(innerActions => {
@@ -272,6 +305,7 @@ class WaveManager{
       gameSecond: this.gameSecond,
       waveSecond: this.waveSecond,
       allWaveFinished: this.allWaveFinished,
+      finishedEnemyCount: this.finishedEnemyCount,
       extraActionStates
     }
 
@@ -286,6 +320,7 @@ class WaveManager{
       gameSecond,
       waveSecond, 
       allWaveFinished, 
+      finishedEnemyCount,
       actionStates,
       enemyStates,
       extraActionStates
@@ -297,6 +332,7 @@ class WaveManager{
     this.gameSecond = gameSecond;
     this.waveSecond = waveSecond;
     this.allWaveFinished = allWaveFinished;
+    this.finishedEnemyCount = finishedEnemyCount;
 
     const actions = this.actions.flat();
     for(let i = 0; i< actions.length; i++){
@@ -313,11 +349,23 @@ class WaveManager{
       enemy.set(eState);
     }
 
-    this.extraActions = extraActionStates.map(extra => {
-      return {...extra};
-    })
-    
+    for(let i = 0; i < extraActionStates.length; i++){
+      const extraActionState = extraActionStates[i];
+      const extraAction = this.extraActions[i];
+
+      extraAction.isStart = extraActionState.isStart;
+      extraAction.isFinish = extraActionState.isFinish;
+      extraAction.waveSecond = extraActionState.waveSecond;
+      extraAction.actions.forEach((action, index) => {
+        action.set(extraActionState.actionStates[index])
+      });;
+
+    }
+
     eventBus.emit("action_index_change", actionIndex, waveIndex);
+    eventBus.emit("setData", {
+      finishedEnemyCount: this.finishedEnemyCount
+    });
   }
 
   public destroy(){

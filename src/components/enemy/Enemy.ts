@@ -106,6 +106,7 @@ class Enemy{
   private idleAnimate: string;   //skel 站立的动画名
   private animations: any[];
   private animationScale: number = 1.0;  //动画执行速率
+  public hasBirthAnimation: boolean = false; //是否有出生动画
 
   public simulateTrackTime: number;      //动画执行time
 
@@ -174,6 +175,7 @@ class Enemy{
 
   public start(){
     this.reset();
+    this.handleBirthAnimation();
     this.handleTalents();
     this.handleSkills();
     this.isStarted = true;
@@ -696,6 +698,24 @@ class Enemy{
     return this.attributes.moveSpeed * this.speedRate() * 0.5;
   }
 
+  private handleBirthAnimation(){
+    if(this.hasBirthAnimation){
+      switch (this.key) {
+        //压力舒缓帮手
+        case "enemy_10119_ymgbxm":
+        case "enemy_10119_ymgbxm_2":
+          this.animationStateTransition({
+            moveAnimate: this.moveAnimate,
+            idleAnimate: this.idleAnimate,
+            transAnimation: "Start",
+            animationScale: 1,
+            isWaitTrans: true
+          })
+          break;
+      }
+    }
+  }
+
   private handleTalents(){
     // if(this.talents) console.log(this.talents)
     this.talents?.forEach(talent => {
@@ -751,7 +771,7 @@ class Enemy{
               moveAnimate: "Move",
               idleAnimate: "Idle",
               transAnimation: "Start",
-              animationScale: 0.4,
+              animationScale: 0.22,
               isWaitTrans: true
             })
           });
@@ -800,7 +820,7 @@ class Enemy{
             this.addWatcher({
               name: "takeoff",
               function: () => {
-                if(this.speedRate() >= 7){
+                if(this.speedRate() >= 8){
                   this.animationStateTransition({
                     moveAnimate: "Fly_Move",
                     idleAnimate: "Fly_Idle",

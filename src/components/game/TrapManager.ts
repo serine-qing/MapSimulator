@@ -28,7 +28,6 @@ class TrapManager{
         }
       }
     });
-    console.log(trapDatas)
     
   }
 

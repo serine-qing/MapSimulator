@@ -27,6 +27,22 @@ export const getAnimation = (key: string, animations: any, state: string) => {
   return animation;
 }
 
+//修复一些spine错误
+export const checkAnimation = (key: string, animations: any) => {
+  if(key === "enemy_10118_ymgprc"){
+    animations.forEach(animation => {
+      switch (animation.name) {
+        case "Move":
+          animation.duration = 1.4;
+          break;
+        case "Idle":
+          animation.duration = 1.4;
+          break;
+      }
+    })
+  }
+}
+
 const getMoveAnimation = (key:string, animations: any) => {
   const special = specialMove[key];
   if(special) return special;

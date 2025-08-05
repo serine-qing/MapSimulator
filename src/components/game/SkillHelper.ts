@@ -36,8 +36,10 @@ const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
 
         if(enemyData.key === "enemy_10117_ymggld" || enemyData.key === "enemy_10117_ymggld_2"){ 
           //风遁忍者天赋倍率不对 需要额外处理
-          value.move_speed = 0.15;
-          value.trig_cnt = 43;
+          // value.move_speed = 0.2;
+          value.trig_cnt = 7 / value.move_speed;
+          // value.interval = 0.5;
+          // value.predelay = 3;
         }
         break;
     }
