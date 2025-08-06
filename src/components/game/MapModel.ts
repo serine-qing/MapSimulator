@@ -469,10 +469,12 @@ class MapModel{
       //某些敌人(例如提示)没有路径route，所以会出现null，做下兼容处理
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
       if(sourceRoute && sourceRoute.motionMode !== "E_NUM") {
-
         const route: EnemyRoute = {
           index: routeIndex,
-          allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
+          allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径          
+          visitEveryTileCenter: sourceRoute.visitEveryTileCenter,
+          visitEveryNodeCenter: sourceRoute.visitEveryNodeCenter,
+          visitEveryNodeStably: !sourceRoute.checkpoints || sourceRoute.checkpoints.length === 0,
           startPosition: RowColToVec2(sourceRoute.startPosition),
           endPosition: RowColToVec2(sourceRoute.endPosition),
           motionMode: AliasHelper(sourceRoute.motionMode, "motionMode"),

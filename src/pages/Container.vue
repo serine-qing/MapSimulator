@@ -279,7 +279,8 @@ const handleCountDownCheck = () => {
 const showDetail = (enemyId: number) => {
   const find = enemies.find(enemy => enemy.id === enemyId);
   eventBus.emit("showDetail", find.enemyData);
-  console.log(find)
+  console.log(find);
+  console.log("周围地块", find.getRoundTile())
 }
 
 //全选显示等待时间

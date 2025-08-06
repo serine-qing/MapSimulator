@@ -17,7 +17,7 @@ class Tile{
   width: number;
   height: number;
   margin: number;
-  position: Vec2;
+  position: THREE.Vector2;
 
   passableMask: string;
   buildableType: string;  //可供部署类型
@@ -46,10 +46,7 @@ class Tile{
     this.width = 1;
     this.height = 0;
     this.margin = 0; //tile之间的间隔
-    this.position = {
-      x: 0,
-      y: 0
-    }
+    this.position = new THREE.Vector2(0, 0);
 
     this.position.x = position.x ? position.x : 0;
     this.position.y = position.y ? position.y : 0;
@@ -304,6 +301,39 @@ class Tile{
 
   public removeTrap(){
     this.trap = null;
+  }
+
+  //是否可通过。检测不可通行或为障碍物
+  public isPassable(){
+    let passable = this.passableMask !== "FLY_ONLY";
+    const trapKey = this.trap?.key;
+
+    // console.log(trapKey)
+    switch (trapKey) {
+      case "trap_001_crate":
+      case "trap_002_emp":
+      case "trap_005_sensor":
+      case "trap_008_farm":
+      case "trap_020_roadblock":
+      case "trap_027_stone":
+      case "trap_032_mound":
+      case "trap_043_dupilr":
+      case "trap_044_duruin":
+      case "trap_075_bgarmn":
+      case "trap_076_bgarms":
+      case "trap_077_rmtarmn":
+      case "trap_078_rmtarms":
+      case "trap_080_garage":
+      case "trap_111_wdfarm":
+      case "trap_156_dsshell":
+      case "trap_163_foolcrate":
+      case "trap_405_xbroadblock":
+      case "trap_480_roadblockxb":
+        passable = false;
+        break;
+    }
+    
+    return passable;
   }
 
   public destroy() {

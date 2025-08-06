@@ -11,6 +11,7 @@ import WaveManager from "./WaveManager";
 import Action from "../game/Action";
 import { gameCanvas } from "../game/GameCanvas";
 import { Countdown } from "../game/CountdownManager";
+import Tile from "../game/Tile";
 
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
@@ -59,8 +60,13 @@ class Enemy{
   inertialVector: THREE.Vector2;          //惯性向量
   velocity: THREE.Vector2;                //当前速度矢量
   faceToward: number = 1;                //1:右, -1:左
+  halfBodyWidth: number = 0.2;
+  obstacleAvoidanceVector: THREE.Vector2;  //避障力向量
+  obstacleAvoidanceCalCount: number = 0;  //避障力计算计数（每3帧算一次）
+  unitVector: THREE.Vector2;              //给定方向向量
 
   shadowOffset: Vec2;   //足坐标偏移
+  tilePosition: THREE.Vector2;     //中心地块坐标
 
   hugeEnemy: boolean = false;    //是否是巨型敌人
   unMoveable: boolean = false;   //是否可移动
@@ -148,7 +154,6 @@ class Enemy{
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
-
     this.checkpoints = [...this.route.checkpoints];
 
     this.position = new THREE.Vector2();
@@ -419,8 +424,118 @@ class Enemy{
 
   }
 
+  private getClosePoints(){
+    const footPoint = new THREE.Vector2(
+      this.position.x, this.position.y - 0.2
+    );
+    const left = new THREE.Vector2(
+      footPoint.x - 0.2, footPoint.y
+    );
+    const right = new THREE.Vector2(
+      footPoint.x + 0.2, footPoint.y
+    );
+
+    return {
+      left, middle: footPoint, right
+    }
+  }
+
+  public getRoundTile(){
+    const x = this.tilePosition.x;
+    const y = this.tilePosition.y;
+    const tileManager = this.gameManager.tileManager;
+    return {
+      leftTop: tileManager.getTile(x-1, y+1),
+      top: tileManager.getTile(x, y+1),
+      rightTop: tileManager.getTile(x+1, y+1),
+      left: tileManager.getTile(x-1, y),
+      right: tileManager.getTile(x+1, y),
+      leftBottom: tileManager.getTile(x-1, y-1),
+      bottom: tileManager.getTile(x, y-1),
+      rightBottom: tileManager.getTile(x+1, y-1),
+    }
+  }
+
+  //计算避障力
+  public handleObstacleAvoidance(){
+    const closePoints = this.getClosePoints();
+    const roundTile = this.getRoundTile();
+
+    const avoidances = new THREE.Vector2();
+    Object.keys(roundTile).forEach(key => {
+      let closePoint: THREE.Vector2;
+      const tile: Tile = roundTile[key];
+      if(tile && !tile.isPassable()){
+        
+        switch (key) {
+          case "leftTop":
+          case "left":
+          case "leftBottom":
+            closePoint = closePoints.left;
+            break;
+          case "top":
+          case "bottom":
+            closePoint = closePoints.middle;
+            break;
+          case "rightTop":
+          case "right":
+          case "rightBottom":
+            closePoint = closePoints.right;
+            break;
+        }
+
+        //最近点坐标-中心地块坐标
+        const vec1 = closePoint.clone().addScaledVector(this.tilePosition, -1);
+
+        //地块相对坐标:不可通行地块坐标-中心地块坐标
+        const vec2 = tile.position.clone().addScaledVector(this.tilePosition, -1);
+        const offsetVec = new THREE.Vector2(
+          (Math.max(vec1.x * vec2.x, 0) - 0.25) * Math.abs(vec2.x),
+          (Math.max(vec1.y * vec2.y, 0) - 0.25) * Math.abs(vec2.y)
+        );
+
+
+
+        const avoidance = new THREE.Vector2(0, 0);
+
+        switch (key) {
+          case "left":
+          case "right":
+          case "top":
+          case "bottom":
+            if(offsetVec.x > 0 || offsetVec.y > 0){
+              avoidance.x = - offsetVec.x * vec2.x;
+              avoidance.y= - offsetVec.y * vec2.y;
+            }
+            break;
+          case "leftTop":
+          case "leftBottom":
+          case "rightTop":
+          case "rightBottom":
+            if(offsetVec.x > 0 && offsetVec.y > 0){
+              const Average = -(offsetVec.x + offsetVec.y) / 2;
+              avoidance.x = Average * vec2.x;
+              avoidance.y = Average * vec2.y;
+            }
+            break;
+        }
+
+        avoidances.x = avoidances.x + avoidance.x;
+        avoidances.y = avoidances.y + avoidance.y;
+      }
+    })
+
+    let projection;
+    avoidances.normalize();
+    
+    projection = this.unitVector.clone().multiplyScalar(avoidances.dot(this.unitVector));;
+
+    this.obstacleAvoidanceVector = avoidances.addScaledVector(projection, -1);
+  }
+
   public update(delta: number){
     if(this.isFinished) return;
+    this.obstacleAvoidanceCalCount = Math.max(this.obstacleAvoidanceCalCount - 1, 0);
     this.updateAction(delta);
 
     const watcherFuncs = this.watchers.map(watcher => watcher.function);
@@ -448,13 +563,18 @@ class Enemy{
         if(this.unMoveable || this.attributes.moveSpeed === 0){
           return;
         }
-        
+
+        this.tilePosition = new THREE.Vector2(
+          Math.floor(this.position.x + 0.5),
+          Math.floor(this.position.y + 0.5)
+        )
+
         const currentPosition = this.position;
 
         const currentNode = this.SPFA.getPathNode(
           this.currentCheckPoint().position,
           this.motion,
-          currentPosition
+          this.tilePosition
         );
 
         if(!currentNode){
@@ -472,19 +592,8 @@ class Enemy{
           }
           return;
         }
-        //核心逻辑：目标地块一直是当前光标地块的nextNode，当前为终点目标地块则为光标地块
-        //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
-        if(
-          //兼容第一次执行的情况
-          this.targetNode === null ||
-          //是否到达新地块用this.targetNode !== currentNode.nextNode 判断，意思是当前目标node不是光标地块的nextNode
-          //到达新地块，并且新地块不是上个地块的nextNode：直接将targetNode切换为新地块的nextNode
-          (this.targetNode !== currentNode.nextNode && this.targetNode !== currentNode)
-        ){
 
-          //如果currentNode没有nextNode，就是检查点终点
-          this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
-        }
+        this.updateNextNode(currentNode);
 
         let {position, nextNode} = this.targetNode;
         let targetPos = new THREE.Vector2(position.x,position.y);
@@ -507,52 +616,87 @@ class Enemy{
         // //光标距离最近地块中心的长度
         // const distanceToCenter = currentPosition.distanceTo(new THREE.Vector2(roundX, roundY))
         // console.log(distanceToCenter)
-
+        const actualSpeed = this.actualSpeed();
+        const perFrame = 1 / GameConfig.FPS;
         //让敌人移动更平滑
         for(let i = 0; i < this.gameManager.gameSpeed; i++){
 
-          const actualSpeed = this.actualSpeed();
-          //移动单位向量
-          const unitVector = new THREE.Vector2(
+          
+          //给定方向向量
+          this.unitVector = new THREE.Vector2(
             targetPos.x - currentPosition.x,
             targetPos.y - currentPosition.y
           ).normalize();
 
-          //todo 惯性需要计算避障力，避障力计算太过于变态，先搁置
-          // //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
-          // //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
-          // //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
-          // // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
-          // // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
-          // const isWalk = this.motion === "WALK";
-          // const steeringFactor = isWalk? 8 : 20;
-          // const maxSteeringForce = isWalk? 10 : 100;
-          // //加速度
-          // this.acceleration = unitVector
-          //   .clone()
-          //   .multiplyScalar(actualSpeed)
-          //   .addScaledVector(this.inertialVector, -1)
-          //   .multiplyScalar(steeringFactor)
-          //   .clampLength(0, maxSteeringForce)
+          //todo 重复代码
+          const simVelocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
+          const simDistanceToTarget = currentPosition.distanceTo(targetPos);
+          if(simVelocity.length() >= simDistanceToTarget){
+            this.position = targetPos.clone();
+            this.velocity = simVelocity;
+            this.targetNode = this.targetNode?.nextNode;
 
-          // //再根据加速度计算本帧的移动速度向量：
-          // //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
-          // //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
-          // //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
-          // const moveSpeedVec = this.acceleration
-          //   .clone()
-          //   .multiplyScalar(1 / GameConfig.FPS )
-          //   .add(this.inertialVector)
-          //   .clampLength(0, actualSpeed)
-          
-          // this.inertialVector = moveSpeedVec;
-          
-          // //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
-          // const velocity = moveSpeedVec
-          //   .clone()
-          //   .multiplyScalar( 1 / GameConfig.FPS);
+            //完成最后一个寻路点
+            if( this.targetNode === null || this.targetNode === undefined ){
+              this.nextCheckPoint();
+            }
+            
+            break;
+          }
 
-          const velocity = unitVector.multiplyScalar(actualSpeed * 1 / GameConfig.FPS);
+          if(this.obstacleAvoidanceCalCount === 0){
+            //计算避障力
+            this.handleObstacleAvoidance();
+            this.obstacleAvoidanceCalCount = 3;
+          }
+
+          //实际避障力
+          const actualAvoidance = this.obstacleAvoidanceVector
+            .clone()
+            .multiplyScalar( 
+              Math.max(this.inertialVector.length() / actualSpeed, 0.5)
+            );
+
+          //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
+          //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
+          //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
+          // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
+          // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
+          const isWalk = this.motion === "WALK";
+          const steeringFactor = isWalk? 8 : 20;
+          const maxSteeringForce = isWalk? 10 : 100;
+          //加速度
+          this.acceleration = this.unitVector 
+            .clone()
+            .multiplyScalar(actualSpeed)
+            .addScaledVector(this.inertialVector, -1)
+            .multiplyScalar(steeringFactor)
+            .add(actualAvoidance)
+            .clampLength(0, maxSteeringForce)
+
+
+          //再根据加速度计算本帧的移动速度向量：
+          //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
+          //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
+          //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
+          const moveSpeedVec = this.acceleration
+            .clone()
+            .multiplyScalar(perFrame )
+            .add(this.inertialVector)
+            .clampLength(0, actualSpeed)
+          
+          this.inertialVector = moveSpeedVec;
+
+
+            
+          //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
+          const velocity = moveSpeedVec
+            .clone()
+            .multiplyScalar( perFrame);
+
+
+          // const velocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
+
           this.setVelocity(velocity);
           this.move();
 
@@ -627,6 +771,32 @@ class Enemy{
 
     this.velocity.x = 0;
     this.velocity.y = 0; 
+  }
+
+  private updateNextNode(currentNode: PathNode){
+    if(this.route.visitEveryTileCenter){
+
+    }else if(this.route.visitEveryNodeCenter){
+
+    }else if(this.route.visitEveryNodeStably){
+      //核心逻辑：目标地块一直是当前光标地块的nextNode，当前为终点目标地块则为光标地块
+      //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
+      if(
+        //兼容第一次执行的情况
+        this.targetNode === null ||
+        //是否到达新地块用this.targetNode !== currentNode.nextNode 判断，意思是当前目标node不是光标地块的nextNode
+        //到达新地块，并且新地块不是上个地块的nextNode：直接将targetNode切换为新地块的nextNode
+        (this.targetNode !== currentNode.nextNode && this.targetNode !== currentNode)
+      ){
+
+        //如果currentNode没有nextNode，就是检查点终点
+        this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+      }
+    }else{
+      this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+    }
+
+
   }
 
   //视图相关的更新
@@ -1039,6 +1209,8 @@ class Enemy{
       shadowHeight: this.shadowHeight,
       exit: this.exit,
       simulateTrackTime: this.simulateTrackTime,
+      obstacleAvoidanceVector: this.obstacleAvoidanceVector, 
+      obstacleAvoidanceCalCount: this.obstacleAvoidanceCalCount,
       motion: this.motion,
       watchers: [...this.watchers]
     }
@@ -1063,6 +1235,8 @@ class Enemy{
       exit,
       currentSecond,
       simulateTrackTime,
+      obstacleAvoidanceVector,
+      obstacleAvoidanceCalCount,
       motion,
       watchers
     } = state;
@@ -1083,6 +1257,8 @@ class Enemy{
     this.animateState = animateState;
     this.animationScale = animationScale;
     this.simulateTrackTime = simulateTrackTime;
+    this.obstacleAvoidanceVector = obstacleAvoidanceVector;
+    this.obstacleAvoidanceCalCount = obstacleAvoidanceCalCount;
     this.motion = motion;
     this.watchers = [...watchers];
 

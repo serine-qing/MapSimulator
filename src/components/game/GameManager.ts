@@ -443,9 +443,9 @@ class GameManager{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    // console.log = ()=>{
-    //   return;
-    // }
+    console.log = ()=>{
+      return;
+    }
 
     this.isSimulate = true;
     const simData = {
@@ -457,7 +457,6 @@ class GameManager{
       simData.byAction.push(this.get());
     };
     eventBus.on("action_index_change", fuc);
-
     let time = startTime? startTime : 0;
     const cachePause = this.pause;
     this.pause = false;

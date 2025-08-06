@@ -17,6 +17,8 @@ import btnSpeed1x from '@/assets/images/btn_speed_1x.png';
 import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
 import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
+import Notice from "@/pages/Notice.vue"
+
 
 //#region 游戏基础功能
 let mapData = null;
@@ -327,10 +329,11 @@ defineExpose({
 
 <template>
 <div class="main" v-loading="loading">
-
+  <Notice/>
   <div class="game">
-
+    
     <div class="toolbar" v-show="isStart">  
+      
       <span class="lifepoint"> {{ finishedEnemyCount }} / {{maxEnemyCount}}</span>
       <div class="time-slider">
         <el-slider 
@@ -431,6 +434,7 @@ defineExpose({
   width: 100%;
   flex-direction: column;
   overflow-y: auto;
+  position: relative;
 }
 .game{
   display: flex;

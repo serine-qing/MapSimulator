@@ -33,13 +33,14 @@ const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
           //兼容两种不同的名字
           value.trig_cnt = value.trigger_cnt;
         }
+        if(value.predelay_duration){
+          value.predelay = value.predelay_duration;
+        }
+
 
         if(enemyData.key === "enemy_10117_ymggld" || enemyData.key === "enemy_10117_ymggld_2"){ 
-          //风遁忍者天赋倍率不对 需要额外处理
-          // value.move_speed = 0.2;
+          //风遁忍者天赋上限不对 需要额外处理
           value.trig_cnt = 7 / value.move_speed;
-          // value.interval = 0.5;
-          // value.predelay = 3;
         }
         break;
     }
