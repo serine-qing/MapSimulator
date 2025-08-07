@@ -75,8 +75,10 @@ class Enemy{
   checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
 
+  simRoutes: any[] = [];         //模拟后的路径
+
   SPFA: SPFA;
-  targetNode: PathNode;  //寻路目标点
+  nextNode: PathNode;  //寻路目标点
   
   currentSecond: number = 0;      //敌人的当前时间
 
@@ -160,7 +162,7 @@ class Enemy{
     this.acceleration = new THREE.Vector2(0, 0);
     this.inertialVector = new THREE.Vector2(0, 0);
     this.velocity = new THREE.Vector2(0, 0);
-    this.targetNode = null;
+    this.nextNode = null;
 
     //敌人阴影往下偏移
     this.shadowOffset  = {
@@ -195,7 +197,7 @@ class Enemy{
     );
     this.isStarted = false;
     this.isFinished = false;
-    this.targetNode = null;
+    this.nextNode = null;
     this.animateState = 'idle';
     this.changeAnimation();
     this.changeCheckPoint(0)
@@ -232,6 +234,73 @@ class Enemy{
     if( this.currentCheckPoint() === undefined){
       this.finishedMap();
     }
+  }
+
+  public getAllPathNodes(){
+    const pathNodes = [];
+    pathNodes.push({
+      type: "move",
+      position: this.route.startPosition
+    })
+    this.route.checkpoints.forEach(checkpoint => {
+      const { position, reachOffset, type, time } = checkpoint;
+      switch (type) {
+        case "MOVE":
+          let node = this.SPFA.getPathNode(
+            position,
+            this.route.motionMode,
+            position
+          );
+
+          if(reachOffset && !node.nextNode){
+            pathNodes.push({
+              type: "move",
+              position: {
+                x: node.position.x + reachOffset.x,
+                y: node.position.y + reachOffset.y
+              }
+            });
+          }
+
+          while (node = node.nextNode) {
+            let nPos = node.position;
+            if(reachOffset){
+              nPos = {
+                x: nPos.x + reachOffset.x,
+                y: nPos.y + reachOffset.y,
+              }
+            }
+            pathNodes.push({
+              type: "move",
+              position: nPos,
+            });
+          }
+
+          break;
+        case "WAIT_FOR_SECONDS":               //等待一定时间
+        case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
+        case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
+        case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
+          pathNodes.push({
+            type: "wait",
+            time: time
+          });
+          break;
+        case "DISAPPEAR":
+          pathNodes.push({
+            type: "disappear"
+          });
+          break;
+        case "APPEAR_AT_POS":
+          pathNodes.push({
+            type: "appear",
+            position
+          });
+          break;
+      }
+    })
+    
+    return pathNodes;
   }
 
   //到达终点，退出地图
@@ -595,21 +664,16 @@ class Enemy{
 
         this.updateNextNode(currentNode);
 
-        let {position, nextNode} = this.targetNode;
+        let {position, nextNode} = this.nextNode;
         let targetPos = new THREE.Vector2(position.x,position.y);
 
-        let arrivalDistance = 0.05; //距离下个地块中心多少距离后才会更改方向
         //当前地块没有nextnode，意为当前就是该检查点终点
         if(nextNode === null){
           //nextNode为null时，目前为检查点终点，这时候就要考虑偏移(reachOffset)了
           targetPos.x += reachOffset.x;
           targetPos.y += reachOffset.y;
-        }else{
-          //若自身光标坐标进入了经过的前一地块的nextNode,
-          //但还未到达此地块中心0.25半径范围内，则目标仍然为当前光标坐标所在地块中心
-          arrivalDistance = 0.25;
         }
-
+        
         // const roundX = Math.round(currentPosition.x)
         // const roundY = Math.round(currentPosition.y)
 
@@ -634,10 +698,10 @@ class Enemy{
           if(simVelocity.length() >= simDistanceToTarget){
             this.position = targetPos.clone();
             this.velocity = simVelocity;
-            this.targetNode = this.targetNode?.nextNode;
+            this.nextNode = this.nextNode?.nextNode;
 
             //完成最后一个寻路点
-            if( this.targetNode === null || this.targetNode === undefined ){
+            if( this.nextNode === null || this.nextNode === undefined ){
               this.nextCheckPoint();
             }
             
@@ -699,18 +763,15 @@ class Enemy{
 
           this.setVelocity(velocity);
           this.move();
-
+            
           const distanceToTarget = currentPosition.distanceTo(targetPos);
 
-          //第二种切换targetNode的逻辑，进入目标点中心一定范围
-          if( distanceToTarget <= arrivalDistance ){
-            this.targetNode = this.targetNode?.nextNode;
+          //到达检查点终点
+          if( distanceToTarget <= 0.05 &&
+            (this.nextNode === null || this.nextNode === undefined)
+          ){
 
-            //完成最后一个寻路点
-            if( this.targetNode === null || this.targetNode === undefined ){
-              this.nextCheckPoint();
-            }
-            
+            this.nextCheckPoint();
             break;
           }
         }
@@ -727,23 +788,7 @@ class Enemy{
       case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
       case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
-        let countDownTime = 0;
-        switch (type){
-          case "WAIT_FOR_SECONDS":
-            countDownTime = time;
-            break;
-          case "WAIT_FOR_PLAY_TIME":
-            countDownTime = time - this.waveManager.gameSecond; 
-            break;
-          case "WAIT_CURRENT_FRAGMENT_TIME":
-            countDownTime = time - this.waveManager.waveSecond + this.fragmentTime;
-            break;
-          case "WAIT_CURRENT_WAVE_TIME": 
-            countDownTime = time - this.waveManager.waveSecond;
-            break;
-        }
-        
-        this.countdown.addCountdown("checkPoint", countDownTime, () => {
+        this.countdown.addCountdown("checkPoint", this.getWaitTime(type, time), () => {
           this.nextCheckPoint();
         });
         
@@ -783,20 +828,49 @@ class Enemy{
       //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
       if(
         //兼容第一次执行的情况
-        this.targetNode === null ||
-        //是否到达新地块用this.targetNode !== currentNode.nextNode 判断，意思是当前目标node不是光标地块的nextNode
-        //到达新地块，并且新地块不是上个地块的nextNode：直接将targetNode切换为新地块的nextNode
-        (this.targetNode !== currentNode.nextNode && this.targetNode !== currentNode)
+        this.nextNode === null ||
+        //当前nextNode既不是当前光标地块，也不是当前光标地块的nextNode，直接切换nextNode
+        (this.nextNode !== currentNode.nextNode && this.nextNode !== currentNode)
       ){
-
         //如果currentNode没有nextNode，就是检查点终点
-        this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+        this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+      }else if(this.nextNode === currentNode){
+        //检查点终点
+        if(currentNode.nextNode === null) return;
+
+        //若自身光标坐标进入了经过的前一地块的nextNode，但还未到达此地块中心0.25半径范围内，则目标仍然为当前光标坐标所在地块中心
+        const distance = this.position.distanceTo(currentNode.position as THREE.Vector2);
+
+        if(distance <= 0.25){
+          this.nextNode = currentNode.nextNode;
+        }
+
       }
     }else{
-      this.targetNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+      this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
     }
 
 
+  }
+
+  private getWaitTime(type: string, time: number): number{
+    let countDownTime = 0;
+    switch (type){
+      case "WAIT_FOR_SECONDS":
+        countDownTime = time;
+        break;
+      case "WAIT_FOR_PLAY_TIME":
+        countDownTime = time - this.waveManager.gameSecond; 
+        break;
+      case "WAIT_CURRENT_FRAGMENT_TIME":
+        countDownTime = time - this.waveManager.waveSecond + this.fragmentTime;
+        break;
+      case "WAIT_CURRENT_WAVE_TIME": 
+        countDownTime = time - this.waveManager.waveSecond;
+        break;
+    }
+
+    return countDownTime;
   }
 
   //视图相关的更新
@@ -1198,7 +1272,7 @@ class Enemy{
       inertialVector: this.inertialVector,
       checkPointIndex: this.checkPointIndex,
       faceToward: this.faceToward,
-      targetNode: this.targetNode,
+      nextNode: this.nextNode,
       isStarted: this.isStarted,
       currentSecond: this.currentSecond,
       isFinished: this.isFinished,
@@ -1224,7 +1298,7 @@ class Enemy{
       inertialVector,
       checkPointIndex, 
       faceToward,
-      targetNode,
+      nextNode,
       isStarted, 
       isFinished, 
       animateState,
@@ -1246,7 +1320,7 @@ class Enemy{
     this.inertialVector = inertialVector;
     this.checkPointIndex = checkPointIndex;
     this.faceToward = faceToward;
-    this.targetNode = targetNode;
+    this.nextNode = nextNode;
     this.isStarted = isStarted;
     this.exit = exit;
     this.currentSecond = currentSecond;
@@ -1285,7 +1359,7 @@ class Enemy{
   public destroy(){
     this.route = null;
     this.checkpoints = null;
-    this.targetNode = null;
+    this.nextNode = null;
     this.gameManager = null;
     this.skeletonData = null;
 

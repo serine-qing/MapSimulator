@@ -4,6 +4,7 @@ import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { accuracyNum, timeFormat } from "@/components/utilities/utilities";
 import Container from "@/pages/Container.vue"
+import SVGRoute from "@/pages/SVGRoute.vue"
 import GameOverMask from "@/pages/GameOverMask.vue"
 import DataTable from "@/pages/DataTable.vue"
 import TokenCards from "@/pages/TokenCards.vue"
@@ -24,6 +25,7 @@ import Notice from "@/pages/Notice.vue"
 let mapData = null;
 let mapModel: MapModel;
 let gameManager: GameManager;
+const gameManagerRef = shallowRef();
 
 const gameSpeed = ref();
 const maxSecond = ref(0);
@@ -128,7 +130,6 @@ const newGame = async (map) => {
   
   isStart.value = true;
   isFinished.value = false;
-  containerRef.value.changeGameManager(null);
   loading.value = true;
 
   mapModel = new MapModel(mapData);
@@ -142,11 +143,10 @@ const newGame = async (map) => {
   gameSpeed.value = GameConfig.GAME_SPEED;
 
   gameManager = new GameManager(mapModel);
+  gameManagerRef.value = gameManager;
   maxEnemyCount.value = gameManager.waveManager.maxEnemyCount;
 
   tokenCards.value = gameManager.tokenCards;
-  containerRef.value.changeGameManager(gameManager);
-  tokenCardsRef.value?.changeGameManager(gameManager);
 
   generateStageInfo();
   handleEnemyDatas(mapModel.enemyDatas);
@@ -391,7 +391,12 @@ defineExpose({
           :countDownCheckAll = "countDownCheckAll"
           @update:attackRangeIndet = "val => attackRangeIndet = val"
           @update:countDownIndet = "val => countDownIndet = val"
+          :gameManager = "gameManagerRef"
         ></Container>
+
+        <!-- <SVGRoute
+          :gameManager = "gameManagerRef"
+        ></SVGRoute> -->
         <GameOverMask
           v-show="isFinished"
           @restart = "restart"
@@ -399,11 +404,12 @@ defineExpose({
       </div>
       <div 
         class="game-tools"
-        v-if="tokenCards.length > 0"
+        v-show="tokenCards.length > 0"
       >
         <TokenCards
           ref = "tokenCardsRef"
           :tokenCards = "tokenCards"
+          :gameManager = "gameManagerRef"
         ></TokenCards>
       </div>
     </div>

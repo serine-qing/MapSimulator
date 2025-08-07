@@ -26,12 +26,9 @@
 </template>
 
 <script lang="ts" setup>
-import GameManager from '@/components/game/GameManager';
 import { ref, watch } from 'vue';
 
-const { tokenCards } = defineProps(["tokenCards"])
-
-let gameManager: GameManager;
+const { gameManager, tokenCards } = defineProps(["gameManager", "tokenCards"])
 
 const cards = ref([]);
 watch(() => tokenCards, () => {
@@ -57,9 +54,6 @@ const handleSelect = (card) => {
   gameManager.handleSelectTokenCard(card.characterKey);
 }
 
-const changeGameManager = (_gameManager: GameManager) => {
-  gameManager = _gameManager;
-}
 
 const update = () => {
   tokenCards.forEach(tc => {
@@ -80,9 +74,6 @@ const animate = () => {
 
 animate();
 
-defineExpose({
-  changeGameManager
-})
 </script>
 
 <style lang="scss" scoped>

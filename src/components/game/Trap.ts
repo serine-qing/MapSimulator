@@ -56,7 +56,6 @@ class Trap{
 
     this.extraData = data.extraData;
     this.countdown = this.gameManager.countdownManager.getCountdownInst();
-    this.initObject();
   }
 
   initObject(){
@@ -71,6 +70,7 @@ class Trap{
   }
 
   initMesh(){
+    this.initObject();
     GC_Add(this.object);
     this.skeletonData = this.data.skeletonData;
     this.textureMat = this.data.textureMat;

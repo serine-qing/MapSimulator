@@ -13,7 +13,7 @@
           :style = "label.style"
           v-show="label.visible"
           class="label"
-          @click="handleLabelClick(index)"
+          @click="handleLabelClick(label)"
         >
           <div  
             class="countdown"
@@ -72,7 +72,7 @@
           :style = "label.style"
           v-show="label.visible"
           class="label trap-label"
-          @click="handleLabelClick(index)"
+          @click="emit('pause')"
         >
           <div  
             class="countdown"
@@ -125,17 +125,23 @@ import exitImg from '@/assets/images/escape.png'
 import Trap from '@/components/game/Trap';
 import TrapManager from '@/components/game/TrapManager';
 import eventBus from '@/components/utilities/EventBus';
+import GameView from '@/components/game/GameView';
+
+const { gameManager, attackRangeCheckAll, countDownCheckAll } = defineProps(
+  ["gameManager","attackRangeCheckAll", "countDownCheckAll"]
+);
 
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
 const enemyLabels = ref([]);
 
-let gameManager: GameManager;
 let waveManager: WaveManager;
 let trapManager: TrapManager;
+let gameView: GameView;
 let enemies: Enemy[];
 let scale: number;
 let canvasHeight: number;
 let canvasWidth: number;
+
 //#region  敌人label数据绑定                         
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
@@ -170,13 +176,7 @@ const updateEnemyPosAndSize = () => {
     const height = skelSize.y * 5.5;
     const width = skelSize.x * 5.5;
 
-    const tempV = new THREE.Vector3();
-    enemy.skeletonMesh.getWorldPosition(tempV);
-
-    //将 3D 世界坐标投影到相机的 2D 屏幕空间
-    tempV.project(gameCanvas.camera);
-    const x = (tempV.x *  .5 + .5) * canvasWidth;
-    const y = (tempV.y * -.5 + .5) * canvasHeight;
+    const {x, y} = gameView.localToWorld(enemy.spine.position);
 
     const label = enemyLabels.value[enemy.id];
 
@@ -221,9 +221,10 @@ const updateEnemyDatas = () => {
 
 //#region  与弹出框的交互                            
 
-const {attackRangeCheckAll, countDownCheckAll} = defineProps(["attackRangeCheckAll", "countDownCheckAll"])
-
-const handleLabelClick = (index) => {
+const handleLabelClick = (label) => {
+  const enemy = enemies.find(enemy => enemy.id === label.id);
+  const nodes = enemy.getAllPathNodes();
+  eventBus.emit("changeSVGRoute", nodes);
   emit('pause');
 }
 
@@ -279,8 +280,6 @@ const handleCountDownCheck = () => {
 const showDetail = (enemyId: number) => {
   const find = enemies.find(enemy => enemy.id === enemyId);
   eventBus.emit("showDetail", find.enemyData);
-  console.log(find);
-  console.log("周围地块", find.getRoundTile())
 }
 
 //全选显示等待时间
@@ -317,11 +316,7 @@ const updateTrapSelected = () => {
   if(find){
     activeTrap = find;
 
-    const tempV = new THREE.Vector3();
-    find.object.getWorldPosition(tempV);
-    tempV.project(gameCanvas.camera);
-    const x = (tempV.x *  .5 + .5) * canvasWidth;
-    const y = (tempV.y * -.5 + .5) * canvasHeight;
+    const {x, y} = gameView.localToWorld(find.object.position);
 
     trapDialog.value.left = x -50;
     trapDialog.value.top = y -50;
@@ -346,7 +341,7 @@ let traps: Trap[] = [];
 const trapLabels = ref([]);
 
 const initTrapLabels = () => {
-  traps = trapManager.traps;
+  traps = [...trapManager.traps];
   traps.forEach((trap, index) => {
     trapLabels.value.push({
       alias: trap.alias,
@@ -362,12 +357,8 @@ const updateTrapSize = () => {
   const scale = canvasHeight / GameConfig.TILE_SIZE * 0.012;
   traps.forEach(trap => {
 
-    const tempV = new THREE.Vector3();
-    trap.object.getWorldPosition(tempV);
-    tempV.project(gameCanvas.camera);
+    const {x, y} = gameView.localToWorld(trap.object.position);
 
-    const x = (tempV.x *  .5 + .5) * canvasWidth;
-    const y = (tempV.y * -.5 + .5) * canvasHeight;
     const label = trap.labelVue;
     
     const trapHeight = gameManager.getPixelSize(GameConfig.TILE_SIZE);
@@ -436,38 +427,31 @@ const animate = () => {
 
 animate();
 
+const changeGameManager = () => {
+  enemies = [];
+  traps = [];
+  enemyLabels.value = [];
+  trapLabels.value = [];
 
+  gameView = gameManager.gameView;
+  waveManager = gameManager.waveManager;
+  trapManager = gameManager.trapManager;
+  enemies = waveManager.enemies;
 
-const changeGameManager = (_gameManager: GameManager) => {
-  if(_gameManager){
-    gameManager = _gameManager;
-    waveManager = gameManager.waveManager;
-    trapManager = gameManager.trapManager;
-    enemies = waveManager.enemies;
-
-    initEnemyLabels();
-    initTrapLabels();
-  }else{
-    gameManager = null;
-    waveManager = null;
-    trapManager = null;
-    enemies = [];
-    traps = [];
-    enemyLabels.value = [];
-    trapLabels.value = [];
-  }
+  initEnemyLabels();
+  initTrapLabels();
 }
 
-// defineExpose 来显式指定在组件中要暴露出去的属性。
-defineExpose({
-  changeGameManager
+watch(() => gameManager, () => {
+  changeGameManager();
 })
+
 
 </script>
 
 <style scoped lang="scss">
 .container{
-  height: 100%;
+  position: absolute;
   left: 0;
   right: 0;
   top: 0;
@@ -486,7 +470,7 @@ defineExpose({
   text-align: center;
   justify-content: center;
   align-items: flex-end;
-  z-index: 100;
+  z-index: 1000;
   .countdown{
     position: absolute;
     text-align: center;
@@ -518,7 +502,7 @@ defineExpose({
   }
 
   &.trap-label{
-    z-index: 10;
+    z-index: 500;
     .countdown{
       margin-bottom: 13px;
       background-color: #1f4c9f;

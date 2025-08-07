@@ -28,9 +28,9 @@ class GameView{
     this.tileManager = mapModel.tileManager;
     this.waveManager = waveManager;
     this.trapManager = trapManager;
+  }
 
-    this.mapContainer = new THREE.Object3D();
-    
+  public init(){
     this.initMap();
     this.initTraps();
     this.initEnemys();
@@ -38,6 +38,7 @@ class GameView{
 
   //初始化地图tiles
   private initMap(){
+    this.mapContainer = new THREE.Object3D();
     this.tileManager.tiles.flat().forEach((tile: Tile)=>{
       tile.gameManager = this.gameManager;
       tile.initMeshs();
@@ -56,8 +57,11 @@ class GameView{
   private initTraps(){
     this.trapManager.initMeshs();
     this.trapManager.traps.forEach(trap => {
-      this.trapObjects.add(trap.object);
-      trap.initHeight();
+      if(trap.visible){
+        this.trapObjects.add(trap.object);
+        trap.initHeight();
+      }
+
     })
     this.mapContainer.add(this.trapObjects);
   } 
@@ -72,6 +76,25 @@ class GameView{
       
     })
 
+  }
+
+  public localToWorld(position){
+    const tempV = new THREE.Vector3(
+      position.x,
+      position.y,
+      position.z? position.z : 0
+    );
+
+    this.mapContainer.localToWorld(
+      tempV
+    )
+
+    tempV.project(gameCanvas.camera);
+
+    const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
+    const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
+
+    return {x, y};
   }
 
   public render(delta: number){

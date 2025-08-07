@@ -38,6 +38,7 @@ class Tile{
   trap: Trap = null;   //当前地块上的装置
   constructor(tileData: TileData , position: Vec2){
     this.tileData = tileData;
+
     const {tileKey, heightType, buildableType, passableMask} = tileData;
 
     this.passableMask = passableMask;

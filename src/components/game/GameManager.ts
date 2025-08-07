@@ -30,7 +30,7 @@ class GameManager{
   private isDynamicsSimulate: boolean = false; 
   public maxSecond: number;
   private setData: any;       //等待去设置的模拟数据，需要在某帧的gameloop结束后调用
-  private gameView: GameView;
+  public gameView: GameView;
   public waveManager: WaveManager;
   public trapManager: TrapManager;
   public countdownManager: CountdownManager;
@@ -65,7 +65,7 @@ class GameManager{
 
     this.trapManager = new TrapManager(mapModel.trapDatas, this);
     this.waveManager = new WaveManager(this);
-    
+    this.gameView = new GameView(this);
 
     const simData = this.startSimulate();
     this.setSimulateData(simData);
@@ -81,7 +81,7 @@ class GameManager{
       
       eventBus.emit("gameStart")
 
-      this.gameView = new GameView(this);
+      this.gameView.init();
 
       this.handleMouseMove();
       this.handleClick();
@@ -235,7 +235,7 @@ class GameManager{
       this.tileManager.hiddenPreviewTextures();
       
       const find = this.intersectObjects(event.offsetX, event.offsetY);
-
+      
       if(find){
         switch (find.constructor) {
           case Trap:
@@ -407,7 +407,8 @@ class GameManager{
     this.tokenCards.forEach((tc, index) => {
       tc.set(tokenCardState[index]);
     })
-    if(this.gameView){
+
+    if(this.gameView.mapContainer){
       const trapObjects = this.gameView.trapObjects;
       while (trapObjects.children.length > 0) {
         let child = trapObjects.children[0];
