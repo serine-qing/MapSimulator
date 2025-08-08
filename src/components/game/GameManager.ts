@@ -125,6 +125,7 @@ class GameManager{
     this.timeStamp += this.delta;
 
     if(this.timeStamp >= this.singleFrameTime){
+      this.mouseMoveProcessing = false;
 
       this.timeStamp = (this.timeStamp % this.singleFrameTime);
       //游戏循环
@@ -132,7 +133,6 @@ class GameManager{
     }
 
     requestAnimationFrame(()=>{
-      this.mouseMoveProcessing = false;
       this.animate();
     });
 

@@ -223,7 +223,7 @@ const updateEnemyDatas = () => {
 
 const handleLabelClick = (label) => {
   const enemy = enemies.find(enemy => enemy.id === label.id);
-  const nodes = enemy.getAllPathNodes();
+  const nodes = enemy.visualRoutes;
   eventBus.emit("changeSVGRoute", nodes);
   emit('pause');
 }

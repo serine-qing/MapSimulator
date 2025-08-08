@@ -394,9 +394,9 @@ defineExpose({
           :gameManager = "gameManagerRef"
         ></Container>
 
-        <!-- <SVGRoute
+        <SVGRoute
           :gameManager = "gameManagerRef"
-        ></SVGRoute> -->
+        ></SVGRoute>
         <GameOverMask
           v-show="isFinished"
           @restart = "restart"

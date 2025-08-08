@@ -1,0 +1,119 @@
+<template>
+  <div class="svg-container">
+    <svg class="svg" id="active-route">
+      <path :d="paths.join()" fill="none" stroke="black" stroke-opacity="1" stroke-width="3" data-ignore="true"/>
+
+      <path
+        v-for="path in paths"
+        :d="path" fill="none" stroke="#efbcc3" stroke-opacity="1" stroke-width="2" 
+      />
+      
+    </svg>
+
+    <svg v-show="route2Show" class="svg" id="active-route-2">
+      <path
+        v-for="path in paths"
+        :d="path" fill="none" stroke="black" stroke-opacity="1" stroke-width="3" 
+      />
+    </svg>
+  </div>
+</template>
+
+<script lang="ts" setup>
+import Vivus from "vivus"
+import eventBus from '@/components/utilities/EventBus';
+import { ref } from 'vue';
+const { gameManager } = defineProps(["gameManager"])
+const paths = ref([]);
+const route2Show = ref(false);
+let frame = 0;
+const animate = () => {
+  route2Show.value = false;
+  if(frame === 1){
+    const vivus = new Vivus('active-route', { 
+      type: 'oneByOne', 
+      duration: 200,
+      start: 'autostart',   
+    });
+  }else if(frame === 30){
+    const vivus2 = new Vivus('active-route-2', { 
+      type: 'oneByOne', 
+      duration: 200,
+      start: 'autostart',   
+    });
+    route2Show.value = true;
+  }
+
+  frame++;
+  if(frame < 31){
+    requestAnimationFrame(animate)
+  }else{
+    frame = 0;
+  }
+}
+
+const createSVGRoute = (nodes) => {
+  console.log(nodes)
+  let pathStrs: string[] = [];
+  let currentNode;
+  let i = 0;
+  let pathIndex = 0;
+  while(i < nodes.length){
+    currentNode = nodes[i++];
+    const { type, position } = currentNode;
+    let currentPos;
+    let x, y;
+    if(position){
+      currentPos = gameManager.gameView.localToWorld(
+        gameManager.getCoordinate(position)
+      );
+      x = currentPos.x;
+      y = currentPos.y;
+    }
+
+    switch (type) {
+      case "start":
+        pathStrs[pathIndex] = `M ${x} ${y} `;
+        break;
+      case "move":
+        pathStrs[pathIndex] += `L ${x} ${y} `;
+        break;
+      case "appear":
+        pathIndex++;
+        pathStrs[pathIndex] = `M ${x} ${y} `;
+        break;
+    }
+
+  }
+
+  paths.value = pathStrs;
+
+  animate();
+
+}
+
+eventBus.on("changeSVGRoute", (nodes) => {
+  createSVGRoute(nodes);
+});
+
+
+</script>
+
+<style lang="scss" scoped>
+.svg-container{
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.svg{
+  position: absolute;
+  height: 100%;
+  width: 100%;
+}
+
+
+</style>

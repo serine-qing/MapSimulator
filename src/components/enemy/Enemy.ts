@@ -74,6 +74,7 @@ class Enemy{
   route: EnemyRoute;
   checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
+  visualRoutes: any;             //可视化路线
 
   simRoutes: any[] = [];         //模拟后的路径
 
@@ -178,6 +179,8 @@ class Enemy{
     this.animations = animations;
     this.moveAnimate = moveAnimate;
     this.idleAnimate = idleAnimate;
+
+    this.visualRoutes = this.getAllPathNodes();
   }
 
   public start(){
@@ -239,7 +242,7 @@ class Enemy{
   public getAllPathNodes(){
     const pathNodes = [];
     pathNodes.push({
-      type: "move",
+      type: "start",
       position: this.route.startPosition
     })
     this.route.checkpoints.forEach(checkpoint => {
@@ -820,12 +823,8 @@ class Enemy{
 
   private updateNextNode(currentNode: PathNode){
     if(this.route.visitEveryTileCenter){
-
-    }else if(this.route.visitEveryNodeCenter){
-
-    }else if(this.route.visitEveryNodeStably){
-      //核心逻辑：目标地块一直是当前光标地块的nextNode，当前为终点目标地块则为光标地块
-      //但是如果新地块是上个地块的nextNode，就进入新地块中心0.25半径再切换到新地块的nextNode  
+      
+    }else if(this.route.visitEveryNodeCenter || this.route.visitEveryNodeStably){
       if(
         //兼容第一次执行的情况
         this.nextNode === null ||
@@ -835,13 +834,14 @@ class Enemy{
         //如果currentNode没有nextNode，就是检查点终点
         this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
       }else if(this.nextNode === currentNode){
+        const arriveDistance = this.route.visitEveryNodeCenter? 0.05 : 0.25;
         //检查点终点
         if(currentNode.nextNode === null) return;
 
         //若自身光标坐标进入了经过的前一地块的nextNode，但还未到达此地块中心0.25半径范围内，则目标仍然为当前光标坐标所在地块中心
         const distance = this.position.distanceTo(currentNode.position as THREE.Vector2);
 
-        if(distance <= 0.25){
+        if(distance <= arriveDistance){
           this.nextNode = currentNode.nextNode;
         }
 
@@ -849,7 +849,6 @@ class Enemy{
     }else{
       this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
     }
-
 
   }
 

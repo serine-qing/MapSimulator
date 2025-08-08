@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 import Stats from 'three/examples/js/libs/stats.min.js'; //引入帧率检测
+import eventBus from "../utilities/EventBus";
 
 class GameCanvas{
   public wrapper: HTMLDivElement;
@@ -11,6 +12,7 @@ class GameCanvas{
   public stats: Stats;
   private width: number;
   private height: number;
+  private debounce: number; //防抖
 
   //鼠标的世界坐标
   public mouse = new THREE.Vector2();
@@ -74,12 +76,18 @@ class GameCanvas{
   }
   //循环执行
   private animate(){
+
     requestAnimationFrame(()=>{
       if( this.width !== this.wrapper.offsetWidth || this.height !== this.wrapper.offsetHeight ){
 
         this.width = this.wrapper.offsetWidth;
         this.height = this.wrapper.offsetHeight;
-        this.resize();
+
+        //防抖
+        clearTimeout(this.debounce);
+        this.debounce = setTimeout(() => {
+          this.resize()
+        }, 100);
         
         // console.log(this.renderer.info.memory )
       }
@@ -100,6 +108,8 @@ class GameCanvas{
     //更新相机投影矩阵
     this.camera.updateProjectionMatrix();
     this.render();
+    
+    eventBus.emit("resize");
   }
 
   public render() {
