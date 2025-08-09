@@ -12,6 +12,7 @@ import Action from "../game/Action";
 import { gameCanvas } from "../game/GameCanvas";
 import { Countdown } from "../game/CountdownManager";
 import Tile from "../game/Tile";
+import eventBus from "../utilities/EventBus";
 
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
@@ -32,6 +33,18 @@ interface Watcher{
 }
 
 class Enemy{
+  static shadowMaterial = new THREE.MeshBasicMaterial( { 
+    color: "#000000",
+    transparent: true, // 启用透明度
+    opacity: 0.8 // 设置透明度
+  });
+
+  static activeShadowMaterial = new THREE.MeshBasicMaterial( { 
+    color: "#FF0000",
+    transparent: true, // 启用透明度
+    opacity: 0.8 // 设置透明度
+  });
+
   enemyData: EnemyData;  //原始data数据
   tileManager: TileManager;
 
@@ -76,8 +89,6 @@ class Enemy{
   checkPointIndex: number = 0;   //目前处于哪个检查点
   visualRoutes: any;             //可视化路线
 
-  simRoutes: any[] = [];         //模拟后的路径
-
   SPFA: SPFA;
   nextNode: PathNode;  //寻路目标点
   
@@ -97,13 +108,19 @@ class Enemy{
   public skeletonMesh: any;
   public spine: THREE.Object3D;
   public shadow: THREE.Mesh;
+  public activeShadow: THREE.Mesh;
   public shadowHeight: number = 0.2;
   public attackRangeCircle: THREE.Line;         //攻击范围的圈
   
   //视图层面会修改到的选项
   public options = {
-    _attackRangeVisible: false,
-    _countDownVisible: true
+    AttackRangeVisible: null,
+    CountDownVisible: null,
+    RoutesVisible: null,         //是否可见路线
+
+    attackRangeVisible: false,
+    countDownVisible: true,
+    routesVisible: false         //是否可见路线
   }
 
   public skelOffset: Vec2;                //模型偏移
@@ -179,8 +196,6 @@ class Enemy{
     this.animations = animations;
     this.moveAnimate = moveAnimate;
     this.idleAnimate = idleAnimate;
-
-    this.visualRoutes = this.getAllPathNodes();
   }
 
   public start(){
@@ -239,77 +254,11 @@ class Enemy{
     }
   }
 
-  public getAllPathNodes(){
-    const pathNodes = [];
-    pathNodes.push({
-      type: "start",
-      position: this.route.startPosition
-    })
-    this.route.checkpoints.forEach(checkpoint => {
-      const { position, reachOffset, type, time } = checkpoint;
-      switch (type) {
-        case "MOVE":
-          let node = this.SPFA.getPathNode(
-            position,
-            this.route.motionMode,
-            position
-          );
-
-          if(reachOffset && !node.nextNode){
-            pathNodes.push({
-              type: "move",
-              position: {
-                x: node.position.x + reachOffset.x,
-                y: node.position.y + reachOffset.y
-              }
-            });
-          }
-
-          while (node = node.nextNode) {
-            let nPos = node.position;
-            if(reachOffset){
-              nPos = {
-                x: nPos.x + reachOffset.x,
-                y: nPos.y + reachOffset.y,
-              }
-            }
-            pathNodes.push({
-              type: "move",
-              position: nPos,
-            });
-          }
-
-          break;
-        case "WAIT_FOR_SECONDS":               //等待一定时间
-        case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
-        case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
-        case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
-          pathNodes.push({
-            type: "wait",
-            time: time
-          });
-          break;
-        case "DISAPPEAR":
-          pathNodes.push({
-            type: "disappear"
-          });
-          break;
-        case "APPEAR_AT_POS":
-          pathNodes.push({
-            type: "appear",
-            position
-          });
-          break;
-      }
-    })
-    
-    return pathNodes;
-  }
-
   //到达终点，退出地图
   public finishedMap(){
     this.isFinished = true;
     if(!this.gameManager.isSimulate){
+      this.options.RoutesVisible = false;
       //敌人退出地图的渐变
       this.gradientHide();
     }else{
@@ -417,20 +366,25 @@ class Enemy{
     );
 
     const geometry = new THREE.ShapeBufferGeometry( path );
-    const material = new THREE.MeshBasicMaterial( { 
-      color: "#000000",
-      transparent: true, // 启用透明度
-      opacity: 0.8 // 设置透明度
-    } );
-    const shadow = new THREE.Mesh( geometry, material );
 
+
+    const shadow = new THREE.Mesh( geometry, Enemy.shadowMaterial );
     this.shadow = shadow;
+    const activeShadow = new THREE.Mesh( geometry, Enemy.activeShadowMaterial );
+    this.activeShadow = activeShadow;
+    this.activeShadow.visible = false;
+
     shadow.position.z = this.shadowHeight;
+    activeShadow.position.z = this.shadowHeight;
     
     const shadowOffset = this.gameManager.getCoordinate(this.shadowOffset);
     shadow.position.x = shadowOffset.x;
     shadow.position.y = shadowOffset.y;
+
+    activeShadow.position.x = shadowOffset.x;
+    activeShadow.position.y = shadowOffset.y;
     this.spine.add(shadow)
+    this.spine.add(activeShadow)
   }
 
   initAttackRangeCircle(){
@@ -902,27 +856,52 @@ class Enemy{
   //视图层面的设置
   private initOptions(){
 
-    Object.defineProperty(this.options, 'attackRangeVisible', {
+    Object.defineProperty(this.options, 'AttackRangeVisible', {
       get: () => {
-        return this.options._attackRangeVisible;
+        return this.options.attackRangeVisible;
       },
       set: (value) => {
         if(this.attackRangeCircle){
-          this.options._attackRangeVisible = value;
+          this.options.attackRangeVisible = value;
           this.attackRangeCircle.visible = value;
         }
       }
     });
 
-    Object.defineProperty(this.options, 'countDownVisible', {
+    Object.defineProperty(this.options, 'CountDownVisible', {
       get: () => {
-        return this.options._countDownVisible;
+        return this.options.countDownVisible;
       },
       set: (value) => {
-        this.options._countDownVisible = value;
+        this.options.countDownVisible = value;
       }
     });
 
+    Object.defineProperty(this.options, 'RoutesVisible', {
+      get: () => {
+        return this.options.routesVisible;
+      },
+      set: (value) => {
+        const change = this.options.routesVisible !== value;
+
+        if(change){
+          this.options.routesVisible = value;
+
+          //更改阴影颜色
+          this.activeShadow.visible = value;
+          this.shadow.visible = !value;
+
+          if(this.options.routesVisible){
+            eventBus.emit("changeSVGRoute", this.visualRoutes);
+          }else{
+            eventBus.emit("changeSVGRoute", []);
+          }
+        }
+
+      }
+    });
+
+    
   }
 
   //移速倍率
@@ -1351,6 +1330,11 @@ class Enemy{
       this.visible()? this.show() : this.hide();
       this.changeFaceToward();
       this.updateShadowHeight();
+
+      if(!isStarted || isFinished){
+        //如果拖动模拟时间条到未开始或结束，就隐藏路线显示
+        this.options.RoutesVisible = false;
+      }
     }
 
   }

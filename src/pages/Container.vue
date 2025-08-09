@@ -1,7 +1,11 @@
 <template>
-  <div class="container">
+  <div 
+    class="container"
+    @click="handleContainerClick"
+  >
     <el-popover
       v-for = "(label, index) in enemyLabels"
+      :disabled= "!showEnemyMenu"
       :key = "index"
       placement="top"
       :title="label.name + '#' + (label.id + 1)"
@@ -13,12 +17,12 @@
           :style = "label.style"
           v-show="label.visible"
           class="label"
-          @click="handleLabelClick(label)"
+          @click.stop="handleLabelClick(label)"
         >
           <div  
             class="countdown"
             v-if="!label.unMoveable"
-            v-show="label.options.countDownVisible && label.countDown > -1"
+            v-show="label.options.CountDownVisible && label.countDown > -1"
             :class="{
               'big': label.countDown >= 1000,
               'middle': label.countDown >= 100 && label.countDown < 1000,
@@ -30,7 +34,7 @@
 
           <div  
             class="countdown end-countdown"
-            v-show="label.options.countDownVisible && label.endCountDown > -1"
+            v-show="label.options.CountDownVisible && label.endCountDown > -1"
             :class="{
               'big': label.endCountDown >= 1000,
               'middle': label.endCountDown >= 100 && label.endCountDown < 1000,
@@ -49,11 +53,11 @@
         <el-button @click="showDetail(label.id)">查看详情</el-button>
         <el-checkbox 
           :disabled="!enemies[index].isRanged()" 
-          v-model="label.options.attackRangeVisible" label="显示攻击范围" 
+          v-model="label.options.AttackRangeVisible" label="显示攻击范围" 
           @change = "handleAttackRangeCheck"
         />
         <el-checkbox 
-          v-model="label.options.countDownVisible" label="显示等待时间"
+          v-model="label.options.CountDownVisible" label="显示等待时间"
           @change = "handleCountDownCheck"
         />
       </div>
@@ -61,6 +65,7 @@
     
     <el-popover
       v-for = "(label, index) in trapLabels"
+      :disabled= "!showEnemyMenu"
       :key = "index"
       placement="top"
       :title="'装置id:' + label.alias"
@@ -72,11 +77,11 @@
           :style = "label.style"
           v-show="label.visible"
           class="label trap-label"
-          @click="emit('pause')"
+          @click.stop="pauseGame()"
         >
           <div  
             class="countdown"
-            v-show="label.options.countDownVisible && label.countDown > -1"
+            v-show="label.options.CountDownVisible && label.countDown > -1"
             :class="{
               'big': label.countDown >= 1000,
               'middle': label.countDown >= 100 && label.countDown < 1000,
@@ -91,7 +96,7 @@
 
       <div>
         <el-checkbox 
-          v-model="label.options.countDownVisible" label="显示倒计时"
+          v-model="label.options.CountDownVisible" label="显示倒计时"
           @change = "handleCountDownCheck"
         />
       </div>
@@ -127,8 +132,8 @@ import TrapManager from '@/components/game/TrapManager';
 import eventBus from '@/components/utilities/EventBus';
 import GameView from '@/components/game/GameView';
 
-const { gameManager, attackRangeCheckAll, countDownCheckAll } = defineProps(
-  ["gameManager","attackRangeCheckAll", "countDownCheckAll"]
+const { gameManager, attackRangeCheckAll, countDownCheckAll, showEnemyMenu } = defineProps(
+  ["gameManager","attackRangeCheckAll", "countDownCheckAll", "showEnemyMenu"]
 );
 
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
@@ -167,7 +172,7 @@ const updateEnemyVisible = () => {
 
 const updateEnemyPosAndSize = () => {
 
-  scale =  canvasHeight / GameConfig.TILE_SIZE * 0.012;
+  scale =  canvasHeight / GameConfig.OBJECT_SCALE;
 
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.spine) return;
@@ -222,10 +227,18 @@ const updateEnemyDatas = () => {
 //#region  与弹出框的交互                            
 
 const handleLabelClick = (label) => {
-  const enemy = enemies.find(enemy => enemy.id === label.id);
-  const nodes = enemy.visualRoutes;
-  eventBus.emit("changeSVGRoute", nodes);
-  emit('pause');
+  enemies.forEach(enemy => {
+    enemy.options.RoutesVisible = false;
+  })
+  const find = enemies.find(enemy => enemy.id === label.id);
+  find.options.RoutesVisible = true;
+  pauseGame();
+}
+
+const pauseGame = () => {
+  if(showEnemyMenu){
+    emit('pause');
+  }
 }
 
 //全选显示攻击范围
@@ -234,7 +247,7 @@ watch(() => attackRangeCheckAll, () => {
     const enemy = enemies[index];
 
     if(enemy.isRanged()){
-      label.options.attackRangeVisible = attackRangeCheckAll;
+      label.options.AttackRangeVisible = attackRangeCheckAll;
     }
     
   })
@@ -253,7 +266,7 @@ const handleAttackRangeCheck = () => {
 
   let count = 0;
   labels.forEach(label => {
-    if(label.options.attackRangeVisible){
+    if(label.options.AttackRangeVisible){
       count++;
     }
   })
@@ -268,7 +281,7 @@ const handleCountDownCheck = () => {
   let count = 0;
   const labels = [...enemyLabels.value, ...trapLabels.value];
   labels.forEach(label => {
-    if(label.options.countDownVisible){
+    if(label.options.CountDownVisible){
       count++;
     }
   })
@@ -286,13 +299,13 @@ const showDetail = (enemyId: number) => {
 watch(() => countDownCheckAll, () => {
   enemyLabels.value.forEach(label => {
 
-    label.options.countDownVisible = countDownCheckAll;
+    label.options.CountDownVisible = countDownCheckAll;
     
   })
 
   trapLabels.value.forEach(label => {
 
-    label.options.countDownVisible = countDownCheckAll;
+    label.options.CountDownVisible = countDownCheckAll;
     
   })
 })
@@ -354,7 +367,7 @@ const initTrapLabels = () => {
 }
 
 const updateTrapSize = () => {
-  const scale = canvasHeight / GameConfig.TILE_SIZE * 0.012;
+  const scale = canvasHeight / GameConfig.OBJECT_SCALE;
   traps.forEach(trap => {
 
     const {x, y} = gameView.localToWorld(trap.object.position);
@@ -400,6 +413,14 @@ const updateTrapDatas = () => {
   })
 }
 //#endregion
+
+
+//点击地图其他地方
+const handleContainerClick = () => {
+  enemies.forEach(enemy => {
+    enemy.options.RoutesVisible = false;
+  })
+}
 
 const update = () => {
   canvasHeight = gameCanvas.canvas.clientHeight;
@@ -456,6 +477,7 @@ watch(() => gameManager, () => {
   right: 0;
   top: 0;
   bottom: 0;
+  z-index: 600;
 }
 
 .label{
@@ -474,31 +496,32 @@ watch(() => gameManager, () => {
   .countdown{
     position: absolute;
     text-align: center;
-    line-height: 22px;
-    height: 22px;
-    width: 22px;
+    line-height: 20px;
+    height: 20px;
+    width: 20px;
     background-color: white;
     color: black;
     border-radius: 22px;
     border: 1px solid black;
     margin-left: 2px;
     margin-right: 2px;
+    margin-bottom: 5px;
   }
   .end-countdown{
     background-color: red;
     color: white;
   }
   .big{
-    height: 25px;
-    width: 25px;
-    line-height: 25px;
-    font-size: 11px;
+    height: 23px;
+    width: 23px;
+    line-height: 23px;
+    font-size: 10px;
   }
   .middle{
-    font-size: 12px;
+    font-size: 11px;
   }
   .small{
-    font-size: 15px;
+    font-size: 13px;
   }
 
   &.trap-label{

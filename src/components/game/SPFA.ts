@@ -267,9 +267,9 @@ class SPFA{
   }
 
   //motionMode：飞行还是地面 targetPoint：检查点目标点 position：当前光标位置
-  public getPathNode(targetPoint: Vec2, motionMode: string, position: THREE.Vector2 | Vec2): PathNode{
-    const x = position.x;
-    const y = position.y;
+  public getPathNode(targetPoint: Vec2, motionMode: string, currentPosition: THREE.Vector2 | Vec2): PathNode{
+    const x = currentPosition.x;
+    const y = currentPosition.y;
 
     const pathMap = this.getPathMap(targetPoint, motionMode);
 

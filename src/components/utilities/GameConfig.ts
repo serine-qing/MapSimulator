@@ -9,7 +9,9 @@ const GameConfig = {
   TILE_HEIGHT : 3/7, //高台地块的高度（按宽度为1计算）
   SIMULATE_STEP: 1,  //模拟数据间隔多少秒
   SPRITE_SIZE: [5, 4],   //雪碧图宽高
-
+  OBJECT_SCALE: 0.012
 }
+
+GameConfig.OBJECT_SCALE =  GameConfig.TILE_SIZE / GameConfig.OBJECT_SCALE ;
 
 export default GameConfig;

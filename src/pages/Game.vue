@@ -165,8 +165,9 @@ const generateStageInfo = () => {
   const {levelId, operation, cn_name, challenge: _challenge, description:_description} = mapData;
   console.log(levelId)
   title.value = `${operation} ${cn_name}`;
-  challenge.value = _challenge;
-  description.value = _description;
+
+  challenge.value = _challenge.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
+  description.value = _description.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
 
   const enemyDatas = mapModel.enemyDatas;
 
@@ -319,7 +320,7 @@ const attackRangeCheckAll = ref(false);
 const attackRangeIndet = ref(false);
 const countDownCheckAll = ref(true);
 const countDownIndet = ref(false);
-
+const showEnemyMenu = ref(false);
 
 defineExpose({
   newGame
@@ -379,6 +380,12 @@ defineExpose({
         >
           显示等待时间
         </el-checkbox>
+
+        <el-checkbox
+          v-model="showEnemyMenu"
+        >
+          点击敌人后显示菜单
+        </el-checkbox>
       </div>
     </div>
     <div class="content">
@@ -389,6 +396,7 @@ defineExpose({
           @pause = "pause = true"
           :attackRangeCheckAll = "attackRangeCheckAll"
           :countDownCheckAll = "countDownCheckAll"
+          :showEnemyMenu = "showEnemyMenu"
           @update:attackRangeIndet = "val => attackRangeIndet = val"
           @update:countDownIndet = "val => countDownIndet = val"
           :gameManager = "gameManagerRef"
@@ -507,6 +515,9 @@ defineExpose({
   width: 160px;
   background-color: white;
   padding-left: 10px;
+  ::v-deep .el-checkbox{
+    height: 20px;
+  }
 }
 
 canvas{

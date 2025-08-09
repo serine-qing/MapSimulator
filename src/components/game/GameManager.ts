@@ -444,9 +444,9 @@ class GameManager{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    console.log = ()=>{
-      return;
-    }
+    // console.log = ()=>{
+    //   return;
+    // }
 
     this.isSimulate = true;
     const simData = {

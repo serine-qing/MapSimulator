@@ -1,7 +1,6 @@
 import Action from "../game/Action";
 import GameManager from "../game/GameManager";
 import MapModel from "../game/MapModel";
-import Trap from "../game/Trap";
 import TrapManager from "../game/TrapManager";
 import Enemy from "./Enemy"
 import eventBus from "@/components/utilities/EventBus";
@@ -29,6 +28,7 @@ class WaveManager{
   public maxEnemyCount: number = 0;
   public finishedEnemyCount: number = 0;
 
+  public visualRoutes = [];
   constructor(gameManager: GameManager,){
     this.gameManager = gameManager;
     this.trapManager = gameManager.trapManager;
@@ -36,12 +36,99 @@ class WaveManager{
 
     //通过actionData生成action对象 并且和enemy trap绑定
     this.mapModel.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
+    
     this.initActions();
     this.initExtraActions();
+    this.generateVisualRoutes();  //生成模拟显示路线
 
     if(!this.gameManager.isSimulate){
       eventBus.emit("actions_init", this.actions);
     }
+  }
+  
+  private generateVisualRoutes(){
+    const routes = [...this.mapModel.routes, ...this.mapModel.extraRoutes]; 
+    routes.forEach(route => {
+      const pathNodes = this.getPathNodes(route);
+      this.enemies.forEach(enemy => {
+        if(enemy.route === route){
+          enemy.visualRoutes = pathNodes;
+        }
+      });
+    })
+
+  }
+
+  private getPathNodes(route: EnemyRoute){
+    const pathNodes = [];
+    let currentPosition = route.startPosition;
+    pathNodes.push({
+      type: "start",
+      position: currentPosition
+    })
+
+    route.checkpoints.forEach(checkpoint => {
+      const { position, reachOffset, type, time } = checkpoint;
+      switch (type) {
+        case "MOVE":
+          let node = this.mapModel.SPFA.getPathNode(
+            position,
+            route.motionMode,
+            currentPosition
+          );
+
+          if(reachOffset && !node.nextNode){
+            pathNodes.push({
+              type: "checkpoint",
+              position: {
+                x: node.position.x + reachOffset.x,
+                y: node.position.y + reachOffset.y
+              }
+            });
+            currentPosition = node.position;
+          }
+
+          while (node = node.nextNode) {
+            let nPos = node.position;
+            if(reachOffset){
+              nPos = {
+                x: nPos.x + reachOffset.x,
+                y: nPos.y + reachOffset.y,
+              }
+            }
+            pathNodes.push({
+              type: node.nextNode ? "move" : "checkpoint",
+              position: nPos,
+            });
+            currentPosition = node.position;
+          }
+
+          break;
+        case "WAIT_FOR_SECONDS":               //等待一定时间
+        case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
+        case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
+        case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
+          pathNodes.push({
+            type: "wait",
+            time: time
+          });
+          break;
+        case "DISAPPEAR":
+          pathNodes.push({
+            type: "disappear"
+          });
+          break;
+        case "APPEAR_AT_POS":
+          pathNodes.push({
+            type: "appear",
+            position
+          });
+          currentPosition = position;
+          break;
+      }
+    })
+
+    return pathNodes;
   }
 
   public initActions(){
@@ -222,6 +309,10 @@ class WaveManager{
             if(action.trap){
               action.trap.tile.bindTrap(action.trap);
               action.trap.show();
+              //模拟data set的时候会手动添加
+              if(!this.gameManager.isSimulate){
+                this.gameManager.gameView?.trapObjects?.add(action.trap.object);
+              }
             }
 
             break;

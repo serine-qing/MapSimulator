@@ -41,7 +41,7 @@ class Trap{
   labelVue: any;   //前台显示数据
   //vue中可供更改的数据
   options = {
-    countDownVisible: true
+    CountDownVisible: true
   }
   constructor(data: trapData, gameManager: GameManager){
     this.gameManager = gameManager;
