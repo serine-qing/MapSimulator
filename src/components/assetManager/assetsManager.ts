@@ -8,6 +8,8 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
 import { parseTexture } from "@/components/game/TextureHelper";
 //@ts-ignore
 import texture1 from "@/assets/texture/tiles1.png"
+import { GC_Add } from "../game/GC";
+import { unitizeFbx } from "../game/FbxHelper";
 
 
 class AssetsManager{
@@ -82,13 +84,14 @@ class AssetsManager{
     return textureOnload;
   }
 
+  //fbx的地址数组
   loadFbx(fbxs: any[]): Promise<any>{
+    const urls = fbxs.map(fbx => fbx.url)
     const promiseArr: Promise<any>[] = [];
 
-    fbxs.forEach(fbx => {
-      const { name, fbx: fbxName} = fbx;
+    urls.forEach(url => {
       const promise = new Promise((resolve , reject) => {
-        this.fbxLoader.load( `${GameConfig.BASE_URL}trap/fbx/${name}/${fbxName}.fbx`, 
+        this.fbxLoader.load( `${GameConfig.BASE_URL}${url}`, 
           (object) => {
             resolve(object);
           },
@@ -102,10 +105,47 @@ class AssetsManager{
 
       promiseArr.push(promise);
     })
+
     const fbxOnload = Promise.all(promiseArr);
+
+    const meshs: { [key:string]: any}  = {};
+
+    let returnPromise = new Promise((resolve , reject) => {
+      fbxOnload.then(res => {
+        res.forEach((group, index) => {
+          let setObj: THREE.Object3D;
+          group.traverse(object => {
+
+            //需要添加到场景中的obj
+            if(object.name === fbxs[index].fbxName){
+              setObj = object;
+            }
+            let { material: oldMat } = object
+            if(oldMat){
+              object.material =  new THREE.MeshMatcapMaterial({
+                color: oldMat.color,
+                map: oldMat.map
+              });
+
+              oldMat.dispose();
+
+            }
+          })
+          
+          GC_Add(setObj);
+          //让fbx对象的大小、方向、高度统一化
+          unitizeFbx(setObj, fbxs[index].name);
+
+          meshs[fbxs[index].name] = setObj;
+        })
+
+        resolve(meshs)
+      })
+    });
+
     this.addPromise(fbxOnload);
     
-    return fbxOnload;
+    return returnPromise;
   }
 
   addPromise(promise: Promise<any>){

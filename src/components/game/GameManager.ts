@@ -17,6 +17,7 @@ import SPFA from "./SPFA";
 import TrapManager from "./TrapManager";
 import { ElMessage } from 'element-plus'
 import { CountdownManager } from "./CountdownManager";
+import GameBuff from "./GameBuff";
 
 //游戏控制器
 class GameManager{
@@ -24,6 +25,7 @@ class GameManager{
   private clock: THREE.Clock = new THREE.Clock();
 
   public mapModel: MapModel;
+  public gameBuff: GameBuff;
   public SPFA: SPFA;
   public tileManager: TileManager;
   private simulateData: any;
@@ -54,6 +56,8 @@ class GameManager{
   constructor(mapModel: MapModel){
     //初始化敌人控制类
     this.mapModel = mapModel;
+    this.gameBuff = new GameBuff();
+
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
     this.countdownManager = new CountdownManager();

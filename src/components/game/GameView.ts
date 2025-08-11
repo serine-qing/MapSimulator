@@ -69,9 +69,9 @@ class GameView{
   public initEnemys(){
     const enemies = this.waveManager.enemies;
     enemies.forEach(enemy => {
-      enemy.initSpine();
-      if(enemy.spine){
-        this.mapContainer.add(enemy.spine);
+      enemy.initMesh();
+      if(enemy.object){
+        this.mapContainer.add(enemy.object);
       }
       
     })

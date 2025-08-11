@@ -23,14 +23,14 @@ const getTokenCards = (keys) => {
 }
 
 //获取敌人skel名
-const getSpinesKey = (keys) => {
+const getMeshsKey = (keys) => {
   return request({
     method: "post",
-    url: "/assets/getSpinesKey",
+    url: "/assets/getMeshsKey",
     data: {
       keys
     }
   })
 } 
 
-export { getTrapsKey, getTokenCards, getSpinesKey };
+export { getTrapsKey, getTokenCards, getMeshsKey };

@@ -12,9 +12,22 @@ class TileManager{
       return row.map((item: any)=>{
 
         const tile = mapData.tiles[item];
+        let tileKey = tile.tileKey;
 
+        if(tile.tileKey === "tile_grvtybtn"){
+          //重力感应机关
+          const direction = tile.blackboard.find(blackboard => 
+            blackboard.key === "source_direction"
+          )?.value;
+
+          if(direction === 0){
+            tileKey = "tile_grvtybtn_up"
+          }else if(direction === 2){
+            tileKey = "tile_grvtybtn_down"
+          }
+        }
         const tileData: TileData = {
-          tileKey: tile.tileKey,
+          tileKey,
           passableMask: AliasHelper(tile.passableMask, "passableMask"),
           heightType: AliasHelper(tile.heightType, "heightType"),
           playerSideMask: tile.playerSideMask,
@@ -27,7 +40,7 @@ class TileManager{
         return tileData;
       })
     }).reverse();
-    
+
     this.height = matrix.length;
     this.width = matrix[0]?.length;
 

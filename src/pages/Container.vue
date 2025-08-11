@@ -175,13 +175,13 @@ const updateEnemyPosAndSize = () => {
   scale =  canvasHeight / GameConfig.OBJECT_SCALE;
 
   waveManager.enemiesInMap.forEach(enemy => {
-    if(!enemy.spine) return;
-    const {skelSize, skelOffset} = enemy;
+    if(!enemy.object) return;
+    const {meshSize, meshOffset} = enemy;
     
-    const height = skelSize.y * 5.5;
-    const width = skelSize.x * 5.5;
+    const height = meshSize.y * (enemy['fbxMesh']? 1 : 5.5);
+    const width = meshSize.x * (enemy['fbxMesh']? 1 : 5.5);
 
-    const {x, y} = gameView.localToWorld(enemy.spine.position);
+    const {x, y} = gameView.localToWorld(enemy.object.position);
 
     const label = enemyLabels.value[enemy.id];
 
@@ -189,7 +189,7 @@ const updateEnemyPosAndSize = () => {
       height: height + 'px',
       width: width + 'px',
       left: x - width / 2 + 'px', 
-      top: y - height / 2 + scale * skelOffset.y + 'px',
+      top: y - height / 2 + scale * meshOffset.y + 'px',
       transform: `scale(${scale})`
     }
 
@@ -198,7 +198,7 @@ const updateEnemyPosAndSize = () => {
 
 const updateEnemyDatas = () => {
   waveManager.enemiesInMap.forEach(enemy => {
-    if(!enemy.spine) return;
+    if(!enemy.object) return;
     const label = enemyLabels.value[enemy.id];
     label.currentCheckPoint = enemy.checkPointIndex;
 
@@ -293,6 +293,7 @@ const handleCountDownCheck = () => {
 const showDetail = (enemyId: number) => {
   const find = enemies.find(enemy => enemy.id === enemyId);
   eventBus.emit("showDetail", find.enemyData);
+  console.log(find)
 }
 
 //全选显示等待时间

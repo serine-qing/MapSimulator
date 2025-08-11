@@ -20,6 +20,7 @@ const emit = defineEmits(["restart"]);
 
 <style scoped lang="scss">
 .game-over-mask{
+  z-index: 2000;
   position: absolute;
   height: 100%;
   left: 0;

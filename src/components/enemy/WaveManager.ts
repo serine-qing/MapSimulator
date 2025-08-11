@@ -4,6 +4,8 @@ import MapModel from "../game/MapModel";
 import TrapManager from "../game/TrapManager";
 import Enemy from "./Enemy"
 import eventBus from "@/components/utilities/EventBus";
+import SpineEnemy from "./SpineEnemy";
+import FbxEnemy from "./FbxEnemy";
 
 //敌人状态管理
 class WaveManager{
@@ -176,7 +178,13 @@ class WaveManager{
       switch (action.actionType) {
         
         case "SPAWN":
-          const enemy = new Enemy(actionData, this.gameManager, this);
+          let enemy;
+          if(actionData.enemyData.fbxMesh){
+            enemy = new FbxEnemy(actionData, this.gameManager, this);
+          }else{
+            enemy = new SpineEnemy(actionData, this.gameManager, this);
+          }
+          
           enemy.id = this.enemyId++;
           //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
           action.enemy = enemy;

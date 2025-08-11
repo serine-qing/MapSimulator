@@ -9,9 +9,8 @@ import GameConfig from "../utilities/GameConfig";
 //资源一开始就加载完毕，所以放到这里处理
 import assetsManager from "@/components/assetManager/assetsManager"
 import * as THREE from "three"
-import { unitizeFbx  } from "./FbxHelper";
 
-import { getTrapsKey, getSpinesKey, getTokenCards } from "@/api/assets";
+import { getTrapsKey, getMeshsKey, getTokenCards } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
@@ -63,9 +62,8 @@ class MapModel{
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
     //获取哪些敌人的spine是可用的
-    const spineUrls = await this.getEnemySpineUrls();
     //获取敌人spine
-    await this.getEnemySpines(spineUrls);
+    await this.getEnemyMeshs();
 
     this.parseExtraWave();
 
@@ -244,36 +242,7 @@ class MapModel{
       const { fbx: fbxs, spine: spines, image: images } = res.data;
 
       if(fbxs){
-        const meshs: { [key:string]: any}  = {};
-        assetsManager.loadFbx( fbxs ).then(res => {
-          res.forEach((group, index) => {
-
-            let setObj: THREE.Object3D;
-            group.traverse(object => {
-
-              //需要添加到场景中的obj
-              if(object.name === fbxs[index].fbx){
-                setObj = object;
-              }
-              let { material: oldMat } = object
-              if(oldMat){
-                object.material =  new THREE.MeshMatcapMaterial({
-                  color: oldMat.color,
-                  map: oldMat.map
-                });
-
-                oldMat.dispose();
-
-              }
-            })
-
-            
-            GC_Add(setObj);
-            //让fbx对象的大小、方向、高度统一化
-            unitizeFbx(setObj, fbxs[index].name);
-
-            meshs[fbxs[index].name] = setObj;
-          })
+        assetsManager.loadFbx( fbxs ).then(meshs => {
 
           this.trapDatas.forEach( trapData => {
             trapData.mesh = meshs[trapData.key];
@@ -664,19 +633,35 @@ class MapModel{
     this.enemyDatas = enemyDatas;
   }
 
-  private async getEnemySpineUrls(){
+  private async getEnemyMeshUrls(){
     const sNames = this.enemyDatas.map(data => data.key.replace("enemy_", ""));
-    const res = await getSpinesKey(sNames);
+    const res = await getMeshsKey(sNames);
     return res.data;
   }
 
-  private async getEnemySpines(spineUrls){
+  private async getEnemyMeshs(){
+    const meshUrls = await this.getEnemyMeshUrls();
 
     const urls = [];
     const skelNames = [];
     const atlasNames = [];
-    Object.keys(spineUrls).forEach(key => {
-      const val = spineUrls[key];
+
+    const fbxs = Object.values(meshUrls.fbx);
+
+    if(fbxs){
+      assetsManager.loadFbx( fbxs ).then(meshs => {
+
+        this.enemyDatas.forEach(data => {
+          const mesh = meshs[data.key.replace("enemy_", "")];
+          if(mesh){
+            data.fbxMesh = mesh;
+          }
+        })
+      })
+    }
+    
+    Object.keys(meshUrls.spine).forEach(key => {
+      const val = meshUrls.spine[key];
       const { skel, atlas } = val;
 
       const skelUrl = `spine/${key}/${skel}`;
@@ -695,7 +680,6 @@ class MapModel{
       const {key} = data;
       const find = urls.find(url => url.key === key.replace("enemy_", ""));
       if(find){
-
         const {atlasUrl, skelUrl} = find;
         //使用AssetManager中的name.atlas和name.png加载纹理图集。
         //传递给TextureAtlas的函数用于解析相对路径。
@@ -726,6 +710,7 @@ class MapModel{
         });
       }
     })
+
 
   }
 

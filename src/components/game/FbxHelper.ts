@@ -155,7 +155,11 @@ const specialTrap = {
   },
   trap_247_crfilm:{
     direction: Direction.RIGHT,
-  }
+  },
+
+  '1334_ristar':{
+    scaleRate: 0.85
+  },
 }
 
 //目前到trap_027_stone结束

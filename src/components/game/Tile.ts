@@ -190,7 +190,19 @@ class Tile{
     let texture = getTexture(this.tileKey);
     
     if(texture){
-      let textureScale = this.tileKey === "tile_floor"? 0.85 : 0.9;
+      let textureScale;
+      switch (this.tileKey) {
+        case "tile_floor":
+          textureScale = 0.85;
+          break;
+        case "tile_ristar_road":
+        case "tile_ristar_road_forbidden":
+          textureScale = 1;
+          break;
+        default:
+          textureScale = 0.9;
+          break;
+      }
       const textureSize = this.gameManager.getPixelSize(this.width * textureScale);
       texture.scale.set(textureSize,textureSize,1);
       this.textureObj = texture;

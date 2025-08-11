@@ -50,6 +50,7 @@ declare global {
     skelUrl?: string,
     atlasUrl?: string,
     skeletonData?: any,      //skel数据
+    fbxMesh?:any,            //已经实体化的fbxMesh
     skelHeight: number,
     skelWidth: number,
     moveAnimate: string,    //移动时的skel动画名

@@ -6,6 +6,7 @@ import { GC_Add } from "./GC";
 import Tile from "./Tile";
 import Action from "./Action";
 import { Countdown } from "./CountdownManager";
+import TrapHandler from "../entityHandler/TrapHandler";
 
 class Trap{
   gameManager: GameManager;
@@ -161,18 +162,7 @@ class Trap{
   }
 
   initSkill(){
-    switch (this.key) {
-      //土石结构的壳
-      case "trap_032_mound":
-        if(this.mainSkillLvl === 1){
-          const skin = this.fbxMesh.children[1];
-          this.fbxMesh.remove(skin);
-          GC_Add(skin);
-        }
-        break;
-    
-    }
-
+    TrapHandler.initSkill(this);
   }
 
   bindTile(tile: Tile){
