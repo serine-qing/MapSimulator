@@ -1,17 +1,14 @@
 import * as THREE from "three";
 
 import GameConfig from "@/components/utilities/GameConfig"
-import GameManager from "../game/GameManager";
 import { getAnimationSpeed } from "@/components/utilities/SpineHelper";
-import SPFA from "../game/SPFA";
 import { GC_Add } from "../game/GC";
-import TileManager from "../game/TileManager";
-import WaveManager from "./WaveManager";
 import Action from "../game/Action";
-import { gameCanvas } from "../game/GameCanvas";
 import { Countdown } from "../game/CountdownManager";
 import Tile from "../game/Tile";
 import eventBus from "../utilities/EventBus";
+import Global from "../utilities/Global";
+import EnemyHandler from "../entityHandler/EnemyHandler";
 
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
@@ -45,7 +42,6 @@ class Enemy{
   });
 
   enemyData: EnemyData;  //原始data数据
-  tileManager: TileManager;
 
   id: number;    //WaveManager中使用的id
   key: string;
@@ -54,16 +50,37 @@ class Enemy{
   name: string;
   description: string;  
   icon: string;            //敌人头像URL
-  notCountInTotal: boolean; //是否是费首要目标
+  notCountInTotal: boolean; //是否是非首要目标
 
   startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
 
   applyWay: string;      //是否是远程 RANGED:远程 ALL:全部
-  moveSpeedAddons: {[key: string]: number} = {}; //移速倍率
+
+  currentFrameSpeed: number;      //当前帧计算后的最终移速
+
   attributes: {[key: string]: number} = {};    //属性
+  //属性乘区 每帧计算
+  finalAttributes = {
+    atk: 1,
+    attackSpeed: 1,
+    baseAttackTime: 1,
+    def: 1,
+    hpRecoveryPerSec: 1,
+    magicResistance: 1,
+    massLevel: 1,
+    maxHp: 1,
+    moveSpeed: 1,
+    rangeRadius: 1,
+  };    
+
+  public gractrlSpeed: number = 1;       //重力影响的速度倍率
+
+  //属性乘区 每帧从gamebuff里面获取
+  buffs: Buff[] = [];
+
   attackSpeed: number;
-  attrChanges: {[key: string]: any[]}    //属性加成
+  attrChanges: {[key: string]: any[]}    //基础属性变化
 
   talents: any[];          //天赋
   skills: any[];           //技能
@@ -88,7 +105,6 @@ class Enemy{
   checkPointIndex: number = 0;   //目前处于哪个检查点
   visualRoutes: any;             //可视化路线
 
-  SPFA: SPFA;
   nextNode: PathNode;  //寻路目标点
   
   currentSecond: number = 0;      //敌人的当前时间
@@ -100,7 +116,7 @@ class Enemy{
   isFinished: boolean = false;
   exitCountDown: number = 0;   //隐藏spine的渐变倒计时
 
-  private rush;
+  public rush;
 
   public exit: boolean = false;
 
@@ -125,23 +141,16 @@ class Enemy{
 
   protected animateState: string = "idle";  //当前处于什么动画状态 idle/move
   protected animations: any[];
-  protected moveAnimate: string;   //移动的动画名
-  protected idleAnimate: string;   //站立的动画名
+  public moveAnimate: string;   //移动的动画名
+  public idleAnimate: string;   //站立的动画名
   public meshOffset: Vec2;                //模型偏移
   public meshSize: Vec2;                //模型宽高
   protected ZOffset: number = 0;             //模型Z轴位移
   protected animationScale: number = 1.0;  //动画执行速率
   public hasBirthAnimation: boolean = false; //是否有出生动画
   public simulateTrackTime: number;      //动画执行time
-
-  public gameManager: GameManager;
-  public waveManager: WaveManager;
   
-  constructor(action: ActionData, gameManager: GameManager, waveManager: WaveManager){
-    this.gameManager = gameManager;
-    this.waveManager = waveManager;
-    this.tileManager = gameManager.tileManager;
-    this.SPFA = gameManager.SPFA;
+  constructor(action: ActionData){
 
     this.enemyData = action.enemyData;
     this.startTime = action.startTime;
@@ -188,7 +197,7 @@ class Enemy{
 
     this.initOptions();
 
-    const countdownManager = this.gameManager.countdownManager;
+    const countdownManager = Global.countdownManager;
     this.countdown = countdownManager.getCountdownInst();
 
     this.animations = animations;
@@ -232,9 +241,9 @@ class Enemy{
   }
 
   public setObjectPosition(x: number, y: number){
-    if(this.gameManager.isSimulate || !this.object) return;
+    if(Global.gameManager.isSimulate || !this.object) return;
 
-    const Vec2 = this.gameManager.getCoordinate(x, y);
+    const Vec2 = Global.gameManager.getCoordinate(x, y);
 
     this.object.position.x = Vec2.x;
     this.object.position.y = Vec2.y;
@@ -265,7 +274,9 @@ class Enemy{
   //到达终点，退出地图
   public finishedMap(){
     this.isFinished = true;
-    if(!this.gameManager.isSimulate){
+    EnemyHandler.finishedMap(this);
+    
+    if(!Global.gameManager.isSimulate){
       this.options.RoutesVisible = false;
       //敌人退出地图的渐变
       this.gradientHide();
@@ -283,8 +294,8 @@ class Enemy{
   }
 
   initShadow(){
-    const majorAxis = this.gameManager.getPixelSize(0.35); //椭圆长轴
-    const minorAxis = this.gameManager.getPixelSize(0.08); //椭圆短轴
+    const majorAxis = Global.gameManager.getPixelSize(0.35); //椭圆长轴
+    const minorAxis = Global.gameManager.getPixelSize(0.08); //椭圆短轴
 
     const path = new THREE.Shape();
     path.absellipse(
@@ -307,7 +318,7 @@ class Enemy{
     shadow.position.z = this.shadowHeight;
     activeShadow.position.z = this.shadowHeight;
     
-    const shadowOffset = this.gameManager.getCoordinate(this.shadowOffset);
+    const shadowOffset = Global.gameManager.getCoordinate(this.shadowOffset);
     shadow.position.x = shadowOffset.x;
     shadow.position.y = shadowOffset.y;
 
@@ -319,7 +330,7 @@ class Enemy{
 
   initAttackRangeCircle(){
     if(this.isRanged()){
-      const radius = this.gameManager.getPixelSize(this.attributes.rangeRadius);
+      const radius = Global.gameManager.getPixelSize(this.attributes.rangeRadius);
       const curve = new THREE.EllipseCurve(
         0,  0,            // ax, aY
         radius, radius,           // xRadius, yRadius
@@ -363,11 +374,11 @@ class Enemy{
 
   //飞行单位根据是否在高台，修改阴影高度
   updateShadowHeight(){
-    if(this.gameManager.isSimulate || !this.isFly()) return;
+    if(Global.gameManager.isSimulate || !this.isFly()) return;
     
     const x = Math.round(this.position.x);
     const y = Math.round(this.position.y);
-    const currentTile = this.tileManager.getTile(x, y);
+    const currentTile = Global.tileManager.getTile(x, y);
     if( currentTile.passableMask === "ALL" ){
       //地面
       this.shadow.position.z = this.shadowHeight
@@ -399,7 +410,7 @@ class Enemy{
   public getRoundTile(){
     const x = this.tilePosition.x;
     const y = this.tilePosition.y;
-    const tileManager = this.gameManager.tileManager;
+    const tileManager = Global.gameManager.tileManager;
     return {
       leftTop: tileManager.getTile(x-1, y+1),
       top: tileManager.getTile(x, y+1),
@@ -493,6 +504,7 @@ class Enemy{
     if(this.isFinished) return;
 
     this.obstacleAvoidanceCalCount = Math.max(this.obstacleAvoidanceCalCount - 1, 0);
+    this.updateAttrs();
     this.updateAction(delta);
 
     const watcherFuncs = this.watchers.map(watcher => watcher.function);
@@ -528,7 +540,7 @@ class Enemy{
 
         const currentPosition = this.position;
 
-        const currentNode = this.SPFA.getPathNode(
+        const currentNode = Global.SPFA.getPathNode(
           this.currentCheckPoint().position,
           this.motion,
           this.tilePosition
@@ -541,11 +553,11 @@ class Enemy{
           this.motion = "FLY";
           this.notCountInTotal = true;
           this.action.dontBlockWave = true;
-            const tile = this.tileManager.getTile(this.getIntPosition());
+            const tile = Global.tileManager.getTile(this.getIntPosition());
             this.ZOffset = tile.height;
 
           if(this.object){
-            this.object.position.z = this.gameManager.getPixelSize(this.ZOffset);
+            this.object.position.z = Global.gameManager.getPixelSize(this.ZOffset);
           }
           return;
         }
@@ -568,17 +580,20 @@ class Enemy{
         // //光标距离最近地块中心的长度
         // const distanceToCenter = currentPosition.distanceTo(new THREE.Vector2(roundX, roundY))
         // console.log(distanceToCenter)
-        const actualSpeed = this.actualSpeed();
+
         const perFrame = 1 / GameConfig.FPS;
         //让敌人移动更平滑
-        for(let i = 0; i < this.gameManager.gameSpeed; i++){
+        for(let i = 0; i < Global.gameManager.gameSpeed; i++){
 
-          
           //给定方向向量
           this.unitVector = new THREE.Vector2(
             targetPos.x - currentPosition.x,
             targetPos.y - currentPosition.y
           ).normalize();
+
+          //计算当前移速
+          this.updateCurrentFrameSpeed();
+          const actualSpeed = this.currentFrameSpeed * 0.5;
 
           //todo 重复代码
           const simVelocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
@@ -595,6 +610,7 @@ class Enemy{
             
             break;
           }
+          //end 重复代码
 
           if(this.obstacleAvoidanceCalCount === 0){
             //计算避障力
@@ -744,13 +760,13 @@ class Enemy{
         countDownTime = time;
         break;
       case "WAIT_FOR_PLAY_TIME":
-        countDownTime = time - this.waveManager.gameSecond; 
+        countDownTime = time - Global.waveManager.gameSecond; 
         break;
       case "WAIT_CURRENT_FRAGMENT_TIME":
-        countDownTime = time - this.waveManager.waveSecond + this.fragmentTime;
+        countDownTime = time - Global.waveManager.waveSecond + this.fragmentTime;
         break;
       case "WAIT_CURRENT_WAVE_TIME": 
-        countDownTime = time - this.waveManager.waveSecond;
+        countDownTime = time - Global.waveManager.waveSecond;
         break;
     }
 
@@ -819,104 +835,95 @@ class Enemy{
       }
     });
 
-    
+  }
+
+  private resetFinalAttributes(){
+    this.finalAttributes.atk = this.attributes.atk;
+    this.finalAttributes.attackSpeed = this.attributes.attackSpeed;
+    this.finalAttributes.baseAttackTime = this.attributes.baseAttackTime;
+    this.finalAttributes.def = this.attributes.def;
+    this.finalAttributes.hpRecoveryPerSec = this.attributes.hpRecoveryPerSec;
+    this.finalAttributes.magicResistance = this.attributes.magicResistance;
+    this.finalAttributes.massLevel = this.attributes.massLevel;
+    this.finalAttributes.maxHp = this.attributes.maxHp;
+    this.finalAttributes.moveSpeed = this.attributes.moveSpeed;
+    this.finalAttributes.rangeRadius = this.attributes.rangeRadius;
+  }
+
+  private updateAttrs(){
+    this.resetFinalAttributes();
+    const muls = {
+      atk: 1, attackSpeed: 1, baseAttackTime: 1, def: 1, hpRecoveryPerSec: 1,
+      magicResistance: 1, massLevel: 1, maxHp: 1, moveSpeed: 1, rangeRadius: 1,
+    }
+    const adds = {
+      atk: 0, attackSpeed: 0, baseAttackTime: 0, def: 0, hpRecoveryPerSec: 0,
+      magicResistance: 0, massLevel: 0, maxHp: 0, moveSpeed: 0, rangeRadius: 0,
+    }
+
+    const applyedKeys = [];
+    this.buffs.forEach(buff => {
+      if(buff.overlay === false){
+        if(applyedKeys.includes(buff.key)) return;
+        applyedKeys.push(buff.key);
+      }
+
+      buff.effect?.forEach(effect => {
+        if(effect.method === "add"){
+          adds[effect.attrKey] += effect.value;
+        }else if(effect.method === "mul"){
+          muls[effect.attrKey] *= effect.value;
+        }
+      })
+    })
+
+    for (let attrKey in muls){
+      this.finalAttributes[attrKey] *= muls[attrKey];
+    }
+
+    for (let attrKey in adds){
+      this.finalAttributes[attrKey] += adds[attrKey];
+    }
+  }
+
+  public getAttr(attrName: string){
+    if(attrName === "moveSpeed") {
+      return this.finalAttributes[attrName] * this.gractrlSpeed; 
+    }
+    return this.finalAttributes[attrName];
+  }
+
+  public addBuff(buff: Buff){
+    this.removeBuff(buff.id);
+    this.buffs.push(buff);
+  }
+
+  public removeBuff(id: string){
+    const findIndex = this.buffs.findIndex(buff => buff.id === id);
+    if(findIndex > -1) this.buffs.splice(findIndex, 1);
+  }
+
+  public updateCurrentFrameSpeed(){
+    //计算特殊buff，在不同的更新周期中执行
+    //例如重力影响速度，需要在计算速度之前先读取buffs
+    EnemyHandler.updateBuffAfterUnitVector(this);
+
+    this.currentFrameSpeed = this.getAttr("moveSpeed");
   }
 
   //移速倍率
   public speedRate(): number{
-    let speedRate = 1;
-    const values = Object.values(this.moveSpeedAddons);
-    if(values.length > 0){
-      speedRate = Object.values(this.moveSpeedAddons).reduce((prev, key) => prev * key);
-    }
-    
-    return speedRate;
+    return this.currentFrameSpeed / this.attributes.moveSpeed;
   }
 
-  //实际移速
-  public actualSpeed(): number{
-    return this.attributes.moveSpeed * this.speedRate() * 0.5;
-  }
 
   private handleBirthAnimation(){
-    if(this.hasBirthAnimation){
-      switch (this.key) {
-        //压力舒缓帮手
-        case "enemy_10119_ymgbxm":
-        case "enemy_10119_ymgbxm_2":
-          this.animationStateTransition({
-            moveAnimate: this.moveAnimate,
-            idleAnimate: this.idleAnimate,
-            transAnimation: "Start",
-            animationScale: 1,
-            isWaitTrans: true
-          })
-          break;
-      }
-    }
+    EnemyHandler.handleBirthAnimation(this);
   }
 
   private handleTalents(){
-    // if(this.talents) console.log(this.talents)
     this.talents?.forEach(talent => {
-      const {move_speed, interval, duration, trig_cnt, unmove_duration} = talent.value;
-      let waitTime;
-      switch (talent.key) {
-        case "rush":
-          if(move_speed && interval && trig_cnt){
-            this.rush = talent.value;
-          }
-          
-          break;
-        case "revive":   //萨卡兹魔剑士、恶咒者
-        case "sleepwalking": //钵海收割者
-          if( unmove_duration ){
-            this.countdown.addCountdown("checkPoint", unmove_duration);
-          }
-          break;
-        case "wait": //念旧
-        case "sleep": //驮兽
-          waitTime = duration || interval;
-          const callback = () => {};
-          if( waitTime ){
-            this.countdown.addCountdown("checkPoint", waitTime, () => {
-              switch (this.key) {
-                //念旧
-                case "enemy_10057_cjstel":
-                case "enemy_10057_cjstel_2":
-                  this.motion = "FLY"
-                  break;
-              }
-            });
-
-          }
-
-
-          break;
-        case "timeup":  //prts 岁相等
-          waitTime = duration || interval;
-          if(waitTime){
-            this.countdown.addCountdown("end", waitTime - this.waveManager.gameSecond, () => {
-              this.finishedMap();
-            });
-          }
-            
-          break;
-
-        case "endhole":  //土遁忍者
-          this.idleAnimate = "Invisible";
-          this.changeAnimation();
-          this.countdown.addCountdown("checkPoint", duration, () => {
-            this.animationStateTransition({
-              moveAnimate: "Move",
-              idleAnimate: "Idle",
-              transAnimation: "Start",
-              animationScale: 0.22,
-              isWaitTrans: true
-            })
-          });
-          break;
-      }
+      EnemyHandler.handleTalent(this, talent);
     })
   }
 
@@ -924,61 +931,11 @@ class Enemy{
     // if(this.skills.length > 0) console.log(this.skills)
     
     this.skills?.forEach(skill => {
-      let countdown =  skill.initCooldown;
-
-      switch (skill.prefabKey) {
-        case "doom":
-          
-          if(this.key === "enemy_1521_dslily"){
-            //昆图斯需要加上前两个阶段的时间
-            const growup1 = this.getTalent("growup1");
-            const growup2 = this.getTalent("growup2");
-            countdown += growup1.interval + growup2.interval;
-          }
-          this.countdown.addCountdown("end", countdown, () => {
-            this.finishedMap();
-          })
-          break;
-        case "switchmodetrigger":
-          if(this.key === "enemy_10116_ymgtop" || this.key === "enemy_10116_ymgtop_2"){ //水遁忍者
-
-            this.countdown.addCountdown("switchmodetrigger", countdown, () => {
-              this.animationStateTransition({
-                moveAnimate: "Skill_Loop",
-                idleAnimate: "Skill_Loop",
-                transAnimation: "Skill_Begin",
-                isWaitTrans: true
-              })
-            })
-          }
-
-          break;
-
-        case "takeoff":
-          //风遁忍者
-          if(this.key === "enemy_10117_ymggld" || this.key === "enemy_10117_ymggld_2"){
-            this.addWatcher({
-              name: "takeoff",
-              function: () => {
-                if(this.speedRate() >= 8){
-                  this.animationStateTransition({
-                    moveAnimate: "Fly_Move",
-                    idleAnimate: "Fly_Idle",
-                    transAnimation: "Fly_Begin",
-                    animationScale: 0.35,
-                    isWaitTrans: true
-                  });
-                  this.removeWatcher("takeoff");
-                }
-              }
-            });
-          }
-          break;
-      }
+      EnemyHandler.handleSkill(this, skill);
     });
   }
 
-  private getTalent(key: string){
+  public getTalent(key: string){
     const find = this.talents.find(talent => talent.key === key);
     return find? find.value : null;
   }
@@ -988,11 +945,11 @@ class Enemy{
     return find? find : null;
   }
 
-  private addWatcher(watcher: Watcher){
+  public addWatcher(watcher: Watcher){
     this.watchers.push(watcher);
   }
 
-  private removeWatcher(name: string){
+  public removeWatcher(name: string){
     const index = this.watchers.findIndex(watcher => watcher.name === name);
     if(index > -1){
       this.watchers.splice(index, 1);
@@ -1010,24 +967,36 @@ class Enemy{
         ), 
         trig_cnt
       );
-      this.moveSpeedAddons.rush = trigNum * move_speed + 1;
+
+      //todo 性能问题
+      this.addBuff({
+        id: "rush",
+        key: "rush",
+        overlay: false,
+        effect: [{
+          attrKey:"moveSpeed",
+          method: "mul",
+          value: trigNum * move_speed + 1
+        }]
+      });
+
     }
   }
 
   public show(){
     this.exit = false;
-    if(!this.gameManager.isSimulate && this.object) this.object.visible = true;
+    if(!Global.gameManager.isSimulate && this.object) this.object.visible = true;
   }
 
   public hide(){  
     this.exit = true;
-    if(!this.gameManager.isSimulate && this.object) this.object.visible = false;
+    if(!Global.gameManager.isSimulate && this.object) this.object.visible = false;
   }
 
   //渐变退出，用exitCountDown时间控制（不同的子类有不同的实现方法）
   private gradientHide(){  
     this.exit = true;
-    if(!this.gameManager.isSimulate) {
+    if(!Global.gameManager.isSimulate) {
       this.exitCountDown = 1;
     }
   }
@@ -1035,9 +1004,6 @@ class Enemy{
   public visible(): boolean{
     return this.isStarted && !this.exit;
   }
-
-
-
 
   //根据速度方向更换spine方向
   protected changeFaceToward(){
@@ -1070,7 +1036,7 @@ class Enemy{
   }
 
   //动画状态机发生转换
-  private animationStateTransition(transition: AnimateTransition){
+  public animationStateTransition(transition: AnimateTransition){
 
     //transAnimation: 是否有过渡动画
     //isWaitTrans: 进行过渡动画时是否停止移动
@@ -1107,7 +1073,7 @@ class Enemy{
   }
 
   //更改动画
-  protected changeAnimation(){
+  public changeAnimation(){
     this.simulateTrackTime = 0;
   }
 
@@ -1137,7 +1103,8 @@ class Enemy{
       obstacleAvoidanceVector: this.obstacleAvoidanceVector, 
       obstacleAvoidanceCalCount: this.obstacleAvoidanceCalCount,
       motion: this.motion,
-      watchers: [...this.watchers]
+      watchers: [...this.watchers],
+      buffs: [...this.buffs]
     }
 
     return state;
@@ -1163,7 +1130,8 @@ class Enemy{
       obstacleAvoidanceVector,
       obstacleAvoidanceCalCount,
       motion,
-      watchers
+      watchers,
+      buffs
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -1186,6 +1154,7 @@ class Enemy{
     this.obstacleAvoidanceCalCount = obstacleAvoidanceCalCount;
     this.motion = motion;
     this.watchers = [...watchers];
+    this.buffs = [...buffs];
 
     if(this.object){
       //恢复当前动画状态
@@ -1216,7 +1185,6 @@ class Enemy{
     this.route = null;
     this.checkpoints = null;
     this.nextNode = null;
-    this.gameManager = null;
     this.object = null;
   }
 

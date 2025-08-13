@@ -1,29 +1,69 @@
-interface Effect{
-  key: string,
-  method: string,               //加法：add / 乘法：mul
-  value: number                 //具体数值
-}
-
-interface Buff{
-  key: string,
-  enemy?: string[],                  //包括哪些敌人
-  enemyExclude?: string[],           //不包括哪些敌人
-  effect?: Effect[],
-  duration?: number,                 //持续时间
-}
+import Enemy from "../enemy/Enemy";
+import Global from "../utilities/Global";
 
 class GameBuff{
-  public buffs: Buff[];
+  public buffs:Buff[] = [];
   constructor(){
     
   }
 
-  addBuff(buff: Buff){
+  addGlobalBuff(buffParam: BuffParam){
+    this.buffs.push({
+      id: buffParam.id,
+      key: buffParam.key,
+      overlay: buffParam.overlay ? true : false,
+      effect: buffParam.effect,
+      countdown: buffParam.duration
+    });
+  }
 
+  addEnemyBuff(buffParam: BuffParam){
+    let enemies: Enemy[];
+    switch ( buffParam.applyType ) {
+      case "all":
+        enemies = Global.waveManager.enemies;
+        break;
+      case "enemiesInMap":
+        enemies = Global.waveManager.enemiesInMap;
+        break;
+    }
+    const buff: Buff = {
+      id: buffParam.id,
+      key: buffParam.key,
+      overlay: buffParam.overlay ? true : false,
+      effect: buffParam.effect,
+      countdown: buffParam.duration
+    }
+
+    enemies.forEach(enemy => {
+      if(
+        ( !buffParam.enemy && !buffParam.enemyExclude ) ||
+        ( buffParam.enemy && buffParam.enemy.includes(enemy.key) ) ||
+        ( buffParam.enemyExclude && !buffParam.enemyExclude.includes(enemy.key) )
+      ){
+        enemy.addBuff(buff)
+      }
+
+    })
+  }
+
+  removeEnemyBuff(id: string){
+    Global.waveManager.enemies.forEach(enemy => {
+      enemy.removeBuff(id);
+    })
   }
 
   update(delta: number){
 
+  }
+
+  
+  public get() {
+    
+  }
+  
+  public set() {
+    
   }
 }
 

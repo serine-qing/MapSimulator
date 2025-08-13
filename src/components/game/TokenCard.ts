@@ -1,5 +1,5 @@
+import Global from "../utilities/Global";
 import { Countdown } from "./CountdownManager";
-import GameManager from "./GameManager";
 
 class TokenCard{
   initialCnt: number;
@@ -20,12 +20,11 @@ class TokenCard{
   cost: number;     //费用
   respawntime: number;   //再部署时间
 
-  gameManager: GameManager;
   countdown: Countdown;
 
   cardVue: any;   //vue proxy对象
 
-  constructor(data, gameManager: GameManager){
+  constructor(data){
     this.initialCnt = data.initialCnt;
     this.hidden = data.hidden;
     this.alias = data.alias;
@@ -43,8 +42,7 @@ class TokenCard{
 
     this.currentCnt = this.initialCnt;
 
-    this.gameManager = gameManager;
-    this.countdown = gameManager.countdownManager.getCountdownInst();
+    this.countdown = Global.gameManager.countdownManager.getCountdownInst();
   }
 
   //选择

@@ -1,15 +1,13 @@
 import * as THREE from "three";
-import GameManager from "./GameManager";
 import GameConfig from "../utilities/GameConfig";
 import spine from "@/assets/script/spine-threejs.js";
 import { GC_Add } from "./GC";
 import Tile from "./Tile";
-import Action from "./Action";
 import { Countdown } from "./CountdownManager";
 import TrapHandler from "../entityHandler/TrapHandler";
+import Global from "../utilities/Global";
 
 class Trap{
-  gameManager: GameManager;
   data: trapData;  //原始数据
   isTokenCard: boolean = false;  //是否是待部署区装置
   iconUrl: string; 
@@ -44,8 +42,7 @@ class Trap{
   options = {
     CountDownVisible: true
   }
-  constructor(data: trapData, gameManager: GameManager){
-    this.gameManager = gameManager;
+  constructor(data: trapData){
     this.data = data;
     this.isTokenCard = data.isTokenCard;
     this.key = data.key;
@@ -56,12 +53,14 @@ class Trap{
     this.visible = !data.hidden;
 
     this.extraData = data.extraData;
-    this.countdown = this.gameManager.countdownManager.getCountdownInst();
+    this.countdown = Global.gameManager.countdownManager.getCountdownInst();
+
+    this.initSkill();
   }
 
   initObject(){
     this.object = new THREE.Object3D();
-    const coordinate = this.gameManager.getCoordinate(this.position);
+    const coordinate = Global.gameManager.getCoordinate(this.position);
     this.object.position.x = coordinate.x;
     this.object.position.y = coordinate.y;
 
@@ -90,8 +89,18 @@ class Trap{
     }
 
     this.initHeight();
-    //初始化技能（目前就是影响一些外观）
-    this.initSkill();
+
+    switch (this.key) {
+      //土石结构的壳
+      case "trap_032_mound":
+        if(this.mainSkillLvl === 1){
+          const skin = this.fbxMesh.children[1];
+          this.fbxMesh.remove(skin);
+          GC_Add(skin);
+        }
+        break;
+    }
+    
   }
 
   initHeight(){
@@ -103,10 +112,10 @@ class Trap{
 
     }else if(this.skeletonData){
 
-      this.object.position.z = this.gameManager.getPixelSize(height + 1/14) ;
+      this.object.position.z = Global.gameManager.getPixelSize(height + 1/14) ;
 
     }else if(this.textureMat){
-      this.object.position.z = this.gameManager.getPixelSize(height) + 0.15;
+      this.object.position.z = Global.gameManager.getPixelSize(height) + 0.15;
 
     }
   }
@@ -140,7 +149,7 @@ class Trap{
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.object.add(this.skeletonMesh);
-    this.skeletonMesh.position.y = this.gameManager.getPixelSize(-1/4);
+    this.skeletonMesh.position.y = Global.gameManager.getPixelSize(-1/4);
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     
     this.skeletonMesh.state.setAnimation(
@@ -152,7 +161,7 @@ class Trap{
   }
 
   initTexture(){
-    const textureSize = this.gameManager.getPixelSize(1);
+    const textureSize = Global.gameManager.getPixelSize(1);
     const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
     this.textureMesh = new THREE.Mesh(textureGeo, this.textureMat);
     GC_Add(textureGeo);
@@ -195,7 +204,7 @@ class Trap{
         const duration = this.extraData.find(data => data.key === "born_duration")?.value;
 
         this.countdown.addCountdown("waiting", duration, () => {
-          const waveManager =  this.gameManager.waveManager;
+          const waveManager =  Global.gameManager.waveManager;
           waveManager.startExtraAction(this.extraWaveId);
           this.hide();
         })

@@ -1,6 +1,25 @@
+import WaveManager from "../enemy/WaveManager";
+import { CountdownManager } from "../game/CountdownManager";
+import GameBuff from "../game/GameBuff";
 import GameManager from "../game/GameManager";
+import GameView from "../game/GameView";
+import SPFA from "../game/SPFA";
+import TileManager from "../game/TileManager";
+import TrapManager from "../game/TrapManager";
 
-const Global = {
+interface Global_Type{
+  gameManager: GameManager,
+  waveManager: WaveManager,
+  trapManager: TrapManager,
+  countdownManager: CountdownManager,
+  SPFA: SPFA,
+  gameBuff: GameBuff,
+  tileManager: TileManager,
+  gameView: GameView,
+  [key: string]: any
+}
+
+const Global: Global_Type = {
   gameManager: null,
   _waveManager: null,
   _trapManager: null,

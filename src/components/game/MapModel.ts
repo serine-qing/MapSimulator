@@ -118,7 +118,7 @@ class MapModel{
       }
     })
 
-    this.SPFA = new SPFA(this.tileManager, [...this.routes, ...this.extraRoutes]);
+    this.SPFA = new SPFA([...this.routes, ...this.extraRoutes]);
 
     this.sourceData = null;
 
@@ -196,6 +196,7 @@ class MapModel{
         }
 
         let extraData = null;
+
         //额外数据
         if(overrideSkillBlackboard){
           extraData = overrideSkillBlackboard.map(item => {
@@ -402,6 +403,11 @@ class MapModel{
           }
           
           if(actionKey){
+            
+            if(action.key === "enemy_1334_ristar"){
+              action.dontBlockWave = true;
+            }
+
             let eAction: ActionData = {
               actionType: action.actionType,
               key: actionKey,

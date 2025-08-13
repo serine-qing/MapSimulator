@@ -8,6 +8,7 @@
       <template #reference> 
         <el-link type="danger">更新公告</el-link>
       </template>
+      <p style="color: red;">8.12更新：孤星机制优化</p>
       <p style="color: red;">8.9更新：完成路线显示功能</p>
       <p style="color: red;">8.6更新：完成惯性和避障力</p>
       <p style="color: red;">8.5更新：新活动敌人、装置技能基本完成适配，雷遁忍者跳跃暂未实现。</p>

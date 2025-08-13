@@ -1,23 +1,20 @@
-import TileManager from "./TileManager";
 import {bresenhamLine} from "@/components/utilities/utilities"
 import * as THREE from "three"
+import Global from "../utilities/Global";
 
 class SPFA{
   public pathMaps: PathMap[] = []; //寻路地图
-  public tileManager: TileManager; //地图tiles
   public enemyRoutes: EnemyRoute[] = [];
-  constructor(tileManager: TileManager, enemyRoutes: EnemyRoute[]){
+  constructor(enemyRoutes: EnemyRoute[]){
     
-    this.tileManager = tileManager;
     this.enemyRoutes = enemyRoutes; 
-    
   }
 
   //生成寻路地图需要用到的拷贝对象
   private generateTileMapping(): PathNode[][]{
     const mapping = [];
-    const y = this.tileManager.height;
-    const x = this.tileManager.width;
+    const y = Global.tileManager.height;
+    const x = Global.tileManager.width;
 
     for(let i=0; i<y;i++){
       mapping[i] = [];
@@ -115,8 +112,8 @@ class SPFA{
 
         //扫描地板是可通行地板
         if(
-          motionMode === "WALK" && this.tileManager.isTilePassable(_x,_y) || 
-          motionMode === "FLY" && this.tileManager.isTileFlyable(_x,_y)
+          motionMode === "WALK" && Global.tileManager.isTilePassable(_x,_y) || 
+          motionMode === "FLY" && Global.tileManager.isTileFlyable(_x,_y)
         ){
 
           if(mapping[_y][_x] === null){
@@ -150,7 +147,7 @@ class SPFA{
 
   private getDistanceWeight(x: number, y: number): number{
     let distanceWeight: number;
-    const tile = this.tileManager.getTile(x, y);
+    const tile = Global.tileManager.getTile(x, y);
 
     switch (tile.tileKey) {
       case "tile_hole":
@@ -237,11 +234,11 @@ class SPFA{
         const y = p3[1];
 
         if(motionMode === "FLY"){
-          return !this.tileManager.isTileFlyable(x, y);
+          return !Global.tileManager.isTileFlyable(x, y);
         }
         else if(motionMode === "WALK"){
           const isBlockedOrHole = this.getDistanceWeight(x, y) >= 1000;
-          return !this.tileManager.isTilePassable(x, y) || isBlockedOrHole;
+          return !Global.tileManager.isTilePassable(x, y) || isBlockedOrHole;
         }
       })
       if(!blocked){

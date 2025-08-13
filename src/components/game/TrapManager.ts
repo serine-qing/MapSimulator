@@ -1,26 +1,21 @@
-import GameManager from "./GameManager";
-import TileManager from "./TileManager";
 import Tile from "./Tile";
 import TokenCard from "./TokenCard";
 import Trap from "./Trap";
+import Global from "../utilities/Global";
 
 class TrapManager{
   trapDatas: trapData[];
   traps: Trap[] = [];
-  gameManager: GameManager;
-  tileManager: TileManager;
 
-  constructor(trapDatas: trapData[], gameManager: GameManager){
-    this.gameManager = gameManager;
+  constructor(trapDatas: trapData[]){
     this.trapDatas = trapDatas;
-    this.tileManager = gameManager.tileManager;
 
     trapDatas.forEach(trapData => {
       if(!trapData.isTokenCard){
         const trap = this.createTrap(trapData);
 
         if(!trap.tile){
-          const tile = this.tileManager.getTile(trap.position);
+          const tile = Global.tileManager.getTile(trap.position);
           trap.bindTile(tile);
           if(!trapData.hidden){
             tile.bindTrap(trap);
@@ -50,7 +45,7 @@ class TrapManager{
   }
 
   createTrap(trapData: trapData): Trap{
-    const trap = new Trap(trapData, this.gameManager);
+    const trap = new Trap(trapData);
     this.traps.push(trap);
 
     return trap;

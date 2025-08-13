@@ -18,6 +18,7 @@ import TrapManager from "./TrapManager";
 import { ElMessage } from 'element-plus'
 import { CountdownManager } from "./CountdownManager";
 import GameBuff from "./GameBuff";
+import Global from "../utilities/Global";
 
 //游戏控制器
 class GameManager{
@@ -54,6 +55,9 @@ class GameManager{
   private mouseMoveProcessing: boolean = false;
 
   constructor(mapModel: MapModel){
+    Global.reset();
+    Global.changeGameManager(this);
+
     //初始化敌人控制类
     this.mapModel = mapModel;
     this.gameBuff = new GameBuff();
@@ -63,13 +67,13 @@ class GameManager{
     this.countdownManager = new CountdownManager();
 
     this.tokenCards = mapModel.tokenCards.map(data =>{
-      const tokenCard = new TokenCard(data, this);
+      const tokenCard = new TokenCard(data);
       return tokenCard;
     });
 
-    this.trapManager = new TrapManager(mapModel.trapDatas, this);
-    this.waveManager = new WaveManager(this);
-    this.gameView = new GameView(this);
+    this.trapManager = new TrapManager(mapModel.trapDatas);
+    this.waveManager = new WaveManager();
+    this.gameView = new GameView();
 
     const simData = this.startSimulate();
     this.setSimulateData(simData);
@@ -448,9 +452,9 @@ class GameManager{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    // console.log = ()=>{
-    //   return;
-    // }
+    console.log = ()=>{
+      return;
+    }
 
     this.isSimulate = true;
     const simData = {

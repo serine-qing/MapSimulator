@@ -256,6 +256,8 @@ class RunesHelper{
           }
         }, attrValue );
 
+        value = Math.max(value, 0);
+
         //消除乘完后会出现的很长小数
         attributes[attrKey] = accuracyNum(value);
       }

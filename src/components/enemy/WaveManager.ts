@@ -6,11 +6,10 @@ import Enemy from "./Enemy"
 import eventBus from "@/components/utilities/EventBus";
 import SpineEnemy from "./SpineEnemy";
 import FbxEnemy from "./FbxEnemy";
+import Global from "../utilities/Global";
 
 //敌人状态管理
 class WaveManager{
-  public gameManager: GameManager;
-  public trapManager: TrapManager;
   public mapModel: MapModel;
 
   public actions: Action[][] = [];  
@@ -31,19 +30,17 @@ class WaveManager{
   public finishedEnemyCount: number = 0;
 
   public visualRoutes = [];
-  constructor(gameManager: GameManager,){
-    this.gameManager = gameManager;
-    this.trapManager = gameManager.trapManager;
-    this.mapModel = gameManager.mapModel;
+  constructor(){
+    this.mapModel = Global.gameManager.mapModel;
 
     //通过actionData生成action对象 并且和enemy trap绑定
-    this.mapModel.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
+    Global.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
     
     this.initActions();
     this.initExtraActions();
     this.generateVisualRoutes();  //生成模拟显示路线
 
-    if(!this.gameManager.isSimulate){
+    if(!Global.gameManager.isSimulate){
       eventBus.emit("actions_init", this.actions);
     }
   }
@@ -73,7 +70,7 @@ class WaveManager{
       const { position, reachOffset, type, time } = checkpoint;
       switch (type) {
         case "MOVE":
-          let node = this.mapModel.SPFA.getPathNode(
+          let node = Global.SPFA.getPathNode(
             position,
             route.motionMode,
             currentPosition
@@ -145,7 +142,7 @@ class WaveManager{
   public initExtraActions(){
     let id = 0;
 
-    this.trapManager.traps.forEach(trap => {
+    Global.trapManager.traps.forEach(trap => {
       const extraWave = trap.data.extraWave;
       if(extraWave){
         const actions = this.createActions(trap.data.extraWave);
@@ -180,9 +177,9 @@ class WaveManager{
         case "SPAWN":
           let enemy;
           if(actionData.enemyData.fbxMesh){
-            enemy = new FbxEnemy(actionData, this.gameManager, this);
+            enemy = new FbxEnemy(actionData);
           }else{
-            enemy = new SpineEnemy(actionData, this.gameManager, this);
+            enemy = new SpineEnemy(actionData);
           }
           
           enemy.id = this.enemyId++;
@@ -197,7 +194,7 @@ class WaveManager{
         case "ACTIVATE_PREDEFINED":
           const trapData = actionData.trapData;
           if(trapData){
-            action.trap = this.trapManager.traps.find(trap => trap.alias === trapData.alias);
+            action.trap = Global.trapManager.traps.find(trap => trap.alias === trapData.alias);
           }
           break;
       }
@@ -274,7 +271,7 @@ class WaveManager{
     }
     else if(nextEnemys === null){
       
-      finished = currentEnemys.every(enemy => {
+      finished = this.enemies.every(enemy => {
         //敌人结束 或者 敌人已经开始但是是非首要目标
         return enemy.isFinished || (enemy.isStarted && enemy.notCountInTotal)
       })
@@ -283,7 +280,7 @@ class WaveManager{
 
     if(finished){
       this.allWaveFinished = true;
-      this.gameManager.isFinished = true;
+      Global.gameManager.isFinished = true;
     }
   }
 
@@ -318,8 +315,8 @@ class WaveManager{
               action.trap.tile.bindTrap(action.trap);
               action.trap.show();
               //模拟data set的时候会手动添加
-              if(!this.gameManager.isSimulate){
-                this.gameManager.gameView?.trapObjects?.add(action.trap.object);
+              if(!Global.gameManager.isSimulate){
+                Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
               }
             }
 
@@ -335,7 +332,7 @@ class WaveManager{
 
   public update(delta: number){
     if(this.allWaveFinished) return;
-    this.gameSecond = this.gameManager.gameSecond;
+    this.gameSecond = Global.gameManager.gameSecond;
     this.waveSecond += delta;
 
     const currentActions = this.actions[this.waveIndex];
@@ -471,7 +468,6 @@ class WaveManager{
     this.enemies.forEach(e => e?.destroy());
     this.enemies = null;
     this.enemiesInMap = null;
-    this.gameManager = null;
     this.mapModel = null;
   }
 }

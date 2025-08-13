@@ -1,14 +1,7 @@
 import * as THREE from "three"
 import GameConfig from "../utilities/GameConfig";
 import Trap from "./Trap";
-
-enum Direction{
-  UP,
-  RIGHT,
-  DOWN,
-  LEFT
-}
-
+import { Direction } from "../utilities/Enum";
 
 const specialTrap = {
   trap_011_ore:{

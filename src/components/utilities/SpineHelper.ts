@@ -1,4 +1,5 @@
 import Enemy from "../enemy/Enemy";
+import SpineEnemy from "../enemy/SpineEnemy";
 import Trap from "../game/Trap";
 
 const specialIdle = {
@@ -126,7 +127,7 @@ const getTrapIdleAnimation = (key:string, animations: any) => {
   return;
 }
 
-export const getSkelOffset = (enemy:Enemy): Vec2 => {
+export const getSkelOffset = (enemy:SpineEnemy): Vec2 => {
   const offset = {
     x: 0,
     y: 0

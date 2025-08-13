@@ -4,16 +4,15 @@ import spine from "@/assets/script/spine-threejs.js";
 import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } from "@/components/utilities/SpineHelper";
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
-import GameManager from "../game/GameManager";
-import WaveManager from "./WaveManager";
 import { gameCanvas } from "../game/GameCanvas";
+import Global from "../utilities/Global";
 
 class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据
   public skeletonMesh: any;
 
-  constructor(action: ActionData, gameManager: GameManager, waveManager: WaveManager){
-    super(action, gameManager, waveManager);
+  constructor(action: ActionData){
+    super(action);
     this.motion = checkEnemyMotion(this.key, this.enemyData.motion);
   }
   //初始化spine小人
@@ -35,7 +34,7 @@ class SpineEnemy extends Enemy{
     this.object.add(this.skeletonMesh);
     
     const offsetY = this.motion === "WALK"? -1/4 : 0;
-    const coordinateOffset = this.gameManager.getCoordinate(0, offsetY)
+    const coordinateOffset = Global.gameManager.getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
     this.skeletonMesh.position.y = coordinateOffset.y;
@@ -47,7 +46,7 @@ class SpineEnemy extends Enemy{
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     this.skeletonMesh.position.z = this.motion === "WALK"? 
-      this.gameManager.getPixelSize( 1/7 + this.ZOffset) : this.gameManager.getPixelSize( 10/7);
+      Global.gameManager.getPixelSize( 1/7 + this.ZOffset) : Global.gameManager.getPixelSize( 10/7);
 
     this.getSkelSize();
 
@@ -58,7 +57,7 @@ class SpineEnemy extends Enemy{
 
   public setObjectPosition(x: number, y: number){
     super.setObjectPosition(x, y);
-    if(this.gameManager.isSimulate || !this.skeletonMesh) return;
+    if(Global.gameManager.isSimulate || !this.skeletonMesh) return;
     this.skeletonMesh.renderOrder = -y;
   }
 
@@ -94,7 +93,7 @@ class SpineEnemy extends Enemy{
   public render(delta: number){
     super.render(delta);
 
-    if(!this.gameManager.isSimulate && this.object){
+    if(!Global.gameManager.isSimulate && this.object){
       this.handleGradient();
       
       //锁定spine朝向向相机，防止梯形畸变
@@ -141,7 +140,7 @@ class SpineEnemy extends Enemy{
   protected changeFaceToward(){
     super.changeFaceToward();
   
-    if(!this.gameManager.isSimulate && this.object) this.skeletonMesh.scale.x = this.faceToward;
+    if(!Global.gameManager.isSimulate && this.object) this.skeletonMesh.scale.x = this.faceToward;
   }
 
   protected handleTrackTime(trackTime: number){
@@ -154,9 +153,9 @@ class SpineEnemy extends Enemy{
   }
 
   //更改动画
-  protected changeAnimation(){
+  public changeAnimation(){
     super.changeAnimation();
-    if(this.gameManager.isSimulate) return;
+    if(Global.gameManager.isSimulate) return;
 
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
     const isLoop = this.countdown.getCountdownTime("waitAnimationTrans") === -1 &&

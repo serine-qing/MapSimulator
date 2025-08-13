@@ -19,7 +19,6 @@ import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
 import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
 import Notice from "@/pages/Notice.vue"
-import Global from '@/components/utilities/Global';
 
 
 //#region 游戏基础功能
@@ -144,8 +143,6 @@ const newGame = async (map) => {
   gameSpeed.value = GameConfig.GAME_SPEED;
 
   gameManager = new GameManager(mapModel);
-  Global.reset();
-  Global.changeGameManager(gameManager);
 
   gameManagerRef.value = gameManager;
   maxEnemyCount.value = gameManager.waveManager.maxEnemyCount;
@@ -163,6 +160,7 @@ const title = ref("");
 const challenge = ref("");
 const description = ref("");
 const stageAttrInfo = ref("");
+const characterLimit = ref(0);
 
 //生成关卡详情
 const generateStageInfo = () => {
@@ -172,6 +170,7 @@ const generateStageInfo = () => {
 
   challenge.value = _challenge?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
   description.value = _description?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
+  characterLimit.value = mapData.options.characterLimit;
 
   const enemyDatas = mapModel.enemyDatas;
 
@@ -432,6 +431,7 @@ defineExpose({
   <div class="info">
     <h2>{{ title }}</h2>
     <p class="description">{{ description }}</p>
+    <p>部署上限：{{ characterLimit }}</p>
     <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>
     <p v-if="stageAttrInfo"><span class="challenge">属性加成：</span>
       <span v-html="stageAttrInfo"></span>

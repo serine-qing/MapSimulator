@@ -4,15 +4,13 @@ import spine from "@/assets/script/spine-threejs.js";
 import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } from "@/components/utilities/SpineHelper";
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
-import GameManager from "../game/GameManager";
-import WaveManager from "./WaveManager";
-import { gameCanvas } from "../game/GameCanvas";
+import Global from "../utilities/Global";
 
 class FbxEnemy extends Enemy{
   private fbxMesh: THREE.Mesh; 
 
-  constructor(action: ActionData, gameManager: GameManager, waveManager: WaveManager){
-    super(action, gameManager, waveManager);
+  constructor(action: ActionData){
+    super(action);
 
   }
   //初始化spine小人
@@ -38,7 +36,7 @@ class FbxEnemy extends Enemy{
         break;
     }
     
-    const size = this.gameManager.getPixelSize(GameConfig.TILE_SIZE);
+    const size = Global.gameManager.getPixelSize(GameConfig.TILE_SIZE);
     this.meshSize = {
       x: size, y: size
     }
@@ -56,7 +54,7 @@ class FbxEnemy extends Enemy{
   public render(delta: number){
     super.render(delta);
 
-    if(!this.gameManager.isSimulate && this.object){
+    if(!Global.gameManager.isSimulate && this.object){
       this.handleGradient();
 
     }

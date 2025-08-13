@@ -1,17 +1,14 @@
 import {Object3D, BoxGeometry, BoxHelper, Mesh, Material, MeshBasicMaterial, TextureLoader, Vector2} from "three"
 import * as THREE from "three"
 import { getTexture, getTile } from "./TextureHelper";
-import { isArray } from "element-plus/es/utils/types.mjs";
-import AliasHelper from "./AliasHelper";
-import GameManager from "./GameManager";
 import Trap from "./Trap";
 import { GC_Add } from "./GC";
 import GameConfig from "../utilities/GameConfig";
+import Global from "../utilities/Global";
 
 class Tile{
   static boxGeos = [];
 
-  public gameManager: GameManager;
   tileData: any;
 
   width: number;
@@ -101,9 +98,9 @@ class Tile{
     this.object = new Object3D();
 
     GC_Add(this.object);
-    this.object.position.x = this.gameManager.getPixelSize(this.position.x);
-    this.object.position.y = this.gameManager.getPixelSize(this.position.y);
-    this.object.position.z = this.gameManager.getPixelSize(this.height / 2);
+    this.object.position.x = Global.gameManager.getPixelSize(this.position.x);
+    this.object.position.y = Global.gameManager.getPixelSize(this.position.y);
+    this.object.position.z = Global.gameManager.getPixelSize(this.height / 2);
 
     switch (this.tileKey) {
       //给红蓝门添加地面，因为没有设置默认材质所以红蓝门本身是透明的
@@ -114,7 +111,7 @@ class Tile{
         const groundMesh = new Mesh( groundGe0, [
           null, null, null, null, ground, ground
         ]); 
-        groundMesh.position.z = this.gameManager.getPixelSize(- this.height / 2)
+        groundMesh.position.z = Global.gameManager.getPixelSize(- this.height / 2)
         this.object.add(groundMesh);
         break;
       //围栏
@@ -122,9 +119,9 @@ class Tile{
       case "tile_fence_bound":
         const fenceWidth = this.width / 10;
         const sideGeometry = new BoxGeometry( 
-          this.gameManager.getPixelSize(fenceWidth),
-          this.gameManager.getPixelSize(this.width),
-          this.gameManager.getPixelSize(2/7),
+          Global.gameManager.getPixelSize(fenceWidth),
+          Global.gameManager.getPixelSize(this.width),
+          Global.gameManager.getPixelSize(2/7),
         );
 
         const fenceTop = tileTexture.fenceTop;
@@ -136,10 +133,10 @@ class Tile{
         const up = new Mesh( sideGeometry, fenceMaterials); 
         const down = new Mesh( sideGeometry, fenceMaterials); 
 
-        left.position.x = this.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
-        right.position.x = this.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
-        up.position.y = this.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
-        down.position.y = this.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
+        left.position.x = Global.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
+        right.position.x = Global.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
+        up.position.y = Global.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
+        down.position.y = Global.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
 
         up.rotation.z = Math.PI / 2;
         down.rotation.z = Math.PI / 2;
@@ -152,21 +149,21 @@ class Tile{
         
       case "tile_yinyang_road":
       case "tile_yinyang_wall":
-        const geometry = new THREE.CircleGeometry( this.gameManager.getPixelSize(this.width / 8),64);
+        const geometry = new THREE.CircleGeometry( Global.gameManager.getPixelSize(this.width / 8),64);
 
         const {yin, yang}  = tileTexture;
         const dynamic = this.tileData?.blackboard?.find(arr => arr.key === "dynamic");
         const huimingMat = dynamic?.value === 0? yin : yang;
         const huiming = new THREE.Mesh( geometry, huimingMat );
 
-        huiming.position.z = this.gameManager.getPixelSize(this.height/2) + 0.1;
+        huiming.position.z = Global.gameManager.getPixelSize(this.height/2) + 0.1;
         this.object.add(huiming);
         break;
       default:
         break;
       case "tile_hole":
         const hole = tileTexture.hole;
-        const size = this.gameManager.getPixelSize(hole.scale * this.width);
+        const size = Global.gameManager.getPixelSize(hole.scale * this.width);
         const holeGeo = new THREE.PlaneGeometry( size, size );
         const holeMesh = new THREE.Mesh( holeGeo, hole.material );
         holeMesh.position.z = 0.1;
@@ -203,20 +200,20 @@ class Tile{
           textureScale = 0.9;
           break;
       }
-      const textureSize = this.gameManager.getPixelSize(this.width * textureScale);
+      const textureSize = Global.gameManager.getPixelSize(this.width * textureScale);
       texture.scale.set(textureSize,textureSize,1);
       this.textureObj = texture;
-      this.textureObj.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.08);
+      this.textureObj.position.setZ(Global.gameManager.getPixelSize(this.height/2) + 0.08);
       this.object.add(this.textureObj)
     }
 
     if(this.isBanned){
-      const bannedSize = this.gameManager.getPixelSize(this.width * 0.9);
+      const bannedSize = Global.gameManager.getPixelSize(this.width * 0.9);
       const bannedTexture = getTexture(
         "tile_banned"
       );
       bannedTexture.scale.set(bannedSize,bannedSize,1);
-      bannedTexture.position.setZ(this.gameManager.getPixelSize(this.height/2) + 0.15);
+      bannedTexture.position.setZ(Global.gameManager.getPixelSize(this.height/2) + 0.15);
       this.object.add(bannedTexture)
     }else{
 
@@ -226,14 +223,14 @@ class Tile{
   public initPreviewTexture(){
     //没有装置、并且没有ban格子的话，就生成一个占位符texture
     if(!this.trap && !this.isBanned && this.buildableType === "MELEE"){
-      const textureSize = this.gameManager.getPixelSize(this.width * 0.9);
+      const textureSize = Global.gameManager.getPixelSize(this.width * 0.9);
       const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
       const textureMat = new THREE.MeshBasicMaterial({
         map: null,
         transparent: true
       });
       this.previewTexture = new THREE.Mesh( textureGeo, textureMat );
-      this.previewTexture.position.setZ(this.gameManager.getPixelSize(this.height / 2) + 0.15);
+      this.previewTexture.position.setZ(Global.gameManager.getPixelSize(this.height / 2) + 0.15);
       this.previewTexture.visible = false;
 
       this.object.add(this.previewTexture);
@@ -265,9 +262,9 @@ class Tile{
 
     if(!boxGeo){
       boxGeo = new BoxGeometry( 
-        this.gameManager.getPixelSize(width) - margin,
-        this.gameManager.getPixelSize(width) - margin,
-        this.gameManager.getPixelSize(height),
+        Global.gameManager.getPixelSize(width) - margin,
+        Global.gameManager.getPixelSize(width) - margin,
+        Global.gameManager.getPixelSize(height),
       );
       Tile.boxGeos.push({
         width, height, margin,
@@ -304,7 +301,7 @@ class Tile{
   }
 
   public getPixelHeight(){
-    return this.gameManager.getPixelSize(this.height)
+    return Global.gameManager.getPixelSize(this.height)
   }
 
   public bindTrap(trap: Trap){
@@ -352,7 +349,7 @@ class Tile{
   public destroy() {
     //释放内存
     this.object = null;
-    this.gameManager = null;
+    Global.gameManager = null;
     
   }
 
