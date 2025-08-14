@@ -72,7 +72,7 @@ class FbxEnemy extends Enemy{
   }
 
   //更改动画
-  protected changeAnimation(){
+  public changeAnimation(){
 
 
 

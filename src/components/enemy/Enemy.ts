@@ -145,7 +145,7 @@ class Enemy{
   public meshSize: Vec2;                //模型宽高
   protected ZOffset: number = 0;             //模型Z轴位移
   protected animationScale: number = 1.0;  //动画执行速率
-  public hasBirthAnimation: boolean = false; //是否有出生动画
+  public isExtra: boolean = false;         //是否是额外出怪
   public simulateTrackTime: number;      //动画执行time
   
   constructor(action: ActionData){

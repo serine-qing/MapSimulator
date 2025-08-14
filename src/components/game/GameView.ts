@@ -117,24 +117,24 @@ class GameView{
   }
 
   public render(){
+    
     gameCanvas.stats?.begin();
     if(Global.gameManager.isSimulate) return;
     
     gameCanvas.render();
 
-    if(this.delta){
 
-      this.renderEnemy(this.delta);
-      
-      Global.trapManager.traps.forEach(
-        trap => {
-          if(trap.visible){
-            trap.skeletonMesh?.update( this.delta )
-          }
+    this.renderEnemy(this.delta);
+    
+    Global.trapManager.traps.forEach(
+      trap => {
+        if(trap.visible){
+          trap.skeletonMesh?.update( this.delta )
         }
-      )
-      this.delta = 0;
-    }
+      }
+    )
+    
+    this.delta = 0;
 
     gameCanvas.stats?.end();
 

@@ -156,7 +156,8 @@ class RunesHelper{
         case "char_respawntime_add":
         case "char_respawntime_mul":
           break;
-
+        case "enemy_talent_blackb_add":
+        case "enemy_talent_blackb_mul":
         case "enemy_talent_blackb_max":
           const change = {
             enemy
@@ -172,10 +173,22 @@ class RunesHelper{
             }
           })
 
+          switch (rune.key) {
+            case "enemy_talent_blackb_add":
+              change["calMethod"] = "add";
+              break;
+            case "enemy_talent_blackb_mul":
+              change["calMethod"] = "mul";
+              break;
+            case "enemy_talent_blackb_max":
+              change["calMethod"] = "set";
+              break;
+          }
+
           this.talentChanges.push(change);
           break;
       }
-
+      
     })
     
     //让加算排前面，乘算排后面
@@ -290,11 +303,24 @@ class RunesHelper{
   public checkTalentChanges(data: EnemyData){
     const find = this.talentChanges.find(talentChange => talentChange.enemy.includes(data.key))
     if(find){
+      //todo calMethod是不是该放外面
       data.talentBlackboard.forEach(tB => {
         const changeVal = find[tB.key];
         if(changeVal){
-          tB.value = changeVal;
+          switch (find.calMethod) {
+            case "add":
+              tB.value += changeVal;
+              break;
+            case "mul":
+              tB.value *= changeVal;
+              break;
+            case "set":
+              tB.value = changeVal;
+              break;
+          }
+          
         }
+
       })
     }
   }

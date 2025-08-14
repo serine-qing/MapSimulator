@@ -146,7 +146,7 @@ class WaveManager{
       const extraWave = trap.data.extraWave;
       if(extraWave){
         const actions = this.createActions(trap.data.extraWave);
-        actions.forEach(action => action.enemy.hasBirthAnimation = true);
+        actions.forEach(action => action.enemy.isExtra = true);
         
         this.extraActions.push({
           id,
@@ -208,7 +208,9 @@ class WaveManager{
       const enemy = this.enemiesInMap[i];
       if(enemy.isFinished){
         this.enemiesInMap.splice(i, 1);
-        this.finishedEnemyCount++;
+        
+        if(!enemy.isExtra) this.finishedEnemyCount++;
+        
         eventBus.emit("setData", {
           finishedEnemyCount: this.finishedEnemyCount
         });

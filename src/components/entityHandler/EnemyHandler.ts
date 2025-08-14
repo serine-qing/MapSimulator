@@ -42,7 +42,7 @@ const handleGractrl = (enemy: Enemy, effect) => {
 
 const EnemyHandler = {
   handleBirthAnimation: (enemy: Enemy) => {
-    if(enemy.hasBirthAnimation){
+    if(enemy.isExtra){
       switch (enemy.key) {
         //压力舒缓帮手
         case "enemy_10119_ymgbxm":
