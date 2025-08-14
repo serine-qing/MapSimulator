@@ -64,16 +64,37 @@ const EnemyHandler = {
     let waitTime;
 
     switch (talent.key) {
-      case "rush":
+      case "rush": //冲刺！
+
         if(move_speed && interval && trig_cnt){
-          enemy.rush = talent.value;
+          enemy.countdown.addCountdown({
+            name: "rush",
+            initCountdown: talent.value.predelay,
+            countdown: interval,
+            maxCount: trig_cnt,
+            callback: (timer) => {
+              enemy.addBuff({
+                id: "rush",
+                key: "rush",
+                overlay: false,
+                effect: [{
+                  attrKey:"moveSpeed",
+                  method: "mul",
+                  value: timer.count * move_speed + 1
+                }]
+              });
+            }
+          })
         }
         
         break;
       case "revive":   //萨卡兹魔剑士、恶咒者
       case "sleepwalking": //钵海收割者
         if( unmove_duration ){
-          enemy.countdown.addCountdown("checkPoint", unmove_duration);
+          enemy.countdown.addCountdown({
+            name: "checkPoint",
+            initCountdown: unmove_duration
+          });
         }
         break;
       case "wait": //念旧
@@ -81,16 +102,19 @@ const EnemyHandler = {
         waitTime = duration || interval;
         const callback = () => {};
         if( waitTime ){
-          enemy.countdown.addCountdown("checkPoint", waitTime, () => {
-            switch (enemy.key) {
-              //念旧
-              case "enemy_10057_cjstel":
-              case "enemy_10057_cjstel_2":
-                enemy.motion = "FLY"
-                break;
+          enemy.countdown.addCountdown({
+            name: "checkPoint",
+            initCountdown: waitTime,
+            callback: () => {
+              switch (enemy.key) {
+                //念旧
+                case "enemy_10057_cjstel":
+                case "enemy_10057_cjstel_2":
+                  enemy.motion = "FLY"
+                  break;
+              }
             }
           });
-
         }
 
 
@@ -98,8 +122,12 @@ const EnemyHandler = {
       case "timeup":  //prts 岁相等
         waitTime = duration || interval;
         if(waitTime){
-          enemy.countdown.addCountdown("end", waitTime - Global.waveManager.gameSecond, () => {
-            enemy.finishedMap();
+          enemy.countdown.addCountdown({
+            name: "end",
+            initCountdown: waitTime - Global.waveManager.gameSecond,
+            callback: () => {
+              enemy.finishedMap();
+            }
           });
         }
           
@@ -108,19 +136,24 @@ const EnemyHandler = {
       case "endhole":  //土遁忍者
         enemy.idleAnimate = "Invisible";
         enemy.changeAnimation();
-        enemy.countdown.addCountdown("checkPoint", duration, () => {
-          enemy.animationStateTransition({
-            moveAnimate: "Move",
-            idleAnimate: "Idle",
-            transAnimation: "Start",
-            animationScale: 0.22,
-            isWaitTrans: true
-          })
+        enemy.countdown.addCountdown({
+          name: "checkPoint",
+          initCountdown: duration,
+          callback: () => {
+            enemy.animationStateTransition({
+              moveAnimate: "Move",
+              idleAnimate: "Idle",
+              transAnimation: "Start",
+              animationScale: 0.22,
+              isWaitTrans: true
+            })
+          }
         });
+
         break;
       case "strength":     //传令兵
         if(enemy.key === "enemy_1080_sotidp" || enemy.key === "enemy_1080_sotidp_2"){
-          Global.gameBuff.addEnemyBuff({
+          Global.gameBuff.addBuff({
             id: "strength" + enemy.id,
             key: "strength",
             applyType: "all",
@@ -148,23 +181,31 @@ const EnemyHandler = {
           const growup2 = enemy.getTalent("growup2");
           countdown += growup1.interval + growup2.interval;
         }
-        enemy.countdown.addCountdown("end", countdown, () => {
-          enemy.finishedMap();
+        enemy.countdown.addCountdown({
+          name: "end",
+          initCountdown: countdown,
+          callback: () => {
+            enemy.finishedMap();
+          }
         })
         break;
       case "switchmodetrigger":
         if(enemy.key === "enemy_10116_ymgtop" || enemy.key === "enemy_10116_ymgtop_2"){ //水遁忍者
 
-          enemy.countdown.addCountdown("switchmodetrigger", countdown, () => {
-            enemy.animationStateTransition({
-              moveAnimate: "Skill_Loop",
-              idleAnimate: "Skill_Loop",
-              transAnimation: "Skill_Begin",
-              isWaitTrans: true
-            })
+          enemy.countdown.addCountdown({
+            name: "switchmodetrigger",
+            initCountdown: countdown,
+            callback: () => {
+              enemy.animationStateTransition({
+                moveAnimate: "Skill_Loop",
+                idleAnimate: "Skill_Loop",
+                transAnimation: "Skill_Begin",
+                isWaitTrans: true
+              })
+            }
           })
         }
-
+        
         break;
 
       case "takeoff":
@@ -195,7 +236,7 @@ const EnemyHandler = {
       switch (talent.key) {
         case "strength":       //传令兵
           if(enemy.key === "enemy_1080_sotidp" || enemy.key === "enemy_1080_sotidp_2"){
-            Global.gameBuff.removeEnemyBuff("strength" + enemy.id);
+            Global.gameBuff.removeBuff("strength" + enemy.id);
           }
           break;
       }
@@ -204,7 +245,7 @@ const EnemyHandler = {
 
 
   updateBuffAfterUnitVector: (enemy: Enemy) => {
-    const globalBuffs = Global.gameBuff.buffs;
+    const globalBuffs = Global.gameBuff.globalBuffs;
 
     globalBuffs.forEach(buff => {
       switch (buff.key) {

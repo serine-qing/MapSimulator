@@ -62,7 +62,10 @@ class TokenCard{
     this.cardVue.selected = false;
     this.cnt--;
     if(this.cnt > 0){
-      this.countdown.addCountdown("respawn", this.respawntime)  
+      this.countdown.addCountdown({
+        name: "respawn", 
+        initCountdown: this.respawntime
+      })  
     }
   }
 

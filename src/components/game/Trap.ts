@@ -196,22 +196,7 @@ class Trap{
   }
 
   public start(){
-
-    switch (this.key) {
-      //压力舒缓帮手
-      case "trap_253_boxnma":
-      case "trap_254_boxmac":
-        const duration = this.extraData.find(data => data.key === "born_duration")?.value;
-
-        this.countdown.addCountdown("waiting", duration, () => {
-          const waveManager =  Global.gameManager.waveManager;
-          waveManager.startExtraAction(this.extraWaveId);
-          this.hide();
-        })
-        break;
-    
-    }
-
+    TrapHandler.start(this);
   }
 
   public get(){

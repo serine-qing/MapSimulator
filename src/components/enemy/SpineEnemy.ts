@@ -96,14 +96,20 @@ class SpineEnemy extends Enemy{
     if(!Global.gameManager.isSimulate && this.object){
       this.handleGradient();
       
-      //锁定spine朝向向相机，防止梯形畸变
-      this.skeletonMesh.lookAt(gameCanvas.camera.position);
-
       if(this.isStarted && !this.isFinished){
-        this.skeletonMesh.update(
-          this.deltaTrackTime(delta)
-        )
+
+        //锁定spine朝向向相机，防止梯形畸变
+        this.skeletonMesh.lookAt(gameCanvas.camera.position);
+
+        if(this.isStarted && !this.isFinished){
+          //todo 多次拖动后卡顿
+          this.skeletonMesh.update(
+            this.deltaTrackTime(delta)
+          )
+        }
+
       }
+
     }
 
   }

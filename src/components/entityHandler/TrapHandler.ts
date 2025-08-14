@@ -3,6 +3,27 @@ import Trap from "../game/Trap";
 import { Direction } from "../utilities/Enum";
 import Global from "../utilities/Global";
 
+const start = (trap: Trap) => {
+  switch (trap.key) {
+    //压力舒缓帮手
+    case "trap_253_boxnma":
+    case "trap_254_boxmac":
+      const duration = trap.extraData.find(data => data.key === "born_duration")?.value;
+
+      trap.countdown.addCountdown({
+        name: "waiting",
+        initCountdown: duration,
+        callback: () => {
+          const waveManager =  Global.gameManager.waveManager;
+          waveManager.startExtraAction(trap.extraWaveId);
+          trap.hide();
+        }
+      })
+      break;
+  
+  }
+}
+
 const initSkill = (trap: Trap) => {
   switch (trap.key) {
     //土石结构的壳
@@ -32,7 +53,7 @@ const initSkill = (trap: Trap) => {
 }
 
 const TrapHandler = {
-  initSkill
+  start, initSkill
 }
 
 

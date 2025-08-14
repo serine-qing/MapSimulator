@@ -15,6 +15,11 @@ class GameView{
   public tileObjects = new THREE.Group();
   public trapObjects = new THREE.Group();
 
+  private clock: THREE.Clock = new THREE.Clock();
+  private timeStamp: number = 0;
+  public delta: number = 0;
+  private singleFrameTime = 1 / 60;
+
   constructor(){
 
   }
@@ -23,6 +28,7 @@ class GameView{
     this.initMap();
     this.initTraps();
     this.initEnemys();
+    this.animate();
   }
 
   //初始化地图tiles
@@ -85,23 +91,59 @@ class GameView{
     return {x, y};
   }
 
-  public render(delta: number){
+  //循环执行
+  private animate(){
+    this.timeStamp += this.clock.getDelta();
+
+    if(this.timeStamp >= this.singleFrameTime){
+
+      this.timeStamp = (this.timeStamp % this.singleFrameTime);
+
+      //渲染
+      if(!Global.gameManager.isSimulate ){
+        this.render();
+      }
+      
+    }
+
+    requestAnimationFrame(()=>{
+      this.animate();
+    });
+
+  }
+
+  public update(delta){
+    this.delta += delta;
+  }
+
+  public render(){
     gameCanvas.stats?.begin();
     if(Global.gameManager.isSimulate) return;
     
     gameCanvas.render();
 
-    Global.waveManager.enemies.forEach(
-      //TODO不同的敌人动画速率不同
-      enemy => enemy.render( delta )
-    )
+    if(this.delta){
 
-    Global.trapManager.traps.forEach(
-      trap => trap.skeletonMesh?.update(delta)
-    )
+      this.renderEnemy(this.delta);
+      
+      Global.trapManager.traps.forEach(
+        trap => {
+          if(trap.visible){
+            trap.skeletonMesh?.update( this.delta )
+          }
+        }
+      )
+      this.delta = 0;
+    }
 
     gameCanvas.stats?.end();
 
+  }
+
+  public renderEnemy(delta: number){
+    Global.waveManager.enemies.forEach(
+      enemy => enemy.render( delta )
+    )
   }
 
   public destroy(){ 

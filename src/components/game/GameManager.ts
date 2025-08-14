@@ -41,9 +41,10 @@ class GameManager{
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
   
-  private delta: number;
-  private timeStamp: number = 1 / GameConfig.FPS;
-  private singleFrameTime: number = 1 / GameConfig.FPS; //两次渲染之间间隔的游戏内时间
+  private animateTimeStamp: number = 0;
+  private animateInterval: number = 1 / 60; //两次数据更新之间间隔的时间
+
+  private updateInterval = 1 / GameConfig.FPS;    //游戏内一帧时间（默认三十分之一秒）
 
   public gameSecond: number = 0;    //当前游戏时间
 
@@ -57,14 +58,14 @@ class GameManager{
   constructor(mapModel: MapModel){
     Global.reset();
     Global.changeGameManager(this);
-
+    this.countdownManager = new CountdownManager();
     //初始化敌人控制类
     this.mapModel = mapModel;
     this.gameBuff = new GameBuff();
 
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
-    this.countdownManager = new CountdownManager();
+
 
     this.tokenCards = mapModel.tokenCards.map(data =>{
       const tokenCard = new TokenCard(data);
@@ -74,7 +75,8 @@ class GameManager{
     this.trapManager = new TrapManager(mapModel.trapDatas);
     this.waveManager = new WaveManager();
     this.gameView = new GameView();
-
+    this.changeGameSpeed(2);
+    
     const simData = this.startSimulate();
     this.setSimulateData(simData);
     this.start();
@@ -129,15 +131,17 @@ class GameManager{
 
   //循环执行
   private animate(){
-    this.delta = this.clock.getDelta();
-    this.timeStamp += this.delta;
+    this.animateTimeStamp += this.clock.getDelta();
 
-    if(this.timeStamp >= this.singleFrameTime){
+    if(this.animateTimeStamp >= this.animateInterval){
       this.mouseMoveProcessing = false;
 
-      this.timeStamp = (this.timeStamp % this.singleFrameTime);
+      this.animateTimeStamp = (this.animateTimeStamp % this.animateInterval);
       //游戏循环
-      this.gameLoop();
+      for(let i = 0; i < this.gameSpeed; i++){
+        this.gameLoop();
+      }
+      
     }
 
     requestAnimationFrame(()=>{
@@ -148,10 +152,8 @@ class GameManager{
   }
 
   public gameLoop(){
-    let delta = 0;
-
     if(!this.pause && !this.isFinished){
-      delta = this.singleFrameTime * this.gameSpeed;
+      const delta = this.updateInterval;
 
       //动态模拟
       if(!this.isSimulate && this.isDynamicsSimulate){
@@ -170,29 +172,21 @@ class GameManager{
       }
       
       this.gameSecond += delta;
+      
       this.update(delta);
-
+      this.gameView.update(delta);
+      
       if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
-      
-      
+
     }
 
     if(!this.isSimulate) eventBus.emit("update:isFinished", this.isFinished);
-
-    this.render(delta);
 
   }
 
   private update(delta: number){
     this.countdownManager.update(delta);
     this.waveManager.update(delta);
-  }
-
-  private render(delta: number){
-    if(!this.isSimulate ){
-      this.gameView.render(delta);
-    }
-    
   }
 
   private intersectObjects(x: number, y: number): any{
@@ -443,6 +437,7 @@ class GameManager{
 
     if(this.isFinished || this.pause){
       this.set(this.setData);
+      this.gameView.renderEnemy(0);   //让敌人spine渲染set的动画时间 
     }
 
   }

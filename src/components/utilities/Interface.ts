@@ -159,7 +159,7 @@ declare global {
     key: string,                        //buff的key值，可重复
     overlay: boolean,                  //是否可叠加
     effect: Effect[],
-    countdown?: number
+    duration?: number
   }
 
   interface Array<T> {

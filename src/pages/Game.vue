@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import * as THREE from "three"
 import {setupCanvas} from '@/components/game/GameCanvas.ts';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
@@ -99,6 +100,7 @@ const changeSecond = (val: number) => {
   }
   isSliding.value = true;
   pause.value = true;
+
   eventBus.emit("jump_to_time_index", val);
 }
 

@@ -116,8 +116,6 @@ class Enemy{
   isFinished: boolean = false;
   exitCountDown: number = 0;   //隐藏spine的渐变倒计时
 
-  public rush;
-
   public exit: boolean = false;
 
   public shadow: THREE.Mesh;
@@ -514,7 +512,6 @@ class Enemy{
   private updateAction(delta: number) {
     //模拟动画时间
     this.currentSecond += delta;
-    this.handleRush();
 
     this.simulateTrackTime += this.deltaTrackTime(delta);
 
@@ -581,103 +578,98 @@ class Enemy{
         // const distanceToCenter = currentPosition.distanceTo(new THREE.Vector2(roundX, roundY))
         // console.log(distanceToCenter)
 
-        const perFrame = 1 / GameConfig.FPS;
-        //让敌人移动更平滑
-        for(let i = 0; i < Global.gameManager.gameSpeed; i++){
+        //给定方向向量
+        this.unitVector = new THREE.Vector2(
+          targetPos.x - currentPosition.x,
+          targetPos.y - currentPosition.y
+        ).normalize();
 
-          //给定方向向量
-          this.unitVector = new THREE.Vector2(
-            targetPos.x - currentPosition.x,
-            targetPos.y - currentPosition.y
-          ).normalize();
+        //计算当前移速
+        this.updateCurrentFrameSpeed();
+        const actualSpeed = this.currentFrameSpeed * 0.5;
 
-          //计算当前移速
-          this.updateCurrentFrameSpeed();
-          const actualSpeed = this.currentFrameSpeed * 0.5;
+        //todo 重复代码
+        const simVelocity = this.unitVector.clone().multiplyScalar(actualSpeed * delta);
+        const simDistanceToTarget = currentPosition.distanceTo(targetPos);
+        if(simVelocity.length() >= simDistanceToTarget){
+          this.position = targetPos.clone();
+          this.velocity = simVelocity;
+          this.nextNode = this.nextNode?.nextNode;
 
-          //todo 重复代码
-          const simVelocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
-          const simDistanceToTarget = currentPosition.distanceTo(targetPos);
-          if(simVelocity.length() >= simDistanceToTarget){
-            this.position = targetPos.clone();
-            this.velocity = simVelocity;
-            this.nextNode = this.nextNode?.nextNode;
-
-            //完成最后一个寻路点
-            if( this.nextNode === null || this.nextNode === undefined ){
-              this.nextCheckPoint();
-            }
-            
-            break;
-          }
-          //end 重复代码
-
-          if(this.obstacleAvoidanceCalCount === 0){
-            //计算避障力
-            this.handleObstacleAvoidance();
-            this.obstacleAvoidanceCalCount = 3;
-          }
-
-          //实际避障力
-          const actualAvoidance = this.obstacleAvoidanceVector
-            .clone()
-            .multiplyScalar( 
-              Math.max(this.inertialVector.length() / actualSpeed, 0.5)
-            );
-
-          //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
-          //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
-          //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
-          // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
-          // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
-          const isWalk = this.motion === "WALK";
-          const steeringFactor = isWalk? 8 : 20;
-          const maxSteeringForce = isWalk? 10 : 100;
-          //加速度
-          this.acceleration = this.unitVector 
-            .clone()
-            .multiplyScalar(actualSpeed)
-            .addScaledVector(this.inertialVector, -1)
-            .multiplyScalar(steeringFactor)
-            .add(actualAvoidance)
-            .clampLength(0, maxSteeringForce)
-
-
-          //再根据加速度计算本帧的移动速度向量：
-          //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
-          //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
-          //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
-          const moveSpeedVec = this.acceleration
-            .clone()
-            .multiplyScalar(perFrame )
-            .add(this.inertialVector)
-            .clampLength(0, actualSpeed)
-          
-          this.inertialVector = moveSpeedVec;
-
-
-            
-          //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
-          const velocity = moveSpeedVec
-            .clone()
-            .multiplyScalar( perFrame);
-
-
-          // const velocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
-
-          this.setVelocity(velocity);
-          this.move();
-            
-          const distanceToTarget = currentPosition.distanceTo(targetPos);
-
-          //到达检查点终点
-          if( distanceToTarget <= 0.05 &&
-            (this.nextNode === null || this.nextNode === undefined)
-          ){
-
+          //完成最后一个寻路点
+          if( this.nextNode === null || this.nextNode === undefined ){
             this.nextCheckPoint();
-            break;
           }
+          this.changeFaceToward();
+          this.updateShadowHeight();
+          break;
+        }
+        //end 重复代码
+
+        if(this.obstacleAvoidanceCalCount === 0){
+          //计算避障力
+          this.handleObstacleAvoidance();
+          this.obstacleAvoidanceCalCount = 3;
+        }
+
+        //实际避障力
+        const actualAvoidance = this.obstacleAvoidanceVector
+          .clone()
+          .multiplyScalar( 
+            Math.max(this.inertialVector.length() / actualSpeed, 0.5)
+          );
+
+        //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
+        //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
+        //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
+        // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
+        // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
+        const isWalk = this.motion === "WALK";
+        const steeringFactor = isWalk? 8 : 20;
+        const maxSteeringForce = isWalk? 10 : 100;
+        //加速度
+        this.acceleration = this.unitVector 
+          .clone()
+          .multiplyScalar(actualSpeed)
+          .addScaledVector(this.inertialVector, -1)
+          .multiplyScalar(steeringFactor)
+          .add(actualAvoidance)
+          .clampLength(0, maxSteeringForce)
+
+
+        //再根据加速度计算本帧的移动速度向量：
+        //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
+        //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
+        //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
+        const moveSpeedVec = this.acceleration
+          .clone()
+          .multiplyScalar(delta )
+          .add(this.inertialVector)
+          .clampLength(0, actualSpeed)
+        
+        this.inertialVector = moveSpeedVec;
+
+
+          
+        //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
+        const velocity = moveSpeedVec
+          .clone()
+          .multiplyScalar( delta);
+
+
+        // const velocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
+
+        this.setVelocity(velocity);
+        this.move();
+          
+        const distanceToTarget = currentPosition.distanceTo(targetPos);
+
+        //到达检查点终点
+        if( distanceToTarget <= 0.05 &&
+          (this.nextNode === null || this.nextNode === undefined)
+        ){
+
+          this.nextCheckPoint();
         }
 
         this.changeFaceToward();
@@ -692,10 +684,13 @@ class Enemy{
       case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
       case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
-        this.countdown.addCountdown("checkPoint", this.getWaitTime(type, time), () => {
-          this.nextCheckPoint();
+        this.countdown.addCountdown({
+          name: "checkPoint",
+          initCountdown: this.getWaitTime(type, time),
+          callback: () => {
+            this.nextCheckPoint();
+          }
         });
-        
         break;
 
       case "DISAPPEAR":
@@ -894,20 +889,17 @@ class Enemy{
   }
 
   public addBuff(buff: Buff){
-    this.removeBuff(buff.id);
-    this.buffs.push(buff);
+    Global.gameBuff.addEnemyBuff(this, buff);
   }
 
   public removeBuff(id: string){
-    const findIndex = this.buffs.findIndex(buff => buff.id === id);
-    if(findIndex > -1) this.buffs.splice(findIndex, 1);
+    Global.gameBuff.removeEnemyBuff(this, id);
   }
 
   public updateCurrentFrameSpeed(){
     //计算特殊buff，在不同的更新周期中执行
     //例如重力影响速度，需要在计算速度之前先读取buffs
     EnemyHandler.updateBuffAfterUnitVector(this);
-
     this.currentFrameSpeed = this.getAttr("moveSpeed");
   }
 
@@ -953,33 +945,6 @@ class Enemy{
     const index = this.watchers.findIndex(watcher => watcher.name === name);
     if(index > -1){
       this.watchers.splice(index, 1);
-    }
-  }
-
-  private handleRush(){
-    if(this.rush){
-      const {move_speed, interval, trig_cnt, predelay} = this.rush;
-      const trigNum = 
-      Math.min(
-        Math.max(
-          Math.round((this.currentSecond - (predelay||0)) /  interval), 
-          0
-        ), 
-        trig_cnt
-      );
-
-      //todo 性能问题
-      this.addBuff({
-        id: "rush",
-        key: "rush",
-        overlay: false,
-        effect: [{
-          attrKey:"moveSpeed",
-          method: "mul",
-          value: trigNum * move_speed + 1
-        }]
-      });
-
     }
   }
 
@@ -1057,11 +1022,12 @@ class Enemy{
         if(animationScale) this.animationScale = animationScale;
         this.moveAnimate = transAnimation;
         this.idleAnimate = transAnimation;
-        this.countdown.addCountdown( 
-          isWaitTrans ? "waitAnimationTrans" : "animationTrans",
-          animationFind.duration / this.animationScale, 
-          apply
-        );
+        this.countdown.addCountdown({
+          name: isWaitTrans ? "waitAnimationTrans" : "animationTrans",
+          initCountdown: animationFind.duration / this.animationScale, 
+          callback: apply
+        });
+          
         this.changeAnimation();
       }else{
         apply();

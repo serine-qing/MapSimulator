@@ -1,23 +1,26 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
+import { Countdown } from "./CountdownManager";
 
 class GameBuff{
-  public buffs:Buff[] = [];
+  public globalBuffs: Buff[] = [];
+  countdown: Countdown;
   constructor(){
-    
+    this.countdown = Global.countdownManager.getCountdownInst();
   }
 
   addGlobalBuff(buffParam: BuffParam){
-    this.buffs.push({
+    this.globalBuffs.push({
       id: buffParam.id,
       key: buffParam.key,
       overlay: buffParam.overlay ? true : false,
-      effect: buffParam.effect,
-      countdown: buffParam.duration
+      effect: buffParam.effect
     });
   }
 
-  addEnemyBuff(buffParam: BuffParam){
+  //单个buff对象挂载到多个敌人上
+  //实现比较别扭，但确实这样性能比较高，多个敌人身上的buff只用调用一个计时器
+  addBuff(buffParam: BuffParam){
     let enemies: Enemy[];
     switch ( buffParam.applyType ) {
       case "all":
@@ -31,8 +34,7 @@ class GameBuff{
       id: buffParam.id,
       key: buffParam.key,
       overlay: buffParam.overlay ? true : false,
-      effect: buffParam.effect,
-      countdown: buffParam.duration
+      effect: buffParam.effect
     }
 
     enemies.forEach(enemy => {
@@ -41,16 +43,52 @@ class GameBuff{
         ( buffParam.enemy && buffParam.enemy.includes(enemy.key) ) ||
         ( buffParam.enemyExclude && !buffParam.enemyExclude.includes(enemy.key) )
       ){
-        enemy.addBuff(buff)
+        this.addEnemyBuff(enemy, buff);
       }
+    })
 
+    //定时器
+    if(buffParam.duration){
+      this.countdown.addCountdown({
+        name: buff.id,
+        initCountdown: buffParam.duration,
+        callback: () => {
+          this.removeBuff(buff.id)
+        }
+      })
+
+    }
+
+  }
+
+  removeBuff(id: string){
+    Global.waveManager.enemies.forEach(enemy => {
+      this.removeEnemyBuff(enemy, id);
     })
   }
 
-  removeEnemyBuff(id: string){
-    Global.waveManager.enemies.forEach(enemy => {
-      enemy.removeBuff(id);
-    })
+  //buff挂载到指定敌人上，enemy类也会调用此方法
+  addEnemyBuff(enemy: Enemy, buff: Buff){
+    this.removeEnemyBuff(enemy, buff.id);
+    enemy.buffs.push(buff);
+
+    if(buff.duration){
+      this.countdown.addCountdown({
+        name: buff.id,
+        initCountdown: buff.duration,
+        callback: () => {
+          this.removeEnemyBuff(enemy, buff.id)
+        }
+      })
+      
+    }
+  }
+
+  removeEnemyBuff(enemy: Enemy, id: string){
+    const findIndex = enemy.buffs.findIndex(buff => buff.id === id);
+    if(findIndex > -1) {
+      enemy.buffs.splice(findIndex, 1);
+    }
   }
 
   update(delta: number){
