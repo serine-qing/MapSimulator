@@ -1,8 +1,7 @@
 const GameConfig = {
   GAME_SPEED: 2, //游戏速度
   //地图倾斜角
-  MAP_ROTATION : 0.5,
-  FPS : 60,           
+  MAP_ROTATION : 0.5,      
   //@ts-ignore
   BASE_URL : import.meta.env.VITE_API_URL,
   TILE_SIZE : 7,

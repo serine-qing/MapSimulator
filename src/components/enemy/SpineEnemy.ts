@@ -13,7 +13,6 @@ class SpineEnemy extends Enemy{
 
   constructor(action: ActionData){
     super(action);
-    this.motion = checkEnemyMotion(this.key, this.enemyData.motion);
   }
   //初始化spine小人
   public initMesh(){
@@ -97,7 +96,6 @@ class SpineEnemy extends Enemy{
       this.handleGradient();
       
       if(this.isStarted && !this.isFinished){
-
         //锁定spine朝向向相机，防止梯形畸变
         this.skeletonMesh.lookAt(gameCanvas.camera.position);
 

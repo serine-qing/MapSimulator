@@ -18,6 +18,11 @@ class GameBuff{
     });
   }
 
+  getGlobalBuff(id: string){
+    const find = this.globalBuffs.find(buff => buff.id === id);
+    return find ? find : null;
+  }
+
   //单个buff对象挂载到多个敌人上
   //实现比较别扭，但确实这样性能比较高，多个敌人身上的buff只用调用一个计时器
   addBuff(buffParam: BuffParam){

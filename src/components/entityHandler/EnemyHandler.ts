@@ -1,47 +1,8 @@
 import Enemy from "../enemy/Enemy";
-import { Direction } from "../utilities/Enum";
 import Global from "../utilities/Global";
 
-const handleGractrl = (enemy: Enemy, effect) => {
-  if(enemy.key === "enemy_1543_cstlrs" || enemy.key === "enemy_1334_ristar") return;
-  if(Math.abs(enemy.unitVector.y) < 0.45) {
-    enemy.gractrlSpeed = 1;
-    return;
-  };
-  
-  const massLevel = enemy.getAttr("massLevel");
-  const massDirection = effect[0].value;
-
-  let speedMultipy = 1;
-  let reverse;
-  
-  if(
-    (enemy.unitVector.y > 0 && massDirection === Direction.UP) ||
-    (enemy.unitVector.y < 0 && massDirection === Direction.DOWN)
-  ){
-    reverse = false;
-  }else{
-    reverse = true;
-  }
-
-  if(massLevel === 0){
-    speedMultipy = reverse? 0.9 : 1.08;
-  }else if(massLevel === 1){
-    speedMultipy = reverse? 0.66 : 1.2;
-  }else if(massLevel === 2){
-    speedMultipy = reverse? 0.6 : 1.32;
-  }else if(massLevel === 3){
-    speedMultipy = reverse? 0.36 : 2.4;
-  }else if(massLevel >= 4){
-    speedMultipy = reverse? 0.3 : 2.64;
-  }
-  
-  enemy.gractrlSpeed = speedMultipy; 
-
-}
-
 const EnemyHandler = {
-  handleBirthAnimation: (enemy: Enemy) => {
+  handleStart: (enemy: Enemy) => {
     if(enemy.isExtra){
       switch (enemy.key) {
         //压力舒缓帮手
@@ -56,6 +17,14 @@ const EnemyHandler = {
           })
           break;
       }
+    }
+
+    switch (enemy.key) {
+      case "enemy_1334_ristar":
+        enemy.unMoveable = false;
+        enemy.cantFinished = true;
+        break;
+    
     }
   },
 
@@ -243,19 +212,6 @@ const EnemyHandler = {
     })
   },
 
-
-  updateBuffAfterUnitVector: (enemy: Enemy) => {
-    const globalBuffs = Global.gameBuff.globalBuffs;
-
-    globalBuffs.forEach(buff => {
-      switch (buff.key) {
-        case "gractrl":
-          handleGractrl(enemy, buff.effect);
-          break;
-      }
-
-    })
-  }
 }
 
 

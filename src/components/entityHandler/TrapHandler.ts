@@ -1,6 +1,5 @@
 import { GC_Add } from "../game/GC";
 import Trap from "../game/Trap";
-import { Direction } from "../utilities/Enum";
 import Global from "../utilities/Global";
 
 const start = (trap: Trap) => {
@@ -33,21 +32,6 @@ const initSkill = (trap: Trap) => {
         trap.fbxMesh.remove(skin);
         GC_Add(skin);
       }
-      break;
-    //重力控制
-    case "trap_121_gractrl":
-      const gameBuff = Global.gameBuff;
-      gameBuff.addGlobalBuff({
-        id: "gractrl",
-        applyType: "all",
-        key: "gractrl",
-        effect: [{
-          attrKey: "direction",
-          method: null,
-          value: Direction.DOWN
-        }]
-      })
-
       break;
   }
 }

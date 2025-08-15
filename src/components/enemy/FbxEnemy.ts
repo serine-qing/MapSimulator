@@ -13,7 +13,7 @@ class FbxEnemy extends Enemy{
     super(action);
 
   }
-  //初始化spine小人
+
   public initMesh(){
     super.initMesh();
     this.fbxMesh = this.enemyData.fbxMesh.clone();

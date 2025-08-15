@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import GameConfig from "@/components/utilities/GameConfig"
-import { getAnimationSpeed } from "@/components/utilities/SpineHelper";
+import { checkEnemyMotion, getAnimationSpeed } from "@/components/utilities/SpineHelper";
 import { GC_Add } from "../game/GC";
 import Action from "../game/Action";
 import { Countdown } from "../game/CountdownManager";
@@ -51,6 +51,7 @@ class Enemy{
   description: string;  
   icon: string;            //敌人头像URL
   notCountInTotal: boolean; //是否是非首要目标
+  cantFinished: boolean = false;   //敌人是否可进点
 
   startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
@@ -73,8 +74,6 @@ class Enemy{
     moveSpeed: 1,
     rangeRadius: 1,
   };    
-
-  public gractrlSpeed: number = 1;       //重力影响的速度倍率
 
   //属性乘区 每帧从gamebuff里面获取
   buffs: Buff[] = [];
@@ -101,7 +100,6 @@ class Enemy{
   unMoveable: boolean = false;   //是否可移动
   public action: Action;
   route: EnemyRoute;
-  checkpoints: CheckPoint[];
   checkPointIndex: number = 0;   //目前处于哪个检查点
   visualRoutes: any;             //可视化路线
 
@@ -147,6 +145,8 @@ class Enemy{
   protected animationScale: number = 1.0;  //动画执行速率
   public isExtra: boolean = false;         //是否是额外出怪
   public simulateTrackTime: number;      //动画执行time
+
+  public gractrlSpeed: number = 1;       //重力影响的速度倍率
   
   constructor(action: ActionData){
 
@@ -179,8 +179,7 @@ class Enemy{
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
-    this.checkpoints = [...this.route.checkpoints];
-
+    this.motion = checkEnemyMotion(this.key, motion);
     this.position = new THREE.Vector2();
     this.acceleration = new THREE.Vector2(0, 0);
     this.inertialVector = new THREE.Vector2(0, 0);
@@ -205,11 +204,12 @@ class Enemy{
 
   public start(){
     this.reset();
-    this.handleBirthAnimation();
+    
     this.handleTalents();
     this.handleSkills();
     this.isStarted = true;
     this.show();
+    this.handleStart();
   }
 
   public reset(){
@@ -252,13 +252,16 @@ class Enemy{
     this.velocity = velocity;
   }
   
+  public setRoute(route: EnemyRoute){
+    this.route = route;
+  }
 
   public changeCheckPoint(index: number){
     this.checkPointIndex = index;
   }
 
   public currentCheckPoint(): CheckPoint{
-    return this.checkpoints[this.checkPointIndex];
+    return this.route.checkpoints[this.checkPointIndex];
   }
 
   public nextCheckPoint(){
@@ -271,6 +274,7 @@ class Enemy{
 
   //到达终点，退出地图
   public finishedMap(){
+    if( this.cantFinished ) return;
     this.isFinished = true;
     EnemyHandler.finishedMap(this);
     
@@ -502,11 +506,29 @@ class Enemy{
     if(this.isFinished) return;
 
     this.obstacleAvoidanceCalCount = Math.max(this.obstacleAvoidanceCalCount - 1, 0);
+
+    this.updatePositions();
     this.updateAttrs();
     this.updateAction(delta);
 
     const watcherFuncs = this.watchers.map(watcher => watcher.function);
     watcherFuncs.forEach(watcherFunc => watcherFunc());
+  }
+
+  private updatePositions(){
+    const oldPos = this.tilePosition;
+    const newPos = new THREE.Vector2(
+      Math.floor(this.position.x + 0.5),
+      Math.floor(this.position.y + 0.5)
+    );
+
+    if(!oldPos || oldPos.x !== newPos.x || oldPos.y !== newPos.y){
+      this.tilePosition = newPos;
+      Global.tileManager.enterTile(newPos, this);
+      if(oldPos) Global.tileManager.outOfTile(oldPos, this);
+    }
+    
+
   }
 
   private updateAction(delta: number) {
@@ -518,22 +540,18 @@ class Enemy{
     if(this.countdown.getCountdownTime("checkPoint") > 0) return;
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
+    if( !checkPoint ) return;
+
     const {type, time, reachOffset} = checkPoint;
-    
     switch (type) {
       case "MOVE":  
 
         if(this.countdown.getCountdownTime("waitAnimationTrans") > 0) return;
 
         //部分0移速的怪也有移动指令，例如GO活动的装备
-        if(this.unMoveable || this.attributes.moveSpeed === 0){
+        if(this.unMoveable || this.attributes.moveSpeed <= 0){
           return;
         }
-
-        this.tilePosition = new THREE.Vector2(
-          Math.floor(this.position.x + 0.5),
-          Math.floor(this.position.y + 0.5)
-        )
 
         const currentPosition = this.position;
 
@@ -542,7 +560,7 @@ class Enemy{
           this.motion,
           this.tilePosition
         );
-
+  
         if(!currentNode){
           //没有路径，直接忽略它
           //可能是一些放在无路径地面的敌人，或者是bug
@@ -558,7 +576,6 @@ class Enemy{
           }
           return;
         }
-
         this.updateNextNode(currentNode);
 
         let {position, nextNode} = this.nextNode;
@@ -897,9 +914,10 @@ class Enemy{
   }
 
   public updateCurrentFrameSpeed(){
-    //计算特殊buff，在不同的更新周期中执行
-    //例如重力影响速度，需要在计算速度之前先读取buffs
-    EnemyHandler.updateBuffAfterUnitVector(this);
+    //如果重力影响速度，需要在计算速度之前先读取buffs
+    if(Global.gameManager.gractrl){
+      this.gractrlSpeed = Global.gameManager.gractrl.getGractrlMoveSpeed(this);
+    }
     this.currentFrameSpeed = this.getAttr("moveSpeed");
   }
 
@@ -909,8 +927,8 @@ class Enemy{
   }
 
 
-  private handleBirthAnimation(){
-    EnemyHandler.handleBirthAnimation(this);
+  private handleStart(){
+    EnemyHandler.handleStart(this);
   }
 
   private handleTalents(){
@@ -1069,6 +1087,8 @@ class Enemy{
       obstacleAvoidanceVector: this.obstacleAvoidanceVector, 
       obstacleAvoidanceCalCount: this.obstacleAvoidanceCalCount,
       motion: this.motion,
+      route: this.route,
+      tilePosition: this.tilePosition,
       watchers: [...this.watchers],
       buffs: [...this.buffs]
     }
@@ -1096,6 +1116,8 @@ class Enemy{
       obstacleAvoidanceVector,
       obstacleAvoidanceCalCount,
       motion,
+      route,
+      tilePosition,
       watchers,
       buffs
     } = state;
@@ -1119,6 +1141,8 @@ class Enemy{
     this.obstacleAvoidanceVector = obstacleAvoidanceVector;
     this.obstacleAvoidanceCalCount = obstacleAvoidanceCalCount;
     this.motion = motion;
+    this.route = route;
+    this.tilePosition = tilePosition;
     this.watchers = [...watchers];
     this.buffs = [...buffs];
 
@@ -1149,7 +1173,6 @@ class Enemy{
 
   public destroy(){
     this.route = null;
-    this.checkpoints = null;
     this.nextNode = null;
     this.object = null;
   }

@@ -42,6 +42,9 @@ class Trap{
   options = {
     CountDownVisible: true
   }
+
+  customData = {};                 //自定义数据
+
   constructor(data: trapData){
     this.data = data;
     this.isTokenCard = data.isTokenCard;

@@ -1,11 +1,30 @@
+import { Vector2 } from "three";
 import AliasHelper from "./AliasHelper";
 import Tile from "./Tile";
+import Enemy from "../enemy/Enemy";
+
+interface TileEvent{
+  key: string,
+  type: string,
+  x: number,
+  y: number,
+  callback: Function
+}
+
+interface TileEventOption{
+  key: string,
+  type: string,      // in:入 out:出
+  x: number,
+  y: number,
+  callback: Function
+}
 
 class TileManager{
   public tiles: Tile[][] = [];
   public flatTiles: Tile[] = [];
   public height: number;    //矩阵高度(y)
   public width: number;    //矩阵宽度(x)
+  public events: TileEvent[] = [];
   constructor(mapData:any){
     const matrix = mapData.map.map((row: any)=>{
       //row是一行tile的数组,rowIndex为坐标轴中的y值
@@ -26,6 +45,7 @@ class TileManager{
             tileKey = "tile_grvtybtn_down"
           }
         }
+
         const tileData: TileData = {
           tileKey,
           passableMask: AliasHelper(tile.passableMask, "passableMask"),
@@ -57,7 +77,6 @@ class TileManager{
     })
 
     this.flatTiles = this.tiles.flat();
-
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
@@ -105,6 +124,33 @@ class TileManager{
       //生成预览texture
       tile.hiddenPreviewTexture();
     })
+  }
+
+  addEvent(option: TileEventOption){
+    this.events.push({
+      key: option.key,
+      type: option.type,
+      x: option.x,
+      y: option.y,
+      callback: option.callback
+    })
+  }
+
+  enterTile(position: Vector2, enemy: Enemy){
+    this.checkEvent(position, "in", enemy);
+  }
+
+  outOfTile(position: Vector2, enemy: Enemy){
+    this.checkEvent(position, "out", enemy);
+  }
+
+  checkEvent(position: Vector2, type: string, enemy: Enemy){
+    const find = this.events.find(event => {
+      return event.x === position.x && event.y === position.y && event.type === type;
+    })
+    if(find){
+      find.callback(enemy);
+    }
   }
 
   get(){

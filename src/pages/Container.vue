@@ -49,7 +49,11 @@
 
       <div>
         <span class="enemy-key">{{ label.key }}</span>
-        <span class="enemy-key">{{ `当前检查点：${label.currentCheckPoint + 1} / ${label.checkPointLength}` }}</span>
+        <span class="enemy-key">{{ `当前检查点：${
+          Math.min(
+            label.currentCheckPoint + 1, label.checkPointLength
+          )
+        } / ${label.checkPointLength}` }}</span>
         <el-button @click="showDetail(label.id)">查看详情</el-button>
         <el-checkbox 
           :disabled="!enemies[index].isRanged()" 
@@ -154,7 +158,7 @@ const initEnemyLabels = () => {
       id: enemy.id,
       key: enemy.key,
       name: enemy.name,
-      checkPointLength: enemy.checkpoints.length,
+      checkPointLength: enemy.route.checkpoints.length,
       options: enemy.options,
       style: {}
     });

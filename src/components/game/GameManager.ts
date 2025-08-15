@@ -19,6 +19,8 @@ import { ElMessage } from 'element-plus'
 import { CountdownManager } from "./CountdownManager";
 import GameBuff from "./GameBuff";
 import Global from "../utilities/Global";
+import GameHandler from "../entityHandler/GameHandler";
+import Gractrl from "../entityHandler/Gractrl";
 
 //游戏控制器
 class GameManager{
@@ -44,7 +46,9 @@ class GameManager{
   private animateTimeStamp: number = 0;
   private animateInterval: number = 1 / 60; //两次数据更新之间间隔的时间
 
-  private updateInterval = 1 / GameConfig.FPS;    //游戏内一帧时间（默认三十分之一秒）
+  private gameSpeedOneCanUpdate: boolean = false;
+  private updateInterval = 1 / 30;    //游戏内一帧时间（固定三十分之一秒）
+  private delta = 0;                  //view渲染用
 
   public gameSecond: number = 0;    //当前游戏时间
 
@@ -54,6 +58,8 @@ class GameManager{
   private activeTokenCard: TokenCard;
 
   private mouseMoveProcessing: boolean = false;
+
+  public gractrl: Gractrl;  //重力控制
 
   constructor(mapModel: MapModel){
     Global.reset();
@@ -75,8 +81,13 @@ class GameManager{
     this.trapManager = new TrapManager(mapModel.trapDatas);
     this.waveManager = new WaveManager();
     this.gameView = new GameView();
-    this.changeGameSpeed(2);
     
+    if(this.trapManager.traps.find(trap => trap.key === "trap_121_gractrl")){
+      this.gractrl = new Gractrl();
+    }
+    
+
+    GameHandler.afterGameInit();
     const simData = this.startSimulate();
     this.setSimulateData(simData);
     this.start();
@@ -121,10 +132,6 @@ class GameManager{
 
   }
 
-  public changeGameSpeed(gameSpeed: number){
-    this.gameSpeed = gameSpeed;
-  }
-
   public changePause(pause: boolean){
     this.pause = pause;
   }
@@ -132,29 +139,47 @@ class GameManager{
   //循环执行
   private animate(){
     this.animateTimeStamp += this.clock.getDelta();
+    this.delta = 0;
 
     if(this.animateTimeStamp >= this.animateInterval){
       this.mouseMoveProcessing = false;
 
       this.animateTimeStamp = (this.animateTimeStamp % this.animateInterval);
-      //游戏循环
-      for(let i = 0; i < this.gameSpeed; i++){
-        this.gameLoop();
+      if(this.gameSpeed === 1){
+        //一倍速2帧执行一次
+        if(this.gameSpeedOneCanUpdate){
+          this.gameSpeedOneCanUpdate = false;
+
+          this.gameLoop();
+          
+        }else{
+          this.gameSpeedOneCanUpdate = true;
+        }
+      }else{
+        this.gameSpeedOneCanUpdate = false;
+
+        for(let i = 0; i < this.gameSpeed / 2; i++){
+          this.gameLoop();
+        }
+        
       }
-      
     }
 
-    requestAnimationFrame(()=>{
-      this.animate();
-    });
+    if(this.gameView){
 
+      this.gameView.render(this.delta);
 
+      requestAnimationFrame(()=>{
+        this.animate();
+      });
+
+    }
   }
 
   public gameLoop(){
     if(!this.pause && !this.isFinished){
       const delta = this.updateInterval;
-
+      this.delta += delta;
       //动态模拟
       if(!this.isSimulate && this.isDynamicsSimulate){
         
@@ -174,7 +199,6 @@ class GameManager{
       this.gameSecond += delta;
       
       this.update(delta);
-      this.gameView.update(delta);
       
       if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
 
@@ -378,13 +402,17 @@ class GameManager{
     });
   }
 
+  public changeGameSpeed(gameSpeed: number){
+    this.gameSpeed = gameSpeed;
+  }
+
   public restart(){
     const data = this.simulateData?.byTime[0];
     this.set(data);
   }
 
   public get(){
-    let state = {
+    let state: {[key: string]: any} = {
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
       SPFAState: this.SPFA.get(),
@@ -392,7 +420,10 @@ class GameManager{
       tileState: this.tileManager.get(),
       eManagerState: this.waveManager.get(),
       countdownState: this.countdownManager.get(),
-      tokenCardState: this.tokenCards.map(tc => tc.get())
+      tokenCardState: this.tokenCards.map(tc => tc.get()),
+    }
+    if(this.gractrl){
+      state.gractrlState = this.gractrl.get();
     }
     return state;
   }
@@ -400,7 +431,17 @@ class GameManager{
   public set(state){
     this.trapManager.resetSelected();
 
-    const {gameSecond, isFinished, SPFAState, trapState, tileState, eManagerState, countdownState, tokenCardState} = state;
+    const {
+      gameSecond, 
+      isFinished, 
+      SPFAState, 
+      trapState, 
+      tileState, 
+      eManagerState, 
+      countdownState, 
+      tokenCardState,
+      gractrlState
+    } = state;
     
     this.gameSecond = gameSecond;
     this.trapManager.set(trapState);
@@ -424,8 +465,10 @@ class GameManager{
     
     this.waveManager.set(eManagerState);
     this.countdownManager.set(countdownState);
-
     this.isFinished = isFinished;
+
+    this.gractrl?.set(gractrlState);
+    
 
     this.setData = null;
   }
