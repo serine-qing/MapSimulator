@@ -92,9 +92,9 @@ class GameView{
     
     gameCanvas.render();
 
+    this.renderEnemy(delta);
+    
     if(delta){
-      this.renderEnemy(delta);
-      
       Global.trapManager.traps.forEach(
         trap => {
           if(trap.visible){

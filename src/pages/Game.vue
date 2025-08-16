@@ -64,7 +64,7 @@ gameSpeed.value = GameConfig.GAME_SPEED;
 
 eventBus.on("second_change", (second: number) => {
   currentSecond.value = Math.floor(second);
-  sliderValue.value = Math.floor(second / GameConfig.SIMULATE_STEP);
+  sliderValue.value = Math.floor(second / gameManager.simStep);
 })
 
 eventBus.on("gameStart", () => {
@@ -82,7 +82,7 @@ eventBus.on("update:isFinished", (_isFinished) => {
 
 
 const formatTooltip = (val: number) => {
-  return val * GameConfig.SIMULATE_STEP + "秒"
+  return val * (gameManager?.simStep? gameManager.simStep : GameConfig.SIMULATE_STEP) + "秒";
 }
 
 const changeGameSpeed = () => {

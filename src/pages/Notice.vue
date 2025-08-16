@@ -8,6 +8,7 @@
       <template #reference> 
         <el-link type="danger">更新公告</el-link>
       </template>
+      <p style="color: red;">8.16更新：添加碰撞检测，添加雷遁忍者技能。添加当期合约地图（暂无tag）</p>
       <p style="color: red;">8.14更新：“墟”S关地图更新</p>
       <p style="color: red;">8.12更新：孤星机制优化</p>
       <p style="color: red;">8.9更新：完成路线显示功能</p>

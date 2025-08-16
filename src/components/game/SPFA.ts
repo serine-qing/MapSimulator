@@ -5,9 +5,10 @@ import Global from "../utilities/Global";
 class SPFA{
   public pathMaps: PathMap[] = []; //寻路地图
   public enemyRoutes: EnemyRoute[] = [];
-  constructor(enemyRoutes: EnemyRoute[]){
-    
+  public extraBlocks: THREE.Vector2[] = [];
+  constructor(enemyRoutes: EnemyRoute[], extraBlocks: THREE.Vector2[]){
     this.enemyRoutes = enemyRoutes; 
+    this.extraBlocks = extraBlocks;
   }
 
   //生成寻路地图需要用到的拷贝对象
@@ -146,6 +147,9 @@ class SPFA{
   }
 
   private getDistanceWeight(x: number, y: number): number{
+    const find = this.extraBlocks.find(point => point.x === x && point.y === y);
+    if(find) return 1000;
+
     let distanceWeight: number;
     const tile = Global.tileManager.getTile(x, y);
 
@@ -276,16 +280,20 @@ class SPFA{
     return currentNode;
   }
 
-  public regenerate(): boolean{
+  //checkBlock:是否检查路线不通
+  public regenerate(checkBlock: boolean): boolean{
     const old = this.pathMaps;
     this.pathMaps = [];
     this.generatepathMaps();
-    const blocked = this.checkBlocked();
-    if(blocked){
-      this.pathMaps = old;
+    
+    if(checkBlock){
+      const blocked = this.checkBlocked();
+      if(blocked){
+        this.pathMaps = old;
+      }
+      return !blocked;
     }
 
-    return !blocked;
   }
 
   //检查路线是否堵住

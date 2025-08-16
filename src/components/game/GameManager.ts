@@ -28,6 +28,7 @@ class GameManager{
   private clock: THREE.Clock = new THREE.Clock();
 
   public mapModel: MapModel;
+  public isCampaign: boolean = false;
   public gameBuff: GameBuff;
   public SPFA: SPFA;
   public tileManager: TileManager;
@@ -51,7 +52,7 @@ class GameManager{
   private delta = 0;                  //view渲染用
 
   public gameSecond: number = 0;    //当前游戏时间
-
+  public simStep: number;            //模拟数据步长（秒）
   public isFinished: boolean = false;
 
   public tokenCards: TokenCard[];
@@ -64,9 +65,12 @@ class GameManager{
   constructor(mapModel: MapModel){
     Global.reset();
     Global.changeGameManager(this);
+
     this.countdownManager = new CountdownManager();
     //初始化敌人控制类
     this.mapModel = mapModel;
+    this.isCampaign = this.mapModel.sourceData.levelId.includes("campaign");
+    this.simStep = this.isCampaign? 5 : GameConfig.SIMULATE_STEP;
     this.gameBuff = new GameBuff();
 
     this.SPFA = mapModel.SPFA;
@@ -330,7 +334,7 @@ class GameManager{
     this.trapManager.removeTrap(trap);
     //障碍物需要重新计算寻路
     if(trap.key === "trap_001_crate"){
-      this.SPFA.regenerate();
+      this.SPFA.regenerate(false);
       this.reStartSimulate();
     }
   }
@@ -342,7 +346,7 @@ class GameManager{
 
       //障碍物需要重新计算寻路
       if(trap.key === "trap_001_crate"){
-        const success = this.SPFA.regenerate();
+        const success = this.SPFA.regenerate(true);
 
         //判断是否封死道路
         if(success){
@@ -507,10 +511,15 @@ class GameManager{
     let time = startTime? startTime : 0;
     const cachePause = this.pause;
     this.pause = false;
-    while( !this.isFinished && this.gameSecond < 3600 ){
+
+    //剿灭太长 特殊处理
+    const maxTime = this.isCampaign ? 3600 : 1200;
+
+
+    while( !this.isFinished && this.gameSecond < maxTime ){
       if(this.gameSecond >= time){
         simData.byTime.push(this.get());
-        time += GameConfig.SIMULATE_STEP;
+        time += this.simStep;
       }
       this.gameLoop();
     }
@@ -529,7 +538,7 @@ class GameManager{
   }
 
   //重新计算当前时间点之后的模拟数据
-  private reStartSimulate(){
+  public reStartSimulate(){
     const currentState = this.get();
     const startTime = Math.ceil(this.gameSecond);
     const simData = this.startSimulate(startTime);

@@ -14,13 +14,12 @@ import { getTrapsKey, getMeshsKey, getTokenCards } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
-import TokenCard from "./TokenCard";
 import { immuneTable } from "../utilities/Interface";
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
-  private sourceData: any;
+  public sourceData: any;
   public runesHelper: RunesHelper;
 
   public tileManager: TileManager; //地图tiles
@@ -118,10 +117,7 @@ class MapModel{
       }
     })
 
-    this.SPFA = new SPFA([...this.routes, ...this.extraRoutes]);
-
-    this.sourceData = null;
-
+    this.initSPFA();
   }
 
   private async getTokenCards(){
@@ -758,6 +754,16 @@ class MapModel{
         this.extraActionDatas.push(actions);
       }
     })
+  }
+
+  private initSPFA(){
+    const extraBlocks = [];
+    this.actionDatas.flat().forEach(action => {
+      if(action.key === "enemy_1334_ristar"){
+        extraBlocks.push(action.route.startPosition);
+      }
+    });
+    this.SPFA = new SPFA([...this.routes, ...this.extraRoutes], extraBlocks);
   }
 
 }

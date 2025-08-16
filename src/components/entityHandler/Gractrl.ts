@@ -2,6 +2,7 @@ import { Vector2 } from "three";
 import Enemy from "../enemy/Enemy";
 import { Direction } from "../utilities/Enum";
 import Global from "../utilities/Global";
+import { Countdown } from "../game/CountdownManager";
 
 class Gractrl{
   direction: Direction = Direction.DOWN;
@@ -9,10 +10,15 @@ class Gractrl{
   routes = [];
   upTriggerNum: number = 0;
   downTriggerNum: number = 0;
+  countdown: Countdown;
 
+  upPathMaps;
+  downPathMaps;
   constructor(){
+    this.countdown = Global.countdownManager.getCountdownInst();
     this.initGractrlRoutes();
     this.bindGrvtybtn();
+    this.initPathMaps();          //生成球在上下时不同的寻路路径
     this.changeGractrl(Direction.DOWN);
   }
 
@@ -60,6 +66,31 @@ class Gractrl{
 
       }
     })
+  }
+  
+  private initPathMaps(){
+    this.upPathMaps = Global.SPFA.pathMaps;
+
+    const extraBlocks = [];
+    Global.waveManager.enemies.flat().forEach(enemy => {
+      if(enemy?.key === "enemy_1334_ristar"){
+        const y1 = enemy.route.startPosition.y;
+        const y2 = enemy.route.endPosition.y;
+        if(y1 === y2){
+          extraBlocks.push(enemy.route.startPosition);
+        }else{
+          extraBlocks.push(enemy.route.endPosition);
+        }
+      }
+    });
+
+    if(extraBlocks.length > 0){
+      Global.SPFA.extraBlocks = extraBlocks;
+      Global.SPFA.regenerate(false);
+      this.downPathMaps = Global.SPFA.pathMaps;
+      Global.SPFA.pathMaps = this.upPathMaps;
+    }
+
   }
 
   private bindGrvtybtn(){
@@ -134,7 +165,22 @@ class Gractrl{
 
   private changeGractrl(direction: Direction){
     this.direction = direction;
-    
+
+    if(this.downPathMaps){
+      this.countdown.addCountdown({
+        name: "regenerateRoute",
+        initCountdown: 2,
+        callback: () => {
+
+          Global.SPFA.pathMaps = 
+            this.direction === Direction.UP ? this.upPathMaps : this.downPathMaps;
+
+          // Global.gameManager.reStartSimulate();
+        }
+      })
+    }
+
+
     Global.waveManager.enemies.forEach(enemy => {
       
       if(enemy.key === "enemy_1334_ristar"){
@@ -148,7 +194,7 @@ class Gractrl{
             name: "rush",
             initCountdown: 0,
             countdown: 0.1,
-            maxCount: 23,
+            maxCount: 20,
             callback: (timer) => {
               enemy.addBuff({
                 id: "rush",
@@ -157,7 +203,7 @@ class Gractrl{
                 effect: [{
                   attrKey: "moveSpeed",
                   method: "add",
-                  value: -(baseMoveSpeed * 1.28 * (1 - (timer.count - 1) / 22) )
+                  value: -(baseMoveSpeed * 1.28 * (1 - (timer.count - 1) / 19) )
                 }]
               })
             }

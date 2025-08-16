@@ -29,7 +29,7 @@ const EnemyHandler = {
   },
 
   handleTalent: (enemy: Enemy, talent: any) => {
-    const {move_speed, interval, duration, trig_cnt, unmove_duration} = talent.value;
+    const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;
     let waitTime;
 
     switch (talent.key) {
@@ -69,7 +69,6 @@ const EnemyHandler = {
       case "wait": //念旧
       case "sleep": //驮兽
         waitTime = duration || interval;
-        const callback = () => {};
         if( waitTime ){
           enemy.countdown.addCountdown({
             name: "checkPoint",
@@ -135,24 +134,51 @@ const EnemyHandler = {
           })
         }
         break;
+
+      case "ymgholjumptrigger": //雷遁忍者遇到伪装的土遁忍者触发跳跃
+        enemy.addDetection({
+          detectionRadius: range_radius,
+          enemyKeys: ["enemy_10115_ymghol","enemy_10115_ymghol_2"],
+          duration: 0.1,
+          every: false,
+          callback: (ymghol: Enemy) => {
+            if(ymghol.idleAnimate === "Invisible"){
+              enemy.countdown.triggerCountdown("jump");
+            }
+          }
+        })
+        break;
+      case "holetiletrigger": //雷遁忍者遇到坑触发跳跃
+        enemy.addDetection({
+          detectionRadius: range_radius,
+          tileKeys: ["tile_hole"],
+          duration: 0.1,
+          every: false,
+          callback: () => {
+            enemy.countdown.triggerCountdown("jump");
+          }
+        })
+
+        break;
     }
   },
 
   handleSkill: (enemy: Enemy, skill: any) => {
-    let countdown =  skill.initCooldown;
+    const { initCooldown, cooldown } =  skill;
 
     switch (skill.prefabKey) {
       case "doom":
-        
+        let cd = initCooldown;
         if(enemy.key === "enemy_1521_dslily"){
+          
           //昆图斯需要加上前两个阶段的时间
           const growup1 = enemy.getTalent("growup1");
           const growup2 = enemy.getTalent("growup2");
-          countdown += growup1.interval + growup2.interval;
+          cd += growup1.interval + growup2.interval;
         }
         enemy.countdown.addCountdown({
           name: "end",
-          initCountdown: countdown,
+          initCountdown: cd,
           callback: () => {
             enemy.finishedMap();
           }
@@ -163,7 +189,7 @@ const EnemyHandler = {
 
           enemy.countdown.addCountdown({
             name: "switchmodetrigger",
-            initCountdown: countdown,
+            initCountdown: initCooldown,
             callback: () => {
               enemy.animationStateTransition({
                 moveAnimate: "Skill_Loop",
@@ -197,6 +223,52 @@ const EnemyHandler = {
           });
         }
         break;
+      
+      case "jump":  //雷遁忍者
+        const jumpspeedup = enemy.talents.find(talent =>  talent.key === "jumpspeedup")?.value?.move_speed;
+
+        //todo 这里的动画前后摇放进转换动画函数里比较好
+        enemy.countdown.addCountdown({
+          name: "jump",
+          initCountdown: initCooldown,
+          countdown: cooldown,
+          trigger: "manual",
+          callback: () => {
+            enemy.countdown.addCountdown({
+              name: "waiting",
+              initCountdown: 0.33
+            })
+            enemy.countdown.addCountdown({
+              name: "jumpEndLag",
+              initCountdown: 1.67,
+              callback: () => {
+                enemy.countdown.addCountdown({
+                  name: "waiting",
+                  initCountdown: 0.33
+                })
+              }
+            })
+            enemy.addBuff({
+              id: "jumpspeedup",
+              key: "jumpspeedup",
+              overlay: false,
+              duration: 2,
+              effect: [{
+                attrKey: "moveSpeed",
+                method: "mul",
+                value: jumpspeedup ? jumpspeedup : 3
+              }]
+            })
+            enemy.animationStateTransition({
+              moveAnimate: enemy.moveAnimate,
+              idleAnimate: enemy.idleAnimate,
+              transAnimation: "Jump",
+              animationScale: 1,
+              isWaitTrans: false
+            });
+          }
+        })
+        break
     }
   },
 

@@ -25,7 +25,17 @@ interface AnimateTransition{
 
 interface Watcher{
   function: Function,
-  name: string
+  name: string,
+}
+
+//碰撞检测
+interface DetectionParam{
+  enemyKeys?: string[],
+  tileKeys?: string[],
+  detectionRadius: number,    //检测半径
+  duration: number,           //检测间隔
+  every: boolean,             //检测到第一个就停下，还是检测所有的
+  callback: Function,  
 }
 
 class Enemy{
@@ -41,6 +51,7 @@ class Enemy{
     opacity: 0.8 // 设置透明度
   });
 
+  public isEnemy = true;
   enemyData: EnemyData;  //原始data数据
 
   id: number;    //WaveManager中使用的id
@@ -145,6 +156,7 @@ class Enemy{
   protected animationScale: number = 1.0;  //动画执行速率
   public isExtra: boolean = false;         //是否是额外出怪
   public simulateTrackTime: number;      //动画执行time
+  protected transAnimationPlaying: boolean = false;       //是否正在播放转换动画
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   
@@ -276,6 +288,7 @@ class Enemy{
   public finishedMap(){
     if( this.cantFinished ) return;
     this.isFinished = true;
+    this,this.countdown.clearCountdown();
     EnemyHandler.finishedMap(this);
     
     if(!Global.gameManager.isSimulate){
@@ -545,7 +558,7 @@ class Enemy{
     const {type, time, reachOffset} = checkPoint;
     switch (type) {
       case "MOVE":  
-
+        if(this.countdown.getCountdownTime("waiting") > 0) return;
         if(this.countdown.getCountdownTime("waitAnimationTrans") > 0) return;
 
         //部分0移速的怪也有移动指令，例如GO活动的装备
@@ -604,12 +617,13 @@ class Enemy{
         //计算当前移速
         this.updateCurrentFrameSpeed();
         const actualSpeed = this.currentFrameSpeed * 0.5;
+        if(actualSpeed <= 0) return;
 
         //todo 重复代码
         const simVelocity = this.unitVector.clone().multiplyScalar(actualSpeed * delta);
         const simDistanceToTarget = currentPosition.distanceTo(targetPos);
         if(simVelocity.length() >= simDistanceToTarget){
-          this.position = targetPos.clone();
+          this.setPosition(targetPos.x, targetPos.y);
           this.velocity = simVelocity;
           this.nextNode = this.nextNode?.nextNode;
 
@@ -680,12 +694,10 @@ class Enemy{
         this.move();
           
         const distanceToTarget = currentPosition.distanceTo(targetPos);
-
         //到达检查点终点
         if( distanceToTarget <= 0.05 &&
           (this.nextNode === null || this.nextNode === undefined)
         ){
-
           this.nextCheckPoint();
         }
 
@@ -966,6 +978,44 @@ class Enemy{
     }
   }
 
+  //检测物体
+  public addDetection(detection: DetectionParam){
+    const {enemyKeys, tileKeys, detectionRadius, duration, every, callback} = detection;
+
+    let objs, keyName;
+    if(enemyKeys){
+      keyName = enemyKeys[0];
+      objs = Global.waveManager.enemies.filter(enemy => enemyKeys.includes(enemy.key));
+    }else if(tileKeys){
+      keyName = tileKeys[0];
+      objs = Global.tileManager.flatTiles.filter(tile => tileKeys.includes(tile.tileKey));
+    }
+
+    if(objs){
+      this.countdown.addCountdown({
+        name: `Detection$${keyName}`,
+        initCountdown: 0,
+        countdown: duration,
+        callback: () => {
+          for(let i = 0; i < objs.length; i++){
+            const obj = objs[i];
+            if(obj.isEnemy && (!obj.isStarted || obj.isFinished)) continue;
+
+            const detectPos: THREE.Vector2 = obj.position;
+            const distance = this.position.distanceTo(detectPos);
+            
+            if(distance <= detectionRadius){
+              callback(obj);
+              if(!every) break;
+            }
+          }
+        }
+      })
+    }else{
+      console.error("detection设置失败!")
+    }
+  }
+
   public show(){
     this.exit = false;
     if(!Global.gameManager.isSimulate && this.object) this.object.visible = true;
@@ -1029,6 +1079,7 @@ class Enemy{
       this.moveAnimate = moveAnimate;
       this.idleAnimate = idleAnimate;
       this.animationScale = 1;
+      this.transAnimationPlaying = false;
       this.changeAnimation();
       if( callback ) callback();
     }
@@ -1047,6 +1098,7 @@ class Enemy{
         });
           
         this.changeAnimation();
+        this.transAnimationPlaying = true;
       }else{
         apply();
       }
@@ -1058,7 +1110,13 @@ class Enemy{
 
   //更改动画
   public changeAnimation(){
-    this.simulateTrackTime = 0;
+    if(!this.transAnimationPlaying){
+      this.simulateTrackTime = 0;
+    }
+  }
+
+  //直接设置动画
+  protected setAnimation(){
   }
 
   public get(){
@@ -1081,6 +1139,7 @@ class Enemy{
       moveAnimate: this.moveAnimate,
       animateState: this.animateState,
       animationScale: this.animationScale,
+      transAnimationPlaying: this.transAnimationPlaying,
       shadowHeight: this.shadowHeight,
       exit: this.exit,
       simulateTrackTime: this.simulateTrackTime,
@@ -1109,6 +1168,7 @@ class Enemy{
       idleAnimate,
       moveAnimate,
       animationScale,
+      transAnimationPlaying,
       shadowHeight,
       exit,
       currentSecond,
@@ -1132,6 +1192,7 @@ class Enemy{
     this.exit = exit;
     this.currentSecond = currentSecond;
     this.isFinished = isFinished;
+    this.transAnimationPlaying = transAnimationPlaying;
     this.shadowHeight = shadowHeight;
     this.idleAnimate = idleAnimate;
     this.moveAnimate = moveAnimate;
@@ -1150,7 +1211,7 @@ class Enemy{
       //恢复当前动画状态
 
       if(animateState){
-        this.changeAnimation();
+        this.setAnimation();
       }
 
       if(simulateTrackTime){

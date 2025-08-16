@@ -51,12 +51,19 @@ class Countdown{
     }
   }
 
+  public clearCountdown(){
+    this.timers = [];
+  }
+
   public update(delta: number){
     for(let i = 0; i < this.timers.length; i++){
       const timer = this.timers[i];
       const { countdown, callback, trigger, maxCount } = timer;
 
-      if( trigger === "manual" && timer.time === 0 ) continue;
+      if( trigger === "manual"){
+        timer.time = Math.max(timer.time - delta, 0);
+        continue;
+      };
 
       timer.time = timer.time - delta;
       if(timer.time <= 0){
