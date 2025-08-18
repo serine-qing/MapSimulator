@@ -135,6 +135,7 @@ import Trap from '@/components/game/Trap';
 import TrapManager from '@/components/game/TrapManager';
 import eventBus from '@/components/utilities/EventBus';
 import GameView from '@/components/game/GameView';
+import AnimationFrame from '../components/utilities/AnimationFrame';
 
 const { gameManager, attackRangeCheckAll, countDownCheckAll, showEnemyMenu } = defineProps(
   ["gameManager","attackRangeCheckAll", "countDownCheckAll", "showEnemyMenu"]
@@ -442,16 +443,14 @@ const update = () => {
   
 }
 
-const animate = () => {
-  requestAnimationFrame(()=>{
+AnimationFrame({
+  order: 1,
+  animate: () => {
     if(waveManager){
       update();
     }
-    animate();
-  });
-}
-
-animate();
+  }
+});
 
 const changeGameManager = () => {
   enemies = [];

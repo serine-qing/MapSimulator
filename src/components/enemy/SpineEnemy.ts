@@ -95,16 +95,13 @@ class SpineEnemy extends Enemy{
     if(!Global.gameManager.isSimulate && this.object){
       this.handleGradient();
       
-      if(this.isStarted && !this.isFinished){
+      if(delta && this.isStarted && !this.isFinished){
         //锁定spine朝向向相机，防止梯形畸变
         this.skeletonMesh.lookAt(gameCanvas.camera.position);
 
-        if(this.isStarted && !this.isFinished){
-          //todo 多次拖动后卡顿
-          this.skeletonMesh.update(
-            this.deltaTrackTime(delta)
-          )
-        }
+        this.skeletonMesh.update(
+          this.deltaTrackTime(delta)
+        )
 
       }
 
@@ -152,7 +149,18 @@ class SpineEnemy extends Enemy{
       //恢复当前动画帧
       const track = this.skeletonMesh.state.getCurrent(0);
       track.trackTime = trackTime;
-      
+
+      this.skeletonMesh.lookAt(gameCanvas.camera.position);
+
+      // Spine 运行时在 deltaTime=0 时会触发特殊的非连续动画处理：
+      // 需要重新计算骨骼的初始姿势（Initial Pose）
+      // 强制进行完整的插值计算（即使没有时间推进）
+      // 跳过动画缓存优化路径
+      // 这会导致每次调用都执行完整的骨骼变换计算（而非增量更新），消耗大量 CPU。
+      // 所以就算是手动设置trackTime，deltaTime参数也不能填0
+      this.skeletonMesh.update(
+        0.001
+      )
     }
   }
 

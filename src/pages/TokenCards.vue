@@ -26,6 +26,7 @@
 </template>
 
 <script lang="ts" setup>
+import AnimationFrame from '@/components/utilities/AnimationFrame';
 import { ref, watch } from 'vue';
 
 const { gameManager, tokenCards } = defineProps(["gameManager", "tokenCards"])
@@ -63,16 +64,16 @@ const update = () => {
   })
 }
 
-const animate = () => {
-  requestAnimationFrame(()=>{
+
+AnimationFrame({
+  order: 3,
+  animate: () => {
     if(tokenCards){
       update();
     }
-    animate();
-  });
-}
+  }
+});
 
-animate();
 
 </script>
 

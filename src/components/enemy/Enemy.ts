@@ -155,7 +155,7 @@ class Enemy{
   protected ZOffset: number = 0;             //模型Z轴位移
   protected animationScale: number = 1.0;  //动画执行速率
   public isExtra: boolean = false;         //是否是额外出怪
-  public simulateTrackTime: number;      //动画执行time
+  public simulateTrackTime: number = 0;      //动画执行time
   protected transAnimationPlaying: boolean = false;       //是否正在播放转换动画
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率

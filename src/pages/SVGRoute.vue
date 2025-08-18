@@ -30,6 +30,7 @@
 
 <script lang="ts" setup>
 import { gameCanvas } from '@/components/game/GameCanvas';
+import AnimationFrame from '@/components/utilities/AnimationFrame';
 import eventBus from '@/components/utilities/EventBus';
 import GameConfig from '@/components/utilities/GameConfig';
 import { ref, shallowRef, watch } from 'vue';
@@ -74,21 +75,22 @@ const nextSnake = () => {
   snake.style.strokeDashoffset = segmentLength.toString();
 }
 
-
-const animate = () => {
-  if(snakes && snakes.length > 0){
-    offset = (offset - speed) % (pathLength + segmentLength);
-    if(++count >= maxCount){
-      offset = segmentLength;
+AnimationFrame({
+  order: 2,
+  animate: () => {
+    if(snakes && snakes.length > 0){
+      offset = (offset - speed) % (pathLength + segmentLength);
+      if(++count >= maxCount){
+        offset = segmentLength;
+        snake.style.strokeDashoffset = offset.toString();
+        nextSnake();
+      }
       snake.style.strokeDashoffset = offset.toString();
-      nextSnake();
     }
-    snake.style.strokeDashoffset = offset.toString();
   }
-  requestAnimationFrame(animate);
-}
+});
 
-animate();
+
     
 const createSVGRoute = (nodes) => {
   let pathStrs: string[] = [];

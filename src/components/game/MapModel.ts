@@ -55,7 +55,6 @@ class MapModel{
     //解析敌人路径
     this.routes = this.parseEnemyRoutes(this.sourceData.routes);
     this.extraRoutes = this.parseEnemyRoutes(this.sourceData.extraRoutes);
-
     //解析波次数据
     this.parseWaves(this.sourceData.waves);
 
@@ -738,7 +737,7 @@ class MapModel{
         const brancheData = branches[branchId]?.phases;
         let actions: ActionData[];
 
-        if(actionIndex !== null || actionIndex !== undefined){
+        if(actionIndex !== null && actionIndex !== undefined){
           const findAction = brancheData[0]?.actions[actionIndex];
           actions = this.parseActions([
             {
@@ -747,7 +746,9 @@ class MapModel{
             }
           ], 0);
         }else{
+          
           actions = this.parseActions(brancheData, 0);
+          
         }
 
         trapData.extraWave = actions;

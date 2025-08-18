@@ -21,6 +21,7 @@ import GameBuff from "./GameBuff";
 import Global from "../utilities/Global";
 import GameHandler from "../entityHandler/GameHandler";
 import Gractrl from "../entityHandler/Gractrl";
+import AnimationFrame from "../utilities/AnimationFrame";
 
 //游戏控制器
 class GameManager{
@@ -43,9 +44,7 @@ class GameManager{
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
-  
-  private animateTimeStamp: number = 0;
-  private animateInterval: number = 1 / 60; //两次数据更新之间间隔的时间
+
 
   private gameSpeedOneCanUpdate: boolean = false;
   private updateInterval = 1 / 30;    //游戏内一帧时间（固定三十分之一秒）
@@ -111,7 +110,10 @@ class GameManager{
       this.handleMouseMove();
       this.handleClick();
 
-      this.animate();
+      AnimationFrame({
+        order: 0,
+        animate: () => this.animate()
+      });
 
     })
 
@@ -142,45 +144,36 @@ class GameManager{
 
   //循环执行
   private animate(){
-    this.animateTimeStamp += this.clock.getDelta();
+    
     this.delta = 0;
+    this.mouseMoveProcessing = false;
 
-    if(this.animateTimeStamp >= this.animateInterval){
-      this.mouseMoveProcessing = false;
-
-      this.animateTimeStamp = (this.animateTimeStamp % this.animateInterval);
-      if(this.gameSpeed === 1){
-        //一倍速2帧执行一次
-        if(this.gameSpeedOneCanUpdate){
-          this.gameSpeedOneCanUpdate = false;
-
-          this.gameLoop();
-          
-        }else{
-          this.gameSpeedOneCanUpdate = true;
-        }
-      }else{
+    if(this.gameSpeed === 1){
+      //一倍速2帧执行一次
+      if(this.gameSpeedOneCanUpdate){
         this.gameSpeedOneCanUpdate = false;
 
-        for(let i = 0; i < this.gameSpeed / 2; i++){
-          this.gameLoop();
-        }
+        this.update();
         
+      }else{
+        this.gameSpeedOneCanUpdate = true;
       }
+    }else{
+      this.gameSpeedOneCanUpdate = false;
+
+      for(let i = 0; i < this.gameSpeed / 2; i++){
+        this.update();
+      }
+      
     }
 
-    if(this.gameView){
+    this.gameView?.render(this.delta);
+    
 
-      this.gameView.render(this.delta);
 
-      requestAnimationFrame(()=>{
-        this.animate();
-      });
-
-    }
   }
 
-  public gameLoop(){
+  public update(){
     if(!this.pause && !this.isFinished){
       const delta = this.updateInterval;
       this.delta += delta;
@@ -202,7 +195,8 @@ class GameManager{
       
       this.gameSecond += delta;
       
-      this.update(delta);
+      this.countdownManager.update(delta);
+      this.waveManager.update(delta);
       
       if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
 
@@ -210,11 +204,6 @@ class GameManager{
 
     if(!this.isSimulate) eventBus.emit("update:isFinished", this.isFinished);
 
-  }
-
-  private update(delta: number){
-    this.countdownManager.update(delta);
-    this.waveManager.update(delta);
   }
 
   private intersectObjects(x: number, y: number): any{
@@ -521,7 +510,7 @@ class GameManager{
         simData.byTime.push(this.get());
         time += this.simStep;
       }
-      this.gameLoop();
+      this.update();
     }
 
     this.pause = cachePause;

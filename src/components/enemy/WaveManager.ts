@@ -76,6 +76,14 @@ class WaveManager{
             currentPosition
           );
 
+          if(!node){
+            node = {
+              distance: 0,
+              nextNode: null,
+              position,
+            }
+          }
+          
           if(reachOffset && !node.nextNode){
             pathNodes.push({
               type: "checkpoint",
@@ -178,8 +186,10 @@ class WaveManager{
           let enemy;
           if(actionData.enemyData.fbxMesh){
             enemy = new FbxEnemy(actionData);
-          }else{
+          }else if(actionData.enemyData.skeletonData){
             enemy = new SpineEnemy(actionData);
+          }else{
+            enemy = new Enemy(actionData);
           }
           
           enemy.id = this.enemyId++;
