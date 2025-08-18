@@ -104,6 +104,10 @@ const EnemyHandler = {
       case "endhole":  //土遁忍者
         enemy.idleAnimate = "Invisible";
         enemy.changeAnimation();
+        const firstCP = enemy.route.checkpoints[0];
+        if(firstCP.type === "WAIT_FOR_SECONDS"){
+          firstCP.time = Math.max(0 , firstCP.time - duration);
+        }
         enemy.countdown.addCountdown({
           name: "checkPoint",
           initCountdown: duration,
