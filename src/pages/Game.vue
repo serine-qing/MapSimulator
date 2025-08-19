@@ -9,9 +9,10 @@ import SVGRoute from "@/pages/SVGRoute.vue"
 import GameOverMask from "@/pages/GameOverMask.vue"
 import DataTable from "@/pages/DataTable.vue"
 import TokenCards from "@/pages/TokenCards.vue"
+import SandTable from "@/pages/SandTable.vue"
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, ref, shallowRef, toRaw, watch } from 'vue';
 
 import btnPause from '@/assets/images/btn_pause.png';
 import btnPlay from '@/assets/images/btn_play.png';
@@ -21,6 +22,16 @@ import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
 import Notice from "@/pages/Notice.vue"
 
+//#region 沙盘推演数据
+
+const sandTableData = shallowRef(null);   //沙盘推演
+let runesData: string[] = [];   //沙盘推演选定tag
+const changeRunesData = (data) => {
+  runesData = data;
+  newGame(mapData)
+}
+
+//#endregion
 
 //#region 游戏基础功能
 let mapData = null;
@@ -48,6 +59,7 @@ const sliderValue = ref();
 const isSliding = ref(false);
 
 const attackRangeVisible = ref(false);
+
 const reset = () => {
   maxSecond.value = 0;
   currentSecond.value = 0;
@@ -57,6 +69,7 @@ const reset = () => {
   attackRangeVisible.value = false;
   maxEnemyCount.value = 0;
   finishedEnemyCount.value = 0;
+  sandTableData.value = null;
 }
 reset();
 
@@ -128,20 +141,23 @@ watch(pause, () => {
 
 //创建游戏
 const newGame = async (map) => {
+  
   mapData = map;
   
   isStart.value = true;
   isFinished.value = false;
   loading.value = true;
 
-  mapModel = new MapModel(mapData);
+  mapModel = new MapModel(mapData, runesData);
 
   await mapModel.init();
   if(gameManager){
     gameManager.destroy();
   }
-
   reset();
+  
+  sandTableData.value = mapData.sandTable;
+
   gameSpeed.value = GameConfig.GAME_SPEED;
 
   gameManager = new GameManager(mapModel);
@@ -334,12 +350,16 @@ defineExpose({
 </script>
 
 <template>
-<div class="main" v-loading="loading">
-  <Notice/>
+<div class="main" v-loading="loading">  
+  
+  <SandTable
+    v-show="sandTableData"
+    :sandTableData = "sandTableData"
+    @changeRunesData = "changeRunesData"
+  />
   <div class="game">
-    
     <div class="toolbar" v-show="isStart">  
-      
+      <Notice/>
       <span class="lifepoint"> {{ finishedEnemyCount }} / {{maxEnemyCount}}</span>
       <div class="time-slider">
         <el-slider 
@@ -461,6 +481,7 @@ defineExpose({
   flex-direction: column;
   height: 100vh;
   .toolbar{
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;

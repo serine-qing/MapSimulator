@@ -1,5 +1,10 @@
 //方舟很多key有几个名字，这里集中处理
 const AliasMap = {
+  difficultyMask: {
+    1: "NORMAL",
+    2: "FOUR_STAR",
+    3: "ALL",
+  },
   checkPointType: {
     0: "MOVE",
     1: "WAIT_FOR_SECONDS",

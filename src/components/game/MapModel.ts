@@ -20,6 +20,8 @@ import { immuneTable } from "../utilities/Interface";
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
   public sourceData: any;
+  private optionalRunes: string[];      //沙盘推演自选tag
+
   public runesHelper: RunesHelper;
 
   public tileManager: TileManager; //地图tiles
@@ -35,8 +37,9 @@ class MapModel{
   public extraRoutes: EnemyRoute[] = [];
 
   public SPFA: SPFA;  //寻路对象
-  constructor(data: any){
+  constructor(data: any, optionalRunes: string[]){
     this.sourceData = data;
+    this.optionalRunes = optionalRunes;
   }
 
   //异步数据，需要在实例化的时候手动调用
@@ -327,18 +330,36 @@ class MapModel{
   }
 
   private getRunes(){
-    //"difficultyMask": 1和NORMAL是普通  2和FOUR_STAR是突袭  3和ALL是全部生效
-    
+    //NORMAL是普通  FOUR_STAR突袭  ALL全部生效 SIX_STAR沙盘推演
+    let challengeRuneName = "FOUR_STAR";
+    let isChallenge = !!this.sourceData.challenge;
+    if(this.sourceData.sandTable){
+      challengeRuneName = "SIX_STAR";
+      isChallenge = true;
+    }
     const runesData = [];
+
     this.sourceData.runes?.forEach( rune => {
-      const difficultyMask = rune.difficultyMask;
+      const difficultyMask = AliasHelper(rune.difficultyMask, "difficultyMask") ;
 
       if(
-        ( this.sourceData.challenge && ( difficultyMask ===  1 || difficultyMask === "NORMAL" ) ) ||
-        ( !this.sourceData.challenge && ( difficultyMask ===  2 || difficultyMask === "FOUR_STAR" ) ) 
-      ) return;
-      runesData.push(rune);
+        ( difficultyMask === "ALL" ) ||
+        ( isChallenge && difficultyMask === challengeRuneName ) ||
+        ( !isChallenge && difficultyMask === "NORMAL" ) 
+      ){
+        runesData.push(rune);
+      }
+      
     })
+
+    //沙盘推演自选tag
+    const optionalRunes = this.sourceData.optionalRunes;
+
+    optionalRunes && this.optionalRunes.forEach(key => {
+      const runes = optionalRunes[key];
+      console.log(runes)
+    })
+
     this.runesHelper = new RunesHelper(runesData);
   }
 

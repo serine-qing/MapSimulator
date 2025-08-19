@@ -76,7 +76,6 @@ const currentStage:any = ref();   //当前关卡
 
 getStorys().then((res) => {
   storys.value = res.data.storys;
-
   //网址带有关卡id 就进行初始化
   const id = route.query.id as string;
 
@@ -107,7 +106,8 @@ interface Stage{
   episode: string,
   levelId: string,
   hasChallenge: boolean,   //是否有突袭
-  challenge?: string       //突袭条件(有这个key意味着是突袭关)
+  challenge?: string,       //突袭条件(有这个key意味着是突袭关)
+  sandTable?: any[],       //沙盘推演数据
 }
 
 const route = useRoute();
