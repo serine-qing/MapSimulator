@@ -11,7 +11,6 @@ class FbxEnemy extends Enemy{
 
   constructor(action: ActionData){
     super(action);
-
   }
 
   public initMesh(){

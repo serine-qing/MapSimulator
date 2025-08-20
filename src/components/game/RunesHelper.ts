@@ -14,25 +14,9 @@ class RunesHelper{
   constructor(runes: any){
     this.runes = runes;
 
+    const addOtherRuneBlackbord = [];
     this.runes.forEach(rune => {
-      const { difficultyMask, blackboard } = rune;
-
-      //敌人选择的预处理
-      let enemy;
-      let enemyExclude;
-
-      blackboard.forEach( item => {
-        const { key, valueStr } = item;
-        let camelKey = toCamelCase(key); 
-        switch (camelKey) {
-          case "enemy":
-            enemy = valueStr.split("|");
-            break;
-          case "enemyExclude":
-            enemyExclude = valueStr.split("|");
-            break;
-        }
-      })
+      const { blackboard } = rune;
 
       switch (rune.key) {
       
@@ -64,62 +48,8 @@ class RunesHelper{
         case "ebuff_attack_radius":     //全体攻击范围改变
         case "enemy_weight_add":
         case "ebuff_weight":   //全体重量改变
-          if(!this.attrChanges[difficultyMask]){
-            this.attrChanges[difficultyMask] = [];
-          }
 
-          const attrChanges = {};
-          switch (rune.key) {
-            //加法提升
-            case "enemy_attribute_add":
-            case "enemy_weight_add":
-            case "ebuff_weight":
-              attrChanges["calMethod"] = "add";
-              break;
-            //乘法提升
-            default:
-              attrChanges["calMethod"] = "mul";
-              break;
-          }
-          
-          //enemy_exclude是指不包括的敌人
-          //enemy指包括的敌人
-          blackboard.forEach( item => {
-            const { key, value } = item;
-            let camelKey = toCamelCase(key); 
-
-            if(
-              (rune.key === "ebuff_attack_radius" && key === "range_scale") ||
-              (rune.key === "enemy_attackradius_mul" && key === "scale")
-            ){
-              //攻击范围
-              camelKey = "rangeRadius"
-            }else if (
-              (rune.key === "ebuff_weight" && key === "value") ||
-              (rune.key === "enemy_weight_add" && key === "value")
-            ){
-              ///重量
-              camelKey = "massLevel"
-            }
-
-            let val;
-
-            switch (camelKey) {
-              case "enemyExclude":
-                val = enemyExclude;
-              case "enemy":
-                val = enemy;
-                break;
-              default:
-                val = value;
-                break;
-            }
-
-            attrChanges[camelKey] = val;
-            
-          })
-
-          this.attrChanges[difficultyMask].push(attrChanges);
+          this.getAttrChanges(rune);
 
           break;
         
@@ -156,16 +86,17 @@ class RunesHelper{
         case "char_respawntime_add":
         case "char_respawntime_mul":
           break;
+        
+        //敌人天赋修改
         case "enemy_talent_blackb_add":
         case "enemy_talent_blackb_mul":
         case "enemy_talent_blackb_max":
-          const change = {
-            enemy
-          }; 
+          const change = {}; 
           blackboard.forEach(item => {
             
             switch (item.key) {
               case "enemy":
+                change["enemy"] = item.valueStr.split("|");
                 break;
               default:
                 change[item.key] = item.valueStr? item.valueStr:item.value;
@@ -187,6 +118,12 @@ class RunesHelper{
 
           this.talentChanges.push(change);
           break;
+
+        //沙盘推演会用到，修改rune值的
+        case "add_other_rune_blackb":
+          addOtherRuneBlackbord.push(rune);
+          
+          break;
       }
       
     })
@@ -200,6 +137,97 @@ class RunesHelper{
           return 0;
         }
       })
+    })
+
+    //需要放在其他rune解析完后处理
+    addOtherRuneBlackbord.forEach(rune => {
+      this.addRuneBlackb(rune);
+    })
+  }
+
+  private getAttrChanges(rune){
+    const { difficultyMask } = rune;
+
+    if(!this.attrChanges[difficultyMask]){
+      this.attrChanges[difficultyMask] = [];
+    }
+
+    const attrChanges = {};
+    switch (rune.key) {
+      //加法提升
+      case "enemy_attribute_add":
+      case "enemy_weight_add":
+      case "ebuff_weight":
+        attrChanges["calMethod"] = "add";
+        break;
+      //乘法提升
+      default:
+        attrChanges["calMethod"] = "mul";
+        break;
+    }
+    
+    //enemy_exclude是指不包括的敌人
+    //enemy指包括的敌人
+    rune.blackboard.forEach( item => {
+      const { key, value , valueStr} = item;
+      let camelKey = toCamelCase(key); 
+
+      if(
+        (rune.key === "ebuff_attack_radius" && key === "range_scale") ||
+        (rune.key === "enemy_attackradius_mul" && key === "scale")
+      ){
+        //攻击范围
+        camelKey = "rangeRadius"
+      }else if (
+        (rune.key === "ebuff_weight" && key === "value") ||
+        (rune.key === "enemy_weight_add" && key === "value")
+      ){
+        ///重量
+        camelKey = "massLevel"
+      }
+
+      let val;
+
+      switch (camelKey) {
+        case "enemyExclude":
+        case "enemy":
+          val = valueStr.split("|");
+          break;
+        case "runeAlias":    
+          val = valueStr;
+          break;
+        default:
+          val = value;
+          break;
+      }
+
+      attrChanges[camelKey] = val;
+      
+    })
+
+    this.attrChanges[difficultyMask].push(attrChanges);
+  }
+
+  private addRuneBlackb(rune){
+    const runeAlias = rune.blackboard.find(b => b.key === "rune_alias")?.valueStr;
+    const { difficultyMask } = rune;
+
+    const attrChange = this.attrChanges[difficultyMask];
+    attrChange.forEach(item => {
+      if(item.runeAlias && item.runeAlias === runeAlias){
+        rune.blackboard.forEach(attr => {
+          const key = toCamelCase(attr.key);
+          if(
+            key !== "rune_alias" && 
+            key !== "six_star_rune_alias" && 
+            attr.value !== 0 && 
+            item[key] !== undefined
+          ){
+            item[key] += attr.value;
+          }
+        })
+
+      }
     })
   }
 

@@ -354,10 +354,10 @@ class MapModel{
 
     //沙盘推演自选tag
     const optionalRunes = this.sourceData.optionalRunes;
-
     optionalRunes && this.optionalRunes.forEach(key => {
       const runes = optionalRunes[key];
-      console.log(runes)
+      
+      runesData.push(...runes);
     })
 
     this.runesHelper = new RunesHelper(runesData);
@@ -419,8 +419,8 @@ class MapModel{
           }
           
           if(actionKey){
-            
-            if(action.key === "enemy_1334_ristar"){
+
+            if(action.key === "enemy_1334_ristar" || action.key === "enemy_10072_mpprhd"){
               action.dontBlockWave = true;
             }
 

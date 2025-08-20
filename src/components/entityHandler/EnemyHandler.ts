@@ -20,11 +20,13 @@ const EnemyHandler = {
     }
 
     switch (enemy.key) {
-      case "enemy_1334_ristar":
+      case "enemy_1334_ristar":   //行星碎屑
         enemy.unMoveable = false;
         enemy.cantFinished = true;
         break;
-    
+      case "enemy_10082_mpweak": //弱化节点碎屑
+        enemy.unMoveable = true;
+        break;
     }
   },
 

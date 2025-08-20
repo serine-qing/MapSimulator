@@ -22,7 +22,6 @@ class WaveManager{
   public actionIndex: number = -1;  //当前波次的actionIndex
   public gameSecond: number = 0; //当前游戏时间
   public waveSecond: number = 0;     //当前波次时间
-  public allWaveFinished: boolean = false;  //全部波次已经结束
 
   public actionId: number = 0;
   public enemyId: number = 0;
@@ -257,7 +256,9 @@ class WaveManager{
   }
 
   private checkWaveFinished(){
-    const isWaveFinished = !this.currentActions().find(action => {
+    const currentActions = this.currentActions();
+    if(!currentActions) return;
+    const isWaveFinished = !currentActions.find(action => {
       //不阻挡波次和没有绑定敌人
       if((action.isStarted && action.dontBlockWave) || !action.enemy){
         return false;
@@ -274,26 +275,43 @@ class WaveManager{
 
   //检查是否游戏结束
   private checkFinished(){
-    const nextEnemys = this.getEnemysByWaveIndex(this.waveIndex + 1);
-    const currentEnemys = this.currentWaveEnemys();
 
     let finished = false;
-    if(currentEnemys === null){
-      finished = true;
-    }
-    else if(nextEnemys === null){
+    
+    if(this.isSpawnFinished()){
       
-      finished = this.enemies.every(enemy => {
-        //敌人结束 或者 敌人已经开始但是是非首要目标
-        return enemy.isFinished || (enemy.isStarted && enemy.notCountInTotal)
-      })
-
+      if(this.enemiesInMap.length === 0){
+        //波次结束，并且场上无敌人
+        finished = true;
+      }else{
+        
+        finished = this.enemiesInMap.every(enemy => {
+          //敌人结束 或者 敌人已经开始但是是非首要目标
+          return enemy.isFinished || (enemy.isStarted && enemy.notCountInTotal)
+        })
+      }
+      
     }
-
+    
     if(finished){
-      this.allWaveFinished = true;
+      
       Global.gameManager.isFinished = true;
     }
+  }
+
+  //是否主要波次出怪全部完毕
+  private isSpawnFinished(){
+    const currentEnemys = this.currentWaveEnemys();
+    let spawnFinished = false;
+    if(currentEnemys){
+      const nextEnemys = this.getEnemysByWaveIndex(this.waveIndex + 1);
+      //最后一个波次全部出怪完毕
+      spawnFinished = nextEnemys === null && currentEnemys.every(enemy => enemy.isStarted);
+    }else{
+      spawnFinished = true;
+    }
+
+    return spawnFinished;
   }
 
   public startExtraAction(id: number){
@@ -343,13 +361,13 @@ class WaveManager{
   }
 
   public update(delta: number){
-    if(this.allWaveFinished) return;
+    if(Global.gameManager.isFinished) return;
     this.gameSecond = Global.gameManager.gameSecond;
     this.waveSecond += delta;
 
     const currentActions = this.actions[this.waveIndex];
 
-    this.handleAction(currentActions, this.waveSecond, () => {
+    currentActions && this.handleAction(currentActions, this.waveSecond, () => {
       //添加成功后的回调
       this.actionIndex ++;
       eventBus.emit("action_index_change", this.actionIndex, this.waveIndex)
@@ -369,7 +387,7 @@ class WaveManager{
 
     }
 
-    if(this.allWaveFinished) return;
+    if(Global.gameManager.isFinished) return;
     this.enemiesInMap.forEach(
       enemy => {
           enemy.update(delta)
@@ -412,7 +430,6 @@ class WaveManager{
       waveIndex: this.waveIndex,
       gameSecond: this.gameSecond,
       waveSecond: this.waveSecond,
-      allWaveFinished: this.allWaveFinished,
       finishedEnemyCount: this.finishedEnemyCount,
       extraActionStates
     }
@@ -426,8 +443,7 @@ class WaveManager{
       actionIndex, 
       waveIndex, 
       gameSecond,
-      waveSecond, 
-      allWaveFinished, 
+      waveSecond,  
       finishedEnemyCount,
       actionStates,
       enemyStates,
@@ -439,7 +455,6 @@ class WaveManager{
     this.waveIndex = waveIndex;
     this.gameSecond = gameSecond;
     this.waveSecond = waveSecond;
-    this.allWaveFinished = allWaveFinished;
     this.finishedEnemyCount = finishedEnemyCount;
 
     const actions = this.actions.flat();

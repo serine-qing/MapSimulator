@@ -1,3 +1,4 @@
+<!-- 沙盘推演 -->
 <template>
   <div class="wrapper">
     <div class="sand-table">

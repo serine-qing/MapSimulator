@@ -10,6 +10,7 @@ import GameOverMask from "@/pages/GameOverMask.vue"
 import DataTable from "@/pages/DataTable.vue"
 import TokenCards from "@/pages/TokenCards.vue"
 import SandTable from "@/pages/SandTable.vue"
+import CombatMatrix from "@/pages/CombatMatrix.vue"
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
 import { computed, onMounted, ref, shallowRef, toRaw, watch } from 'vue';
@@ -69,6 +70,7 @@ const reset = () => {
   attackRangeVisible.value = false;
   maxEnemyCount.value = 0;
   finishedEnemyCount.value = 0;
+  runesData = [];
   sandTableData.value = null;
 }
 reset();
@@ -77,7 +79,7 @@ gameSpeed.value = GameConfig.GAME_SPEED;
 
 eventBus.on("second_change", (second: number) => {
   currentSecond.value = Math.floor(second);
-  sliderValue.value = Math.floor(second / gameManager.simStep);
+  sliderValue.value = Math.floor( Math.min(second, maxSecond.value) / gameManager.simStep);
 })
 
 eventBus.on("gameStart", () => {
@@ -351,7 +353,7 @@ defineExpose({
 
 <template>
 <div class="main" v-loading="loading">  
-  
+  <!-- <CombatMatrix/> -->
   <SandTable
     v-show="sandTableData"
     :sandTableData = "sandTableData"
