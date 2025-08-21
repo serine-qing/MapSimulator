@@ -22,6 +22,9 @@ import Global from "../utilities/Global";
 import GameHandler from "../entityHandler/GameHandler";
 import Gractrl from "../entityHandler/Gractrl";
 import AnimationFrame from "../utilities/AnimationFrame";
+import Enemy from "../enemy/Enemy";
+import SpineEnemy from "../enemy/SpineEnemy";
+import FbxEnemy from "../enemy/FbxEnemy";
 
 //游戏控制器
 class GameManager{
@@ -220,6 +223,19 @@ class GameManager{
     gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
     const { trapObjects, tileObjects } = this.gameView;
 
+
+    //检测与enemy的交点
+    // if(enemyMeshs.length > 0){
+    //   const tokenIntersects = gameCanvas.raycaster.intersectObjects(enemyMeshs, true);
+    //   if (tokenIntersects.length > 0) {
+    //     const firstIntersect = tokenIntersects[0];  
+    //     console.log(firstIntersect.object?.parent)
+    //     const enemy: Enemy = firstIntersect.object?.parent?.userData?.enemy;
+        
+    //     if(enemy) return enemy;
+    //   }
+    // }
+
     //检测与trap的交点
     if(trapObjects.children.length > 0){
       //这里考虑使用gameView.trapObjects 但是性能低一点
@@ -256,7 +272,12 @@ class GameManager{
       const find = this.intersectObjects(event.offsetX, event.offsetY);
       
       if(find){
+
         switch (find.constructor) {
+          case SpineEnemy:
+          case FbxEnemy:
+            gameCanvas.wrapper.style.cursor = "pointer";
+            break;
           case Trap:
             this.handleTrapFocus(find);
             break;
@@ -264,6 +285,7 @@ class GameManager{
             this.handleTileFocus(find);
             break;
         }
+        
       }
     };
   }
@@ -277,6 +299,10 @@ class GameManager{
 
       if(find){
         switch (find.constructor) {
+          case SpineEnemy:
+          case FbxEnemy:
+            this.handleEnemyClick(find);
+            break;
           case Trap:
             this.handleTrapSelect(find);
             break;
@@ -287,6 +313,10 @@ class GameManager{
       }
 
     }
+  }
+
+  private handleEnemyClick(enemy: Enemy){
+
   }
 
   private handleTileFocus(tile: Tile){

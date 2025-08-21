@@ -108,7 +108,7 @@ const createSVGRoute = (nodes) => {
     const { type, position, time } = currentNode;
 
     if(position){
-      currentPos = gameManager.gameView.localToWorld(
+      currentPos = gameManager.gameView.localToScreen(
         gameManager.getCoordinate(position)
       );
       x = currentPos.x;

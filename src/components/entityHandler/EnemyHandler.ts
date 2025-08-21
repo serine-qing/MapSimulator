@@ -1,5 +1,7 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
+import act42side from "./众生行记";
+import act44side from "./墟";
 
 const EnemyHandler = {
   handleStart: (enemy: Enemy) => {
@@ -31,6 +33,8 @@ const EnemyHandler = {
   },
 
   handleTalent: (enemy: Enemy, talent: any) => {
+    act42side.handleTalent(enemy, talent);
+    act44side.handleTalent(enemy, talent);
     const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;
     let waitTime;
 
@@ -102,29 +106,6 @@ const EnemyHandler = {
         }
           
         break;
-
-      case "endhole":  //土遁忍者
-        enemy.idleAnimate = "Invisible";
-        enemy.changeAnimation();
-        const firstCP = enemy.route.checkpoints[0];
-        if(firstCP.type === "WAIT_FOR_SECONDS"){
-          firstCP.time = Math.max(0 , firstCP.time - duration);
-        }
-        enemy.countdown.addCountdown({
-          name: "checkPoint",
-          initCountdown: duration,
-          callback: () => {
-            enemy.animationStateTransition({
-              moveAnimate: "Move",
-              idleAnimate: "Idle",
-              transAnimation: "Start",
-              animationScale: 0.22,
-              isWaitTrans: true
-            })
-          }
-        });
-
-        break;
       case "strength":     //传令兵
         if(enemy.key === "enemy_1080_sotidp" || enemy.key === "enemy_1080_sotidp_2"){
           Global.gameBuff.addBuff({
@@ -140,36 +121,13 @@ const EnemyHandler = {
           })
         }
         break;
-
-      case "ymgholjumptrigger": //雷遁忍者遇到伪装的土遁忍者触发跳跃
-        enemy.addDetection({
-          detectionRadius: range_radius,
-          enemyKeys: ["enemy_10115_ymghol","enemy_10115_ymghol_2"],
-          duration: 0.1,
-          every: false,
-          callback: (ymghol: Enemy) => {
-            if(ymghol.idleAnimate === "Invisible"){
-              enemy.countdown.triggerCountdown("jump");
-            }
-          }
-        })
-        break;
-      case "holetiletrigger": //雷遁忍者遇到坑触发跳跃
-        enemy.addDetection({
-          detectionRadius: range_radius,
-          tileKeys: ["tile_hole"],
-          duration: 0.1,
-          every: false,
-          callback: () => {
-            enemy.countdown.triggerCountdown("jump");
-          }
-        })
-
-        break;
     }
   },
 
   handleSkill: (enemy: Enemy, skill: any) => {
+    act42side.handleSkill(enemy, skill);
+    act44side.handleSkill(enemy, skill);
+
     const { initCooldown, cooldown } =  skill;
 
     switch (skill.prefabKey) {
@@ -193,18 +151,17 @@ const EnemyHandler = {
       case "switchmodetrigger":
         if(enemy.key === "enemy_10116_ymgtop" || enemy.key === "enemy_10116_ymgtop_2"){ //水遁忍者
 
-          enemy.countdown.addCountdown({
+          enemy.addSkill({
             name: "switchmodetrigger",
-            initCountdown: initCooldown,
-            callback: () => {
-              enemy.animationStateTransition({
-                moveAnimate: "Skill_Loop",
-                idleAnimate: "Skill_Loop",
-                transAnimation: "Skill_Begin",
-                isWaitTrans: true
-              })
-            }
+            animateTransition: {
+              moveAnimate: "Skill_Loop",
+              idleAnimate: "Skill_Loop",
+              transAnimation: "Skill_Begin",
+              isWaitTrans: true
+            },
+            initCooldown,
           })
+
         }
         
         break;
@@ -220,7 +177,7 @@ const EnemyHandler = {
                   moveAnimate: "Fly_Move",
                   idleAnimate: "Fly_Idle",
                   transAnimation: "Fly_Begin",
-                  animationScale: 0.35,
+                  animationScale: 2.85,
                   isWaitTrans: true
                 });
                 enemy.removeWatcher("takeoff");
@@ -233,27 +190,18 @@ const EnemyHandler = {
       case "jump":  //雷遁忍者
         const jumpspeedup = enemy.talents.find(talent =>  talent.key === "jumpspeedup")?.value?.move_speed;
 
-        //todo 这里的动画前后摇放进转换动画函数里比较好
-        enemy.countdown.addCountdown({
+        enemy.addSkill({
           name: "jump",
-          initCountdown: initCooldown,
-          countdown: cooldown,
+          animateTransition: {
+            transAnimation: "Jump",
+            startLag: 0.33,
+            endLag: 0.33,
+            isWaitTrans: false
+          },
+          initCooldown,
+          cooldown,
           trigger: "manual",
           callback: () => {
-            enemy.countdown.addCountdown({
-              name: "waiting",
-              initCountdown: 0.33
-            })
-            enemy.countdown.addCountdown({
-              name: "jumpEndLag",
-              initCountdown: 1.67,
-              callback: () => {
-                enemy.countdown.addCountdown({
-                  name: "waiting",
-                  initCountdown: 0.33
-                })
-              }
-            })
             enemy.addBuff({
               id: "jumpspeedup",
               key: "jumpspeedup",
@@ -265,16 +213,10 @@ const EnemyHandler = {
                 value: jumpspeedup ? jumpspeedup : 3
               }]
             })
-            enemy.animationStateTransition({
-              moveAnimate: enemy.moveAnimate,
-              idleAnimate: enemy.idleAnimate,
-              transAnimation: "Jump",
-              animationScale: 1,
-              isWaitTrans: false
-            });
           }
         })
-        break
+
+        break;
     }
   },
 

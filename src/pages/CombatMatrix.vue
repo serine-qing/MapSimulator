@@ -54,7 +54,18 @@
         </div>
       </div>
     </div>
-    <div class="right"></div>
+    <div class="right">
+      <div class="description">
+        <div class="title">指标·死而不朽</div>
+        <div class="content">
+          <div class="icon"></div>
+          <div class="text">
+            <p>< 爱国者 >不再等待</p>
+            <p>< 爱国者 >行军姿态受到来自非阻挡单位的物理与法术伤害减少90%，被阻挡较长时间该效果逐渐降低至0%，直到脱离阻挡</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   
 </template>
@@ -75,7 +86,9 @@ $tag-height: 60px;
     padding: 10px;
   }
   .right{
-    width: 300px;
+    width: 350px;
+    background-color: #000000;
+    padding: 6px;
   }
 }
 
@@ -214,6 +227,35 @@ $tag-height: 60px;
   }
 }
 
+.description{
+  display: flex;
+  flex-direction: column;
+  .title{
+    height: 24px;
+    font-size: 16px;
+    line-height: 24px;
+    background-color: #9e0004;
+    color: #ffffff;
+    text-align: center;
+  }
+  .content{
+    margin-top: 20px;
+    display: flex;
+    .icon{
+      height: 24px;
+      width: 50px;
+      background-color: #eaecec;
+      border-radius: 3px;
+    }
+    .text{
+      flex: 1;
+      color: #ffffff;
+      p{
+        margin: 0 6px;
+      }
+    }
+  }
+}
 
 
 </style>

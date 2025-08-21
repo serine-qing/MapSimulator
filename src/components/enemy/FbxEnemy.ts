@@ -17,7 +17,7 @@ class FbxEnemy extends Enemy{
     super.initMesh();
     this.fbxMesh = this.enemyData.fbxMesh.clone();
     this.object.add(this.fbxMesh);
-
+    this.mesh = this.fbxMesh;
     switch (this.key) {
       //行星碎屑
       case "enemy_1334_ristar":

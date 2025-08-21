@@ -15,11 +15,13 @@ interface AnimateTransition{
   //animationScale: 过渡动画执行速率
   //isWaitTrans: 进行过渡动画时是否停止移动
   //callback：结束过渡动画后的回调函数
-  moveAnimate: string, 
-  idleAnimate: string, 
-  transAnimation: string, 
+  moveAnimate?: string, 
+  idleAnimate?: string, 
+  transAnimation?: string, 
+  startLag?: number,         //transAnimation动画前摇
+  endLag?: number,           //transAnimation动画后摇
   animationScale?: number,
-  isWaitTrans?: boolean, 
+  isWaitTrans: boolean, 
   callback?: Function
 }
 
@@ -36,6 +38,17 @@ interface DetectionParam{
   duration: number,           //检测间隔
   every: boolean,             //检测到第一个就停下，还是检测所有的
   callback: Function,  
+}
+
+interface SkillParam{
+  name: string,
+  animateTransition: AnimateTransition,
+  initCooldown: number,
+  cooldown?: number,
+  trigger?: string,            //auto：自动触发， manual：手动触发，默认自动
+  callback?: Function,
+  maxCount?: number,           //最大触发次数
+  cooldownStop?: boolean,       //是否有技能阻回条，默认是
 }
 
 class Enemy{
@@ -159,7 +172,7 @@ class Enemy{
   protected transAnimationPlaying: boolean = false;       //是否正在播放转换动画
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
-  
+  public mesh: THREE.Mesh;
   constructor(action: ActionData){
 
     this.enemyData = action.enemyData;
@@ -394,15 +407,18 @@ class Enemy{
     const x = Math.round(this.position.x);
     const y = Math.round(this.position.y);
     const currentTile = Global.tileManager.getTile(x, y);
+    let shadowHeight;
     if( currentTile.passableMask === "ALL" ){
       //地面
-      this.shadow.position.z = this.shadowHeight
+      shadowHeight = this.shadowHeight;
       
     }else{
       //高台
-      this.shadow.position.z = this.shadowHeight + currentTile.getPixelHeight();
-
+      shadowHeight = this.shadowHeight + currentTile.getPixelHeight();
     }
+
+    this.shadow.position.z = shadowHeight;
+    this.activeShadow.position.z = shadowHeight;
 
   }
 
@@ -573,8 +589,10 @@ class Enemy{
           this.motion,
           this.tilePosition
         );
-  
-        if(!currentNode){
+
+        this.updateNextNode(currentNode);
+
+        if(!this.nextNode){
           //没有路径，直接忽略它
           //可能是一些放在无路径地面的敌人，或者是bug
           this.unMoveable = true;
@@ -589,7 +607,6 @@ class Enemy{
           }
           return;
         }
-        this.updateNextNode(currentNode);
 
         let {position, nextNode} = this.nextNode;
         let targetPos = new THREE.Vector2(position.x,position.y);
@@ -747,6 +764,7 @@ class Enemy{
   }
 
   private updateNextNode(currentNode: PathNode){
+    if(!currentNode) return;
     if(this.route.visitEveryTileCenter){
       
     }else if(this.route.visitEveryNodeCenter || this.route.visitEveryNodeStably){
@@ -806,7 +824,7 @@ class Enemy{
     const animationSpeed = getAnimationSpeed(this.key);
     const speedRate = animationSpeed === 1? 1 : this.speedRate();
     //只有更改了animationSpeed的敌人 需要通过当前移速修改动画速率
-    return  delta * this.animationScale *
+    return  delta / this.animationScale *
       Math.min(speedRate, 4) * 
       animationSpeed;
   }
@@ -962,9 +980,29 @@ class Enemy{
     return find? find.value : null;
   }
 
-  private getSkill(key: string){
-    const find = this.skills.find(skill => skill.prefabKey === key);
-    return find? find : null;
+  public addSkill(skillParam: SkillParam){
+    const { name, animateTransition, initCooldown, cooldown, trigger, callback, maxCount } = skillParam;
+
+    //技能是否有阻回条，默认是
+    const cooldownStop = skillParam.cooldownStop !== undefined ? skillParam.cooldownStop : true;
+    let cooldownStopTime = 0;
+    if(cooldownStop){
+
+      const find = this.animations.find(animation => animation.name === animateTransition.transAnimation);
+      cooldownStopTime = ( find.duration || 0 ) * (animateTransition.animationScale || 1) * 0.93;
+    }
+    
+    this.countdown.addCountdown({
+      name,
+      initCountdown: initCooldown,
+      countdown: cooldown + cooldownStopTime,
+      trigger,
+      maxCount,
+      callback: (timer) => {
+        this.animationStateTransition(animateTransition);
+        if(callback) callback(timer);
+      }
+    });
   }
 
   public addWatcher(watcher: Watcher){
@@ -1074,7 +1112,13 @@ class Enemy{
     //transAnimation: 是否有过渡动画
     //isWaitTrans: 进行过渡动画时是否停止移动
     //callback：结束过渡动画后的回调函数
-    const { moveAnimate, idleAnimate, transAnimation, animationScale, isWaitTrans, callback } = transition;
+    const { 
+      transAnimation, animationScale, 
+      isWaitTrans, callback , startLag, endLag
+    } = transition;
+
+    const moveAnimate = transition.moveAnimate ? transition.moveAnimate : this.moveAnimate;
+    const idleAnimate = transition.idleAnimate ? transition.idleAnimate : this.idleAnimate;
     const apply = () => {
       this.moveAnimate = moveAnimate;
       this.idleAnimate = idleAnimate;
@@ -1089,11 +1133,40 @@ class Enemy{
       const animationFind = this.animations.find( animation => animation.name === transAnimation);
       if(animationFind){
         if(animationScale) this.animationScale = animationScale;
+        const duration = animationFind.duration * this.animationScale;
+
+        if(startLag){
+          this.unMoveable = true;
+          this.countdown.addCountdown({
+            name: "startLag",
+            initCountdown: startLag,
+            callback:() => {
+              this.unMoveable = false;
+            }
+          })
+        }
+
+        if(endLag){
+          this.countdown.addCountdown({
+            name: "endLag",
+            initCountdown: duration - endLag,
+            countdown: endLag, 
+            maxCount: 2,
+            callback:(timer) => {
+              if(timer.count === 1){
+                this.unMoveable = true;
+              }else{
+                this.unMoveable = false;
+              }
+            }
+          })
+        }
+
         this.moveAnimate = transAnimation;
         this.idleAnimate = transAnimation;
         this.countdown.addCountdown({
           name: isWaitTrans ? "waitAnimationTrans" : "animationTrans",
-          initCountdown: animationFind.duration / this.animationScale, 
+          initCountdown: duration, 
           callback: apply
         });
           
@@ -1135,6 +1208,7 @@ class Enemy{
       isStarted: this.isStarted,
       currentSecond: this.currentSecond,
       isFinished: this.isFinished,
+      unMoveable: this.unMoveable,
       idleAnimate: this.idleAnimate,
       moveAnimate: this.moveAnimate,
       animateState: this.animateState,
@@ -1165,6 +1239,7 @@ class Enemy{
       isStarted, 
       isFinished, 
       animateState,
+      unMoveable,
       idleAnimate,
       moveAnimate,
       animationScale,
@@ -1194,6 +1269,7 @@ class Enemy{
     this.isFinished = isFinished;
     this.transAnimationPlaying = transAnimationPlaying;
     this.shadowHeight = shadowHeight;
+    this.unMoveable = unMoveable;
     this.idleAnimate = idleAnimate;
     this.moveAnimate = moveAnimate;
     this.animateState = animateState;

@@ -181,20 +181,25 @@ const updateEnemyPosAndSize = () => {
 
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.object) return;
-    const {meshSize, meshOffset} = enemy;
+    const {meshSize} = enemy;
     
     const height = meshSize.y * (enemy['fbxMesh']? 1 : 5.5);
     const width = meshSize.x * (enemy['fbxMesh']? 1 : 5.5);
 
-    const {x, y} = gameView.localToWorld(enemy.object.position);
+
+    const box = new THREE.Box3().setFromObject(enemy.mesh);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    const {x, y} = gameView.project(center);
 
     const label = enemyLabels.value[enemy.id];
 
     label.style = {
       height: height + 'px',
       width: width + 'px',
-      left: x - width / 2 + 'px', 
-      top: y - height / 2 + scale * meshOffset.y + 'px',
+      left: x - width/2 + 'px', 
+      top: y - height/2 + 'px',
       transform: `scale(${scale})`
     }
 
@@ -335,7 +340,7 @@ const updateTrapSelected = () => {
   if(find){
     activeTrap = find;
 
-    const {x, y} = gameView.localToWorld(find.object.position);
+    const {x, y} = gameView.localToScreen(find.object.position);
 
     trapDialog.value.left = x -50;
     trapDialog.value.top = y -50;
@@ -376,7 +381,7 @@ const updateTrapSize = () => {
   const scale = canvasHeight / GameConfig.OBJECT_SCALE;
   traps.forEach(trap => {
 
-    const {x, y} = gameView.localToWorld(trap.object.position);
+    const {x, y} = gameView.localToScreen(trap.object.position);
 
     const label = trap.labelVue;
     
@@ -489,7 +494,7 @@ watch(() => gameManager, () => {
   user-select: none;
   font-size: 14px;
   position: absolute;
-  //background-color: aqua;
+  // background-color: aqua;
   color: white;
   cursor: pointer;
   transform-origin: center center;

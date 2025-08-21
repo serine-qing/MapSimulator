@@ -14,6 +14,7 @@ class GameView{
   public mapContainer: THREE.Object3D;
   public tileObjects = new THREE.Group();
   public trapObjects = new THREE.Group();
+  public enemyObjects = new THREE.Group();
 
   constructor(){
 
@@ -59,14 +60,14 @@ class GameView{
     enemies.forEach(enemy => {
       enemy.initMesh();
       if(enemy.object){
-        this.mapContainer.add(enemy.object);
+        this.enemyObjects.add(enemy.object);
       }
       
     })
-
+    this.mapContainer.add(this.enemyObjects);
   }
 
-  public localToWorld(position){
+  public localToScreen(position){
     const tempV = new THREE.Vector3(
       position.x,
       position.y,
@@ -77,10 +78,14 @@ class GameView{
       tempV
     )
 
-    tempV.project(gameCanvas.camera);
+    return this.project(tempV);
+  }
 
-    const x = (tempV.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
-    const y = (tempV.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
+  public project(vec){
+    vec.project(gameCanvas.camera);
+
+    const x = (vec.x *  .5 + .5) * gameCanvas.canvas.clientWidth;
+    const y = (vec.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
 
     return {x, y};
   }

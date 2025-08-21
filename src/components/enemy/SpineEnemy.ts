@@ -29,7 +29,7 @@ class SpineEnemy extends Enemy{
       //重叠时显示哪个用mesh的renderOrder属性控制
       parameters.depthWrite = false;
     }); 
-
+    this.mesh = this.skeletonMesh;
     this.object.add(this.skeletonMesh);
     
     const offsetY = this.motion === "WALK"? -1/4 : 0;
@@ -64,27 +64,24 @@ class SpineEnemy extends Enemy{
   public getSkelSize(){ 
     this.meshOffset = getSkelOffset(this);
     const meshSize = new THREE.Vector2();
-    const meshOffset = new THREE.Vector2();
 
     this.skeletonMesh.skeleton.updateWorldTransform();
     this.changeAnimation();
     this.skeletonMesh.update(1)
     this.skeletonMesh.state.apply(this.skeletonMesh.skeleton);
-    this.skeletonMesh.skeleton.getBounds(meshOffset, meshSize, [])
+    this.skeletonMesh.skeleton.getBounds(new THREE.Vector2(), meshSize, [])
 
-    const offsetX = -(meshOffset.x + meshSize.x / 2);
-    const offsetY = -(meshOffset.y + meshSize.y / 2);
+    const box3 = new THREE.Box3();
+    box3.setFromObject(this.skeletonMesh); 
 
-    this.meshOffset.y += offsetY * 6;
-    this.meshSize = meshSize.multiplyScalar(getSpineScale(this));
+    const size = new THREE.Vector3();
+    box3.getSize(size); // size 是一个 Vector3 对象，包含长(x)、宽(y)、高(z)
+
+    this.meshSize = size;
 
     //恢复track的动画帧
     const track = this.skeletonMesh.state.getCurrent(0);
     track.trackTime = 0;
-
-    // console.log(this.name)
-    // console.log(`动态边界尺寸: ${this.meshSize.x} x ${this.meshSize.y}`);
-    // console.log(`边界偏移量: (${offsetX}, ${offsetY})`);
 
   }
 
