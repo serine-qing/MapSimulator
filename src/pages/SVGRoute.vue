@@ -75,7 +75,8 @@ const nextSnake = () => {
   snake.style.strokeDashoffset = segmentLength.toString();
 }
 
-AnimationFrame({
+AnimationFrame.addAnimationFrame({
+  name: "SVGRoute",
   order: 2,
   animate: () => {
     if(snakes && snakes.length > 0){

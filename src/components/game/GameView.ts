@@ -17,7 +17,7 @@ class GameView{
   public enemyObjects = new THREE.Group();
 
   constructor(){
-
+    Global.gameView = this;
   }
 
   public init(){
@@ -93,6 +93,7 @@ class GameView{
   public render(delta: number){
     
     gameCanvas.stats?.begin();
+
     if(Global.gameManager.isSimulate) return;
     
     gameCanvas.render();
@@ -121,7 +122,7 @@ class GameView{
   }
 
   public destroy(){ 
-  
+    
     gameCanvas.scene.remove(this.mapContainer);
 
     Global.tileManager.tiles.flat().forEach(tile => tile.destroy());

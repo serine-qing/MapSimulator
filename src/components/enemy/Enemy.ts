@@ -545,16 +545,17 @@ class Enemy{
   }
 
   private updatePositions(){
-    const oldPos = this.tilePosition;
-    const newPos = new THREE.Vector2(
+    const outPos = this.tilePosition;
+    const inPos = new THREE.Vector2(
       Math.floor(this.position.x + 0.5),
       Math.floor(this.position.y + 0.5)
     );
 
-    if(!oldPos || oldPos.x !== newPos.x || oldPos.y !== newPos.y){
-      this.tilePosition = newPos;
-      Global.tileManager.enterTile(newPos, this);
-      if(oldPos) Global.tileManager.outOfTile(oldPos, this);
+    if(!outPos || outPos.x !== inPos.x || outPos.y !== inPos.y){
+      this.tilePosition = inPos;
+
+      Global.tileManager.changeTile(outPos, inPos, this);
+      
     }
     
 

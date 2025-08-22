@@ -30,6 +30,8 @@ class WaveManager{
 
   public visualRoutes = [];
   constructor(){
+    Global.waveManager = this;
+    
     this.mapModel = Global.gameManager.mapModel;
 
     //通过actionData生成action对象 并且和enemy trap绑定

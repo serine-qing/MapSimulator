@@ -7,7 +7,7 @@ const GameConfig = {
   TILE_SIZE : 7,
   TILE_HEIGHT : 3/7, //高台地块的高度（按宽度为1计算）
   SIMULATE_STEP: 1,  //模拟数据间隔多少秒
-  SPRITE_SIZE: [5, 5],   //雪碧图宽高
+  SPRITE_SIZE: [6, 5],   //雪碧图宽高
   OBJECT_SCALE: 0.012
 }
 

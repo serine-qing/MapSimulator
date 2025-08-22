@@ -65,8 +65,8 @@ class GameManager{
   public gractrl: Gractrl;  //重力控制
 
   constructor(mapModel: MapModel){
-    Global.reset();
-    Global.changeGameManager(this);
+    Global.gameManager = this;
+    AnimationFrame.setPause(false);
 
     this.countdownManager = new CountdownManager();
     //初始化敌人控制类
@@ -113,7 +113,8 @@ class GameManager{
       this.handleMouseMove();
       this.handleClick();
 
-      AnimationFrame({
+      AnimationFrame.addAnimationFrame({
+        name: "Gameloop",
         order: 0,
         animate: () => this.animate()
       });
@@ -590,6 +591,9 @@ class GameManager{
   }
 
   public destroy(){
+    AnimationFrame.removeAnimationFrame("Gameloop");
+    AnimationFrame.setPause(true);
+
     this.clock.stop();
     this.isFinished = true;
     eventBus.remove("jump_to_enemy_index");

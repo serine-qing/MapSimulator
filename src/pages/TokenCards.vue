@@ -65,7 +65,8 @@ const update = () => {
 }
 
 
-AnimationFrame({
+AnimationFrame.addAnimationFrame({
+  name: "TokenCard",
   order: 3,
   animate: () => {
     if(tokenCards){

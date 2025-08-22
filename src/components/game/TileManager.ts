@@ -2,12 +2,17 @@ import { Vector2 } from "three";
 import AliasHelper from "./AliasHelper";
 import Tile from "./Tile";
 import Enemy from "../enemy/Enemy";
+import Global from "../utilities/Global";
+
+import act35side from "../entityHandler/太阳甩在身后";
 
 interface TileEvent{
   key: string,
   type: string,
   x: number,
   y: number,
+  enemy: string[],
+  isMerge: boolean,   //是否是合并地块事件，默认false。靠近的合并地块会视为一个事件，同一片合并地块上进出不会触发事件
   callback: Function
 }
 
@@ -16,6 +21,8 @@ interface TileEventOption{
   type: string,      // in:入 out:出
   x: number,
   y: number,
+  enemy?: string[],
+  isMerge?: boolean,
   callback: Function
 }
 
@@ -26,6 +33,8 @@ class TileManager{
   public width: number;    //矩阵宽度(x)
   public events: TileEvent[] = [];
   constructor(mapData:any){
+    Global.tileManager = this;
+    
     const matrix = mapData.map.map((row: any)=>{
       //row是一行tile的数组,rowIndex为坐标轴中的y值
       return row.map((item: any)=>{
@@ -77,6 +86,8 @@ class TileManager{
     })
 
     this.flatTiles = this.tiles.flat();
+
+    this.initEvents();
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
@@ -126,31 +137,46 @@ class TileManager{
     })
   }
 
+  private initEvents(){
+    this.flatTiles.forEach(tile => {
+      act35side.initTileEvents(tile);
+    });
+
+  }
+
   addEvent(option: TileEventOption){
     this.events.push({
       key: option.key,
       type: option.type,
       x: option.x,
       y: option.y,
+      enemy: option.enemy,
+      isMerge: option.isMerge? true : false,
       callback: option.callback
     })
   }
 
-  enterTile(position: Vector2, enemy: Enemy){
-    this.checkEvent(position, "in", enemy);
+  changeTile(outPos: Vector2, inPos: Vector2, enemy: Enemy){
+    const newEvent = this.getEvent(inPos, "in", enemy);
+    const oldEvent = outPos ? this.getEvent(outPos, "in", enemy) : null;
+    if(newEvent?.isMerge && oldEvent?.key === newEvent.key){
+      //合并事件，不重复触发
+      return;
+    } 
+    outPos && this.getEvent(outPos, "out", enemy)?.callback(enemy);
+    newEvent && newEvent.callback(enemy);
   }
 
-  outOfTile(position: Vector2, enemy: Enemy){
-    this.checkEvent(position, "out", enemy);
-  }
-
-  checkEvent(position: Vector2, type: string, enemy: Enemy){
+  getEvent(position: Vector2, type: string, enemy): TileEvent{
     const find = this.events.find(event => {
-      return event.x === position.x && event.y === position.y && event.type === type;
+      return event.x === position.x &&
+        event.y === position.y &&
+        event.type === type &&
+        (!event.enemy || event.enemy.includes(enemy.key)
+      )
     })
-    if(find){
-      find.callback(enemy);
-    }
+
+    return find;
   }
 
   get(){

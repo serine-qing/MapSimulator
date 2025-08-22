@@ -176,30 +176,35 @@ const updateEnemyVisible = () => {
 }
 
 const updateEnemyPosAndSize = () => {
-
   scale =  canvasHeight / GameConfig.OBJECT_SCALE;
 
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.object) return;
-    const {meshSize} = enemy;
+    const {meshSize, meshOffset} = enemy;
     
     const height = meshSize.y * (enemy['fbxMesh']? 1 : 5.5);
     const width = meshSize.x * (enemy['fbxMesh']? 1 : 5.5);
 
+    let centerPos;
+    if(enemy.isFly()){
+      const box = new THREE.Box3().setFromObject(enemy.mesh);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      centerPos = gameView.project(center);
 
-    const box = new THREE.Box3().setFromObject(enemy.mesh);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
+    }else{
+      centerPos = gameView.localToScreen(enemy.object.position);
+    }
 
-    const {x, y} = gameView.project(center);
-
+    const {x, y} = centerPos;
     const label = enemyLabels.value[enemy.id];
-
+    const offsetY = meshOffset ? scale * meshOffset.y : 0;
+    
     label.style = {
       height: height + 'px',
       width: width + 'px',
       left: x - width/2 + 'px', 
-      top: y - height/2 + 'px',
+      top: y - height/2 + offsetY + 'px',
       transform: `scale(${scale})`
     }
 
@@ -448,8 +453,10 @@ const update = () => {
   
 }
 
-AnimationFrame({
+AnimationFrame.addAnimationFrame({
+  name: "container",
   order: 1,
+  interval: 2,
   animate: () => {
     if(waveManager){
       update();

@@ -1,3 +1,4 @@
+import Global from "../utilities/Global";
 
 interface CountdownOpitons{
   name: string,
@@ -105,6 +106,10 @@ class Countdown{
 }
 
 class CountdownManager{
+  constructor(){
+    Global.countdownManager = this;
+  }
+
   private countdowns: Countdown[] = [];
 
   public getCountdownInst(){

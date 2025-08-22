@@ -62,28 +62,42 @@ class SpineEnemy extends Enemy{
 
   //获取skel的大小，是实时运算出来的
   public getSkelSize(){ 
-    this.meshOffset = getSkelOffset(this);
-    const meshSize = new THREE.Vector2();
-
     this.skeletonMesh.skeleton.updateWorldTransform();
     this.changeAnimation();
     this.skeletonMesh.update(1)
     this.skeletonMesh.state.apply(this.skeletonMesh.skeleton);
-    this.skeletonMesh.skeleton.getBounds(new THREE.Vector2(), meshSize, [])
 
-    const box3 = new THREE.Box3();
-    box3.setFromObject(this.skeletonMesh); 
+    if(this.isFly()){
+      //飞行单位使用box盒子直接检测
+      const box3 = new THREE.Box3();
+      box3.setFromObject(this.skeletonMesh); 
 
-    const size = new THREE.Vector3();
-    box3.getSize(size); // size 是一个 Vector3 对象，包含长(x)、宽(y)、高(z)
+      const size = new THREE.Vector3();
+      box3.getSize(size); 
 
-    this.meshSize = size;
+      this.meshSize = size;
 
+    }else{
+      //地面单位预先计算大小和偏移
+      this.meshOffset = getSkelOffset(this);
+      const meshSize = new THREE.Vector2();
+      const meshOffset = new THREE.Vector2();
+      
+      this.skeletonMesh.skeleton.getBounds(new THREE.Vector2(), meshSize, [])
+
+      // const offsetX = -(meshOffset.x + meshSize.x / 2);
+      const offsetY = -(meshOffset.y + meshSize.y / 2);
+      this.meshOffset.y += offsetY * 6;
+
+      this.meshSize = meshSize.multiplyScalar(getSpineScale(this));
+    }
+    
     //恢复track的动画帧
     const track = this.skeletonMesh.state.getCurrent(0);
     track.trackTime = 0;
 
   }
+
 
   //视图相关的更新
   public render(delta: number){

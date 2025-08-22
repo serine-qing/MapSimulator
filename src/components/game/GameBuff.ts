@@ -6,6 +6,8 @@ class GameBuff{
   public globalBuffs: Buff[] = [];
   countdown: Countdown;
   constructor(){
+    Global.gameBuff = this;
+
     this.countdown = Global.countdownManager.getCountdownInst();
   }
 

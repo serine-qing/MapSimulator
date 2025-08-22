@@ -22,6 +22,7 @@ import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
 import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
 import Notice from "@/pages/Notice.vue"
+import Global from "@/components/utilities/Global";
 
 //#region 沙盘推演数据
 
@@ -143,19 +144,20 @@ watch(pause, () => {
 
 //创建游戏
 const newGame = async (map) => {
-  
+  if(gameManager){
+    gameManager.destroy();
+    Global.reset();
+  }
   mapData = map;
   
   isStart.value = true;
   isFinished.value = false;
   loading.value = true;
-
+  
   mapModel = new MapModel(mapData, runesData);
 
   await mapModel.init();
-  if(gameManager){
-    gameManager.destroy();
-  }
+
   reset();
   
   sandTableData.value = mapData.sandTable;
@@ -352,7 +354,7 @@ defineExpose({
 </script>
 
 <template>
-<div class="main" v-loading="loading">  
+<div class="game-container" v-loading="loading">  
   <!-- <CombatMatrix/> -->
   <SandTable
     v-show="sandTableData"
@@ -472,7 +474,7 @@ defineExpose({
 </template>
 
 <style scoped lang="scss">
-.main{
+.game-container{
   width: 100%;
   flex-direction: column;
   overflow-y: auto;
@@ -565,6 +567,7 @@ select {
 }
 
 .info{
+  margin-left: 10px;
   h1,h2{
     text-align: center;
     margin: 10 0;

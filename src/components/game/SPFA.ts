@@ -7,6 +7,8 @@ class SPFA{
   public enemyRoutes: EnemyRoute[] = [];
   public extraBlocks: THREE.Vector2[] = [];
   constructor(enemyRoutes: EnemyRoute[], extraBlocks: THREE.Vector2[]){
+    Global.SPFA = this;
+
     this.enemyRoutes = enemyRoutes; 
     this.extraBlocks = extraBlocks;
   }

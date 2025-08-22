@@ -8,6 +8,8 @@ class TrapManager{
   traps: Trap[] = [];
 
   constructor(trapDatas: trapData[]){
+    Global.trapManager = this;
+
     this.trapDatas = trapDatas;
 
     trapDatas.forEach(trapData => {

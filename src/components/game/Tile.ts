@@ -10,6 +10,7 @@ class Tile{
   static boxGeos = [];
 
   tileData: any;
+  blackboard: any[];
 
   width: number;
   height: number;
@@ -27,6 +28,8 @@ class Tile{
   object: Object3D;
   border: BoxHelper;
 
+  textures = new THREE.Group();
+
   sideMaterial: Material;
   topMaterial: Material;
 
@@ -36,10 +39,11 @@ class Tile{
   constructor(tileData: TileData , position: Vec2){
     this.tileData = tileData;
 
-    const {tileKey, heightType, buildableType, passableMask} = tileData;
+    const {tileKey, heightType, buildableType, passableMask, blackboard} = tileData;
 
     this.passableMask = passableMask;
     this.buildableType = buildableType;
+    this.blackboard = blackboard;
 
     this.width = 1;
     this.height = 0;
@@ -96,7 +100,7 @@ class Tile{
     let {top : topMaterial, side : sideMaterial} = tileTexture;
     
     this.object = new Object3D();
-
+    this.object.add(this.textures);
     GC_Add(this.object);
     this.object.position.x = Global.gameManager.getPixelSize(this.position.x);
     this.object.position.y = Global.gameManager.getPixelSize(this.position.y);
@@ -152,7 +156,7 @@ class Tile{
         const geometry = new THREE.CircleGeometry( Global.gameManager.getPixelSize(this.width / 8),64);
 
         const {yin, yang}  = tileTexture;
-        const dynamic = this.tileData?.blackboard?.find(arr => arr.key === "dynamic");
+        const dynamic = this.blackboard?.find(arr => arr.key === "dynamic");
         const huimingMat = dynamic?.value === 0? yin : yang;
         const huiming = new THREE.Mesh( geometry, huimingMat );
 
@@ -184,40 +188,59 @@ class Tile{
 
   //生成地块上的图像
   private createTexture(){
-    let texture = getTexture(this.tileKey);
-    
-    if(texture){
-      let textureScale;
-      switch (this.tileKey) {
-        case "tile_floor":
-          textureScale = 0.85;
-          break;
-        case "tile_ristar_road":
-        case "tile_ristar_road_forbidden":
-          textureScale = 1;
-          break;
-        default:
-          textureScale = 0.9;
+
+    this.addTexture(this.tileKey);
+    this.blackboard?.forEach(bb => {
+      switch (bb.key) {
+        case "gems_type":
+          this.addGem(bb.value)
           break;
       }
-      const textureSize = Global.gameManager.getPixelSize(this.width * textureScale);
-      texture.scale.set(textureSize,textureSize,1);
-      this.textureObj = texture;
-      this.textureObj.position.setZ(Global.gameManager.getPixelSize(this.height/2) + 0.08);
-      this.object.add(this.textureObj)
-    }
-
+    });
     if(this.isBanned){
-      const bannedSize = Global.gameManager.getPixelSize(this.width * 0.9);
-      const bannedTexture = getTexture(
-        "tile_banned"
-      );
-      bannedTexture.scale.set(bannedSize,bannedSize,1);
-      bannedTexture.position.setZ(Global.gameManager.getPixelSize(this.height/2) + 0.15);
-      this.object.add(bannedTexture)
-    }else{
-
+      this.addTexture("tile_banned");
     }
+  }
+
+  //太阳甩在身后的结晶
+  private addGem(type){
+    const name = type === 1? "gem" : "gemdark";
+
+    const gem = this.addTexture(name);
+    const material = gem.material as MeshBasicMaterial;
+    material.opacity = 0.7;
+  }
+
+  public addTexture(textureName: string): Mesh{
+    const texture = getTexture(textureName);
+
+    if(!texture) return;
+    let textureScale;
+    switch (textureName) {
+      case "tile_floor":
+        textureScale = 0.85;
+        break;
+      case "tile_ristar_road":
+      case "tile_ristar_road_forbidden":
+      case "gem":
+      case "gemdark":
+        textureScale = 1;
+        break;
+
+      default:
+        textureScale = 0.9;
+        break;
+    }
+    
+    const textureSize = Global.gameManager.getPixelSize(this.width * textureScale);
+
+    texture.scale.set(textureSize, textureSize, 1);
+    this.textures.add(texture);
+    const num = this.textures.children.length;
+
+    texture.position.setZ(Global.gameManager.getPixelSize(this.height / 2) + 0.07 * num);
+
+    return texture;
   }
 
   public initPreviewTexture(){

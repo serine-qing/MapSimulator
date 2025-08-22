@@ -7,7 +7,8 @@ const specialIdle = {
 }
 
 const specialMove = {
-
+  enemy_10010_sgnja: "Move",        //"市井盗贼"
+  enemy_10010_sgnja_2: "Move", 
 }
 
 export const getAnimation = (key: string, animations: any, state: string) => {
