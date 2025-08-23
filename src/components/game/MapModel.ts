@@ -20,7 +20,7 @@ import { immuneTable } from "../utilities/Interface";
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
   public sourceData: any;
-  private optionalRunes: string[];      //沙盘推演自选tag
+  private extraRunes: {[key: string]: any};      //各种自选rune tag
 
   public runesHelper: RunesHelper;
 
@@ -37,14 +37,15 @@ class MapModel{
   public extraRoutes: EnemyRoute[] = [];
 
   public SPFA: SPFA;  //寻路对象
-  constructor(data: any, optionalRunes: string[]){
+
+  public hiddenGroups: any[];
+  constructor(data: any, extraRunes: {[key: string]: any}){
     this.sourceData = data;
-    this.optionalRunes = optionalRunes;
+    this.extraRunes = extraRunes;
   }
 
   //异步数据，需要在实例化的时候手动调用
   public async init(){
-
     this.getRunes();
 
     this.tileManager = new TileManager(this.sourceData.mapData);
@@ -62,6 +63,14 @@ class MapModel{
     this.parseWaves(this.sourceData.waves);
 
     await this.initEnemyData(this.sourceData.enemyDbRefs);
+
+    if(
+      !this.hiddenGroups &&
+      this.sourceData.levelId.includes("obt/recalrune")
+    ){
+      this.parseCombatMatrix();  
+    }
+
     //获取哪些敌人的spine是可用的
     //获取敌人spine
     await this.getEnemyMeshs();
@@ -354,13 +363,32 @@ class MapModel{
 
     //沙盘推演自选tag
     const optionalRunes = this.sourceData.optionalRunes;
-    optionalRunes && this.optionalRunes.forEach(key => {
+    optionalRunes && this.extraRunes?.runesData?.forEach(key => {
       const runes = optionalRunes[key];
       
       runesData.push(...runes);
     })
+    
+    //全息作战矩阵tag
+    const combatRunes = this.extraRunes?.combatRunes;
+    combatRunes && combatRunes.forEach(key => {
+      runesData.push({
+        "difficultyMask": "ALL",
+        "key": "level_hidden_group_enable",
+        "professionMask": 1023,
+        "buildableMask": "ALL",
+        "blackboard": [
+          {
+            "key": "key",
+            "value": 0.0,
+            "valueStr": key
+          }
+        ]
+      })
+    })
 
     this.runesHelper = new RunesHelper(runesData);
+
   }
 
 
@@ -399,7 +427,6 @@ class MapModel{
         for(let i=0; i<action.count; i++){
           //检查敌人分组
           const check = this.runesHelper.checkEnemyGroup(action.hiddenGroup);
-
           if(!check) return;
 
           let startTime = currentTime + action.preDelay + action.interval*i;
@@ -786,6 +813,33 @@ class MapModel{
       }
     });
     this.SPFA = new SPFA([...this.routes, ...this.extraRoutes], extraBlocks);
+  }
+
+  //解析全息作战矩阵数据
+  public parseCombatMatrix(){
+    this.hiddenGroups = [];
+    this.sourceData.waves.forEach(wave => {
+      wave.fragments?.forEach(fragment => {
+        fragment.actions?.forEach(action => {
+            const actionType = AliasHelper(action.actionType, "actionType");
+            if(actionType === "SPAWN" && action.hiddenGroup){
+              const find = this.hiddenGroups.find(hiddenGroup => hiddenGroup.key === action.hiddenGroup);
+              const enemy = this.enemyDatas.find(enemyData => enemyData.key === action.key);
+              if(find){
+                find.enemies.push(enemy);
+              }else{
+                this.hiddenGroups.push({
+                  key: action.hiddenGroup,
+                  enemies: [ enemy ]
+                });
+              }
+
+            }
+            
+          
+        });
+      });
+    })
   }
 
 }

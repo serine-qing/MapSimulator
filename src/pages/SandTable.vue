@@ -133,8 +133,6 @@ const hasChanged = () => {
 }
 
 
-
-
 const handleSubmit = () => {
   if(hasChanged()){
     const data = [];

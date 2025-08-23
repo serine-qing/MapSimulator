@@ -35,10 +35,22 @@ const changeRunesData = (data) => {
 
 //#endregion
 
+//#region 全息作战矩阵
+
+const combatMatrixData = shallowRef(null);
+let combatRunes = []
+const changeCombatRunes = (data) => {
+  combatRunes = data;
+  newGame(mapData)
+}
+//#endregion
+
 //#region 游戏基础功能
 let mapData = null;
 let mapModel: MapModel;
 let gameManager: GameManager;
+const levelId = ref("");
+
 const gameManagerRef = shallowRef();
 
 const gameSpeed = ref();
@@ -72,6 +84,7 @@ const reset = () => {
   maxEnemyCount.value = 0;
   finishedEnemyCount.value = 0;
   runesData = [];
+  combatRunes = [];
   sandTableData.value = null;
 }
 reset();
@@ -149,17 +162,21 @@ const newGame = async (map) => {
     Global.reset();
   }
   mapData = map;
-  
+  levelId.value = mapData.levelId;
   isStart.value = true;
   isFinished.value = false;
   loading.value = true;
   
-  mapModel = new MapModel(mapData, runesData);
+  mapModel = new MapModel(mapData, {
+    runesData,
+    combatRunes
+  });
 
   await mapModel.init();
 
   reset();
   
+  combatMatrixData.value = mapModel.hiddenGroups;
   sandTableData.value = mapData.sandTable;
 
   gameSpeed.value = GameConfig.GAME_SPEED;
@@ -355,7 +372,12 @@ defineExpose({
 
 <template>
 <div class="game-container" v-loading="loading">  
-  <!-- <CombatMatrix/> -->
+  <CombatMatrix
+    v-show="combatMatrixData"
+    :combatMatrixData = "combatMatrixData"
+    :levelId = "levelId"
+    @changeCombatRunes = "changeCombatRunes"
+  />
   <SandTable
     v-show="sandTableData"
     :sandTableData = "sandTableData"

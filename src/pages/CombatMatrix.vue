@@ -3,7 +3,7 @@
   <div class="wrapper">
     <div class="left">
 
-      <div class="tags-container">
+      <div style="opacity: 0.4; cursor:not-allowed;" class="tags-container">
         <div class="title">基础</div>
         <div class="tags-box">
 
@@ -53,17 +53,102 @@
 
         </div>
       </div>
+
+      <div class="tags-container">
+        <div class="title">附加</div>
+        <div class="tags-box">
+
+          <div
+            class="tags-div"
+            v-for="tag in tagsData"
+          >
+            <div 
+              v-if="!tag.children"
+              class="tag"
+              :class="{active: tag.active}"
+              style="font-size: 10px;"
+              
+              @click="handleTagClick(tag)"
+            >
+              <div class="hexagon-inner">{{ tag.key }}</div>
+            </div>
+
+            <div 
+              class="tag-collection or"
+              v-else
+            >
+
+              <div class="background">
+                <div class="fix"></div>
+              </div>
+
+              <div class="content">
+                <div class="collection-type">
+                  <div class="icon"></div>
+                  <div class="text">OR</div>
+                </div>
+
+                <template v-for="(childTag, index) in tag.children">
+                  <div 
+                    class="tag"
+                    v-if="childTag.active || tag.children.every(child => !child.active)"
+                    :class="{active: childTag.active}"
+                    style="font-size: 10px;"
+                    @click="handleMergeTagClick(tag, index)"
+                  >
+                    <div style="font-size: 10px;" class="hexagon-inner">{{ childTag.key }}</div>
+                    <!-- <div class="tag-score">???</div> -->
+                  </div>
+
+                  <div 
+                    v-else
+                    @click="handleMergeTagClick(tag, index)"
+                    class="tag disable"
+                  >
+                    <div class="hexagon-inner">
+                      <div class="tag-icon">互斥冲突</div>
+                    </div>
+                  </div>
+                </template>
+                
+
+              </div>
+            </div>
+
+          </div>
+
+
+        </div>
+      </div>
+
+      <p style="color: red; font-size: 14px;">词条为对地图隐藏怪组进行分析得出，可能有误，仅供参考！</p>
+      <span style="color: red; font-size: 14px;">额外出现爱国者是用不再罚站的爱国者替换原本的爱国者</span>
+      
+      <div 
+        class="submit"
+        @click="handleSubmit"
+        :class="{disabled: !hasChanged()}"
+      >确定</div>
     </div>
     <div class="right">
       <div class="description">
-        <div class="title">指标·死而不朽</div>
-        <div class="content">
-          <div class="icon"></div>
+        <div class="title">指标·??????</div>
+
+        <div 
+          v-for="activeTag in activeTags"
+          class="content"
+        >
+          <div 
+            class="icon"
+          >{{ activeTag.key }}</div>
+
           <div class="text">
-            <p>< 爱国者 >不再等待</p>
-            <p>< 爱国者 >行军姿态受到来自非阻挡单位的物理与法术伤害减少90%，被阻挡较长时间该效果逐渐降低至0%，直到脱离阻挡</p>
+            <p 
+              v-for="enemy in activeTag.enemies"
+            >额外出现{{ enemy.count }}个{{ enemy.name }}</p>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -71,16 +156,147 @@
 </template>
 
 <script lang="ts" setup>
+import { ref, toRaw, watch } from 'vue';
 
+const { combatMatrixData, levelId } = defineProps(["combatMatrixData", "levelId"])
+const emit = defineEmits(["changeCombatRunes"]);
 
+const tagsData = ref([]);
+const activeTags = ref([]);
+const currentActiveTags = ref([]);   //当前游戏应用的tags，用于检测改变
+
+const updateActiveTags = () => {
+  activeTags.value = [];
+  tagsData.value.forEach(tag => {
+    if(tag.children){
+      tag.children.forEach(child => {
+        child.active && activeTags.value.push(child);
+      });
+    }else{
+      tag.active && activeTags.value.push(tag)
+    }
+  });
+}
+
+const handleTagClick = (tag) => {
+  tag.active = !tag.active;
+  updateActiveTags();
+}
+
+const handleMergeTagClick = (mergeTag, index) => {
+  const children = mergeTag.children;
+  const currentActive = !children[index].active;
+
+  currentActive && children.forEach(tag => tag.active = false);
+  children[index].active = currentActive;
+
+  updateActiveTags();
+}
+
+const parseData = () => {
+  const regex = /(.+?)([1-9])$/;
+  const regex2 = /(.+?)(base|high)$/;
+  combatMatrixData?.forEach(data => {
+    const enemies = {};
+    data.enemies.forEach(enemy => {
+
+      if(!enemies[enemy.key]){
+        enemies[enemy.key] = {
+          name: enemy.name,
+          count: 1
+        };
+      }else{
+        enemies[enemy.key].count ++;
+      }
+    })
+
+    const match = data.key.match(regex);
+    const match2 = data.key.match(regex2);
+    let mergeKey;
+    if(match || match2){
+      mergeKey = match? match[1] : match2[1];
+    }
+
+    if(data.key.includes("dpshld")){
+      mergeKey = "dpshld";
+    }
+
+    if(mergeKey){
+      const find = tagsData.value.find(data => data.mergeKey === mergeKey);
+
+      if(find){
+
+        find.children.push({
+          key: data.key,
+          enemies,
+          active: false
+        })
+
+        find.children.sort((a ,b) => {
+          return parseInt(a.key.replace(mergeKey, "")) - parseInt( b.key.replace(mergeKey, ""));
+        })
+
+      }else{
+
+        tagsData.value.push({
+          mergeKey,
+          children:[{
+            key: data.key,
+            enemies,
+            active: false
+          }]
+        })
+      }
+    }else{
+      tagsData.value.push({
+        key: data.key,
+        enemies,
+        active: false
+      })
+    }
+
+  })
+}
+
+//数据是否改变
+const hasChanged = () => {
+  return currentActiveTags.value.length !== activeTags.value.length ||
+    currentActiveTags.value.find(tagKey => {
+      const find = activeTags.value.find(tag => tag.key === tagKey);
+      return !find;
+    })
+}
+
+//提交更改
+const handleSubmit = () => {
+  if(hasChanged()){
+    
+    currentActiveTags.value = activeTags.value.map(activeTag => activeTag.key);
+    emit('changeCombatRunes', toRaw(currentActiveTags.value)) 
+  }
+}
+
+let currentLevelId;
+watch(() => combatMatrixData, () => {
+  
+  if(currentLevelId !== levelId){
+    currentLevelId = levelId;
+    tagsData.value = [];
+    activeTags.value = [];
+    currentActiveTags.value = [];
+    parseData();
+  }
+
+})
 </script>
+
 <style scoped lang="scss">
 $tag-height: 60px;
 .wrapper{
   user-select: none;
-  height: 500px;
   background-color: white;
   display: flex;
+  min-height: 400px;
   .left{
     flex: 1;
     padding: 10px;
@@ -93,9 +309,10 @@ $tag-height: 60px;
 }
 
 .tags-container{
-  height: 140px;
   display: flex;
   padding-right: 10px;
+  margin-bottom: 20px;
+  min-height: 180px;
   .title{
     width: 24px;
     background-color: #8c0005;
@@ -111,6 +328,10 @@ $tag-height: 60px;
     background: linear-gradient(to right, rgba(84,87,86,1), rgba(84,87,86,0) 50%, rgba(84,87,86,0));
     padding: 10px;
     display: flex;
+    flex-wrap: wrap;
+    .tags-div{
+      height: $tag-height;
+    }
   }
 }
 
@@ -132,7 +353,7 @@ $tag-height: 60px;
 
   .background{
     position: absolute;
-    top: ($tag-height - 20px) / 2;
+    top: calc($tag-height - 20px) / 2;
     height: 20px;
     width: calc(100% - 20px);
     background-color: #2c2c2c;
@@ -242,10 +463,14 @@ $tag-height: 60px;
     margin-top: 20px;
     display: flex;
     .icon{
+      margin-top: 3px;
       height: 24px;
+      line-height: 24px;
       width: 50px;
       background-color: #eaecec;
       border-radius: 3px;
+      font-size: 10px;
+      text-align: center;
     }
     .text{
       flex: 1;
@@ -257,5 +482,25 @@ $tag-height: 60px;
   }
 }
 
+.submit{
+  margin-top: 10px;
+  margin-bottom: 4px  ;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 36px;
+  width: 160px;
+  background-color: #a60026;
+  color: #ffffff;
+  cursor: pointer;
+  user-select: none;
+  float: right;
+  box-shadow: 0 3px 10px 1px #261a1d;
 
+  &.disabled{
+    cursor: not-allowed;
+    background-color: #fab6b6;
+    box-shadow: none;
+  }
+}
 </style>
