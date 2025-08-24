@@ -95,7 +95,7 @@ class SpineEnemy extends Enemy{
     
     //恢复track的动画帧
     const track = this.skeletonMesh.state.getCurrent(0);
-    if(track) track.trackTime = 0;
+    track.trackTime = 0;
 
   }
 

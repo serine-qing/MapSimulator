@@ -835,10 +835,12 @@ class Enemy{
   }
 
   private die(){
-    this.animationStateTransition({
-      transAnimation: "Die",
-      isWaitTrans: true
-    })
+    if(!Global.gameManager.isSimulate){
+      this.animationStateTransition({
+        transAnimation: "Die",
+        isWaitTrans: true
+      })
+    }
     this.handleDie();
     this.finishedMap();
   }
