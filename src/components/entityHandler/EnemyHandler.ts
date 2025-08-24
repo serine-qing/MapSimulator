@@ -1,5 +1,6 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
+import act35side from "./太阳甩在身后";
 import act42side from "./众生行记";
 import act44side from "./墟";
 
@@ -29,10 +30,15 @@ const EnemyHandler = {
       case "enemy_10082_mpweak": //弱化节点碎屑
         enemy.unMoveable = true;
         break;
+      case "enemy_1367_dseed":  //血泊
+        enemy.unMoveable = true;
+        enemy.notCountInTotal = true;
+        break;
     }
   },
 
   handleTalent: (enemy: Enemy, talent: any) => {
+    act35side.handleTalent(enemy, talent);
     act42side.handleTalent(enemy, talent);
     act44side.handleTalent(enemy, talent);
     const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;
@@ -121,10 +127,23 @@ const EnemyHandler = {
           })
         }
         break;
+
+      case "bleed":       //随时间掉血
+        const { damage } = talent.value;
+        enemy.countdown.addCountdown({
+          name: "damageSelf",
+          initCountdown: 1,
+          countdown: 1,
+          callback: () => {
+            enemy.hp -= damage;
+          }
+        });
+        break;
     }
   },
 
   handleSkill: (enemy: Enemy, skill: any) => {
+    act35side.handleSkill(enemy, skill);
     act42side.handleSkill(enemy, skill);
     act44side.handleSkill(enemy, skill);
 
@@ -232,6 +251,9 @@ const EnemyHandler = {
     })
   },
 
+  handleDie: (enemy: Enemy) => {
+    act35side.handleDie(enemy);
+  }
 }
 
 

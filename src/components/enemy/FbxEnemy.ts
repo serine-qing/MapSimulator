@@ -5,6 +5,7 @@ import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } fro
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
+import { getPixelSize } from "../utilities/utilities";
 
 class FbxEnemy extends Enemy{
   private fbxMesh: THREE.Mesh; 
@@ -35,7 +36,7 @@ class FbxEnemy extends Enemy{
         break;
     }
     
-    const size = Global.gameManager.getPixelSize(GameConfig.TILE_SIZE);
+    const size = getPixelSize(GameConfig.TILE_SIZE);
     this.meshSize = {
       x: size, y: size
     }

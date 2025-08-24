@@ -309,6 +309,7 @@ class RunesHelper{
 
   //检查ban格子
   public checkBannedTiles(tileManager: TileManager){
+    
     this.bannedTiles.forEach(vec2 => {
       const tile: Tile = tileManager.getTile(vec2);
       if(tile){

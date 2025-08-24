@@ -9,6 +9,7 @@ import Tile from "../game/Tile";
 import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
+import { getCoordinate, getPixelSize } from "../utilities/utilities";
 
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
@@ -51,6 +52,11 @@ interface SkillParam{
   cooldownStop?: boolean,       //是否有技能阻回条，默认是
 }
 
+interface ChangeTileEvent{
+  name: string,
+  callback: Function
+}
+
 class Enemy{
   static shadowMaterial = new THREE.MeshBasicMaterial( { 
     color: "#000000",
@@ -85,6 +91,7 @@ class Enemy{
   currentFrameSpeed: number;      //当前帧计算后的最终移速
 
   attributes: {[key: string]: number} = {};    //属性
+  hp: number;
   //属性乘区 每帧计算
   finalAttributes = {
     atk: 1,
@@ -133,6 +140,7 @@ class Enemy{
 
   public countdown: Countdown;  //倒计时
   public watchers: Watcher[] = [];
+  private changeTileEvents: ChangeTileEvent[] = []; 
 
   isStarted: boolean = false;
   isFinished: boolean = false;
@@ -173,6 +181,8 @@ class Enemy{
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   public mesh: THREE.Mesh;
+
+  public userData: {[key: string]: any} = {};    //数据存储
   constructor(action: ActionData){
 
     this.enemyData = action.enemyData;
@@ -200,7 +210,7 @@ class Enemy{
     this.attrChanges = attrChanges;
     
     this.attributes = attributes;
-
+    this.hp = attributes.maxHp;
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
@@ -266,7 +276,7 @@ class Enemy{
   public setObjectPosition(x: number, y: number){
     if(Global.gameManager.isSimulate || !this.object) return;
 
-    const Vec2 = Global.gameManager.getCoordinate(x, y);
+    const Vec2 = getCoordinate(x, y);
 
     this.object.position.x = Vec2.x;
     this.object.position.y = Vec2.y;
@@ -306,8 +316,9 @@ class Enemy{
     
     if(!Global.gameManager.isSimulate){
       this.options.RoutesVisible = false;
+      const exitCountdown = this.hp <= 0 ? 2 : 1;
       //敌人退出地图的渐变
-      this.gradientHide();
+      this.gradientHide(exitCountdown);
     }else{
       this.hide();
     }
@@ -322,8 +333,8 @@ class Enemy{
   }
 
   initShadow(){
-    const majorAxis = Global.gameManager.getPixelSize(0.35); //椭圆长轴
-    const minorAxis = Global.gameManager.getPixelSize(0.08); //椭圆短轴
+    const majorAxis = getPixelSize(0.35); //椭圆长轴
+    const minorAxis = getPixelSize(0.08); //椭圆短轴
 
     const path = new THREE.Shape();
     path.absellipse(
@@ -346,7 +357,7 @@ class Enemy{
     shadow.position.z = this.shadowHeight;
     activeShadow.position.z = this.shadowHeight;
     
-    const shadowOffset = Global.gameManager.getCoordinate(this.shadowOffset);
+    const shadowOffset = getCoordinate(this.shadowOffset);
     shadow.position.x = shadowOffset.x;
     shadow.position.y = shadowOffset.y;
 
@@ -358,7 +369,7 @@ class Enemy{
 
   initAttackRangeCircle(){
     if(this.isRanged()){
-      const radius = Global.gameManager.getPixelSize(this.attributes.rangeRadius);
+      const radius = getPixelSize(this.attributes.rangeRadius);
       const curve = new THREE.EllipseCurve(
         0,  0,            // ax, aY
         radius, radius,           // xRadius, yRadius
@@ -539,6 +550,7 @@ class Enemy{
     this.updatePositions();
     this.updateAttrs();
     this.updateAction(delta);
+    this.updateHP();
 
     const watcherFuncs = this.watchers.map(watcher => watcher.function);
     watcherFuncs.forEach(watcherFunc => watcherFunc());
@@ -555,10 +567,30 @@ class Enemy{
       this.tilePosition = inPos;
 
       Global.tileManager.changeTile(outPos, inPos, this);
-      
+      this.changeTile(outPos, inPos);
     }
-    
 
+  }
+
+  private changeTile(outPos: THREE.Vector2, inPos: THREE.Vector2){
+    if( this.changeTileEvents.length > 0){
+      const outTile = outPos && Global.tileManager.getTile(outPos.x, outPos.y);
+      const inTile = inPos && Global.tileManager.getTile(inPos.x, inPos.y);
+      this.changeTileEvents.forEach(event => {
+        event.callback(outTile, inTile);
+      });
+    }
+
+  }
+
+  public addChangeTileEvent(event: ChangeTileEvent){
+    const find = this.changeTileEvents.find(_event => _event.name === event.name);
+    if(!find) this.changeTileEvents.push(event);
+  }
+
+  public removeChangeTileEvent(name: string){
+    const index = this.changeTileEvents.findIndex(event => event.name === name);
+    if(index > -1) this.changeTileEvents.splice(index, 1);
   }
 
   private updateAction(delta: number) {
@@ -604,7 +636,7 @@ class Enemy{
             this.ZOffset = tile.height;
 
           if(this.object){
-            this.object.position.z = Global.gameManager.getPixelSize(this.ZOffset);
+            this.object.position.z = getPixelSize(this.ZOffset);
           }
           return;
         }
@@ -741,7 +773,7 @@ class Enemy{
         break;
 
       case "DISAPPEAR":
-        this.gradientHide();
+        this.gradientHide(1);
         this.nextCheckPoint();
         this.update(delta);
         break;
@@ -794,6 +826,21 @@ class Enemy{
       this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
     }
 
+  }
+
+  private updateHP(){
+    if(this.hp <= 0){
+      this.die();
+    }
+  }
+
+  private die(){
+    this.animationStateTransition({
+      transAnimation: "Die",
+      isWaitTrans: true
+    })
+    this.handleDie();
+    this.finishedMap();
   }
 
   private getWaitTime(type: string, time: number): number{
@@ -976,6 +1023,10 @@ class Enemy{
     });
   }
 
+  private handleDie(){
+    EnemyHandler.handleDie(this);
+  }
+
   public getTalent(key: string){
     const find = this.talents.find(talent => talent.key === key);
     return find? find.value : null;
@@ -1004,6 +1055,10 @@ class Enemy{
         if(callback) callback(timer);
       }
     });
+  }
+  
+  public triggerSkill(name: string){
+    this.countdown.triggerCountdown(name);
   }
 
   public addWatcher(watcher: Watcher){
@@ -1066,10 +1121,10 @@ class Enemy{
   }
 
   //渐变退出，用exitCountDown时间控制（不同的子类有不同的实现方法）
-  private gradientHide(){  
+  private gradientHide(countDown: number){  
     this.exit = true;
     if(!Global.gameManager.isSimulate) {
-      this.exitCountDown = 1;
+      this.exitCountDown = countDown? countDown : 1;
     }
   }
 
@@ -1223,8 +1278,11 @@ class Enemy{
       motion: this.motion,
       route: this.route,
       tilePosition: this.tilePosition,
+      hp: this.hp,
+      changeTileEvents: [...this.changeTileEvents],
       watchers: [...this.watchers],
-      buffs: [...this.buffs]
+      buffs: [...this.buffs],
+      userData: {...this.userData},
     }
 
     return state;
@@ -1254,8 +1312,11 @@ class Enemy{
       motion,
       route,
       tilePosition,
+      hp,
+      changeTileEvents,
       watchers,
-      buffs
+      buffs,
+      // userData
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -1281,8 +1342,11 @@ class Enemy{
     this.motion = motion;
     this.route = route;
     this.tilePosition = tilePosition;
+    this.hp = hp;
+    this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
     this.buffs = [...buffs];
+    // this.userData = {...userData};
 
     if(this.object){
       //恢复当前动画状态

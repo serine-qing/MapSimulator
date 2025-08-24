@@ -5,6 +5,7 @@ import Trap from "./Trap";
 import { GC_Add } from "./GC";
 import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
+import { getPixelSize } from "../utilities/utilities";
 
 class Tile{
   static boxGeos = [];
@@ -29,6 +30,7 @@ class Tile{
   border: BoxHelper;
 
   textures = new THREE.Group();
+  dynamicTextures = [];
 
   sideMaterial: Material;
   topMaterial: Material;
@@ -101,10 +103,11 @@ class Tile{
     
     this.object = new Object3D();
     this.object.add(this.textures);
+    
     GC_Add(this.object);
-    this.object.position.x = Global.gameManager.getPixelSize(this.position.x);
-    this.object.position.y = Global.gameManager.getPixelSize(this.position.y);
-    this.object.position.z = Global.gameManager.getPixelSize(this.height / 2);
+    this.object.position.x = getPixelSize(this.position.x);
+    this.object.position.y = getPixelSize(this.position.y);
+    this.object.position.z = getPixelSize(this.height / 2);
 
     switch (this.tileKey) {
       //给红蓝门添加地面，因为没有设置默认材质所以红蓝门本身是透明的
@@ -115,7 +118,7 @@ class Tile{
         const groundMesh = new Mesh( groundGe0, [
           null, null, null, null, ground, ground
         ]); 
-        groundMesh.position.z = Global.gameManager.getPixelSize(- this.height / 2)
+        groundMesh.position.z = getPixelSize(- this.height / 2)
         this.object.add(groundMesh);
         break;
       //围栏
@@ -123,9 +126,9 @@ class Tile{
       case "tile_fence_bound":
         const fenceWidth = this.width / 10;
         const sideGeometry = new BoxGeometry( 
-          Global.gameManager.getPixelSize(fenceWidth),
-          Global.gameManager.getPixelSize(this.width),
-          Global.gameManager.getPixelSize(2/7),
+          getPixelSize(fenceWidth),
+          getPixelSize(this.width),
+          getPixelSize(2/7),
         );
 
         const fenceTop = tileTexture.fenceTop;
@@ -137,10 +140,10 @@ class Tile{
         const up = new Mesh( sideGeometry, fenceMaterials); 
         const down = new Mesh( sideGeometry, fenceMaterials); 
 
-        left.position.x = Global.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
-        right.position.x = Global.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
-        up.position.y = Global.gameManager.getPixelSize(this.width/2 - fenceWidth / 2);
-        down.position.y = Global.gameManager.getPixelSize(-this.width/2 + fenceWidth / 2);
+        left.position.x = getPixelSize(-this.width/2 + fenceWidth / 2);
+        right.position.x = getPixelSize(this.width/2 - fenceWidth / 2);
+        up.position.y = getPixelSize(this.width/2 - fenceWidth / 2);
+        down.position.y = getPixelSize(-this.width/2 + fenceWidth / 2);
 
         up.rotation.z = Math.PI / 2;
         down.rotation.z = Math.PI / 2;
@@ -153,21 +156,21 @@ class Tile{
         
       case "tile_yinyang_road":
       case "tile_yinyang_wall":
-        const geometry = new THREE.CircleGeometry( Global.gameManager.getPixelSize(this.width / 8),64);
+        const geometry = new THREE.CircleGeometry( getPixelSize(this.width / 8),64);
 
         const {yin, yang}  = tileTexture;
         const dynamic = this.blackboard?.find(arr => arr.key === "dynamic");
         const huimingMat = dynamic?.value === 0? yin : yang;
         const huiming = new THREE.Mesh( geometry, huimingMat );
 
-        huiming.position.z = Global.gameManager.getPixelSize(this.height/2) + 0.1;
+        huiming.position.z = getPixelSize(this.height/2) + 0.1;
         this.object.add(huiming);
         break;
       default:
         break;
       case "tile_hole":
         const hole = tileTexture.hole;
-        const size = Global.gameManager.getPixelSize(hole.scale * this.width);
+        const size = getPixelSize(hole.scale * this.width);
         const holeGeo = new THREE.PlaneGeometry( size, size );
         const holeMesh = new THREE.Mesh( holeGeo, hole.material );
         holeMesh.position.z = 0.1;
@@ -190,32 +193,34 @@ class Tile{
   private createTexture(){
 
     this.addTexture(this.tileKey);
-    this.blackboard?.forEach(bb => {
-      switch (bb.key) {
-        case "gems_type":
-          this.addGem(bb.value)
-          break;
-      }
-    });
+
     if(this.isBanned){
       this.addTexture("tile_banned");
     }
+
+    this.dynamicTextures.forEach(dynamicText => {
+      dynamicText.texture = this.addTexture(dynamicText.textureName);
+    })
   }
 
-  //太阳甩在身后的结晶
-  private addGem(type){
-    const name = type === 1? "gem" : "gemdark";
+  public addDynamicTexture(textureName: string, dynamicName: string){
 
-    const gem = this.addTexture(name);
-    const material = gem.material as MeshBasicMaterial;
-    material.opacity = 0.7;
+    if(!this.getDynamicTexture(dynamicName)){
+      this.dynamicTextures.push({
+        name: dynamicName,
+        textureName,
+        texture: null
+      })
+    }
   }
 
+  //isDynamic: 是否是动态Texture，动态需要缓存
   public addTexture(textureName: string): Mesh{
     const texture = getTexture(textureName);
-
     if(!texture) return;
+
     let textureScale;
+    let opacity;
     switch (textureName) {
       case "tile_floor":
         textureScale = 0.85;
@@ -224,36 +229,48 @@ class Tile{
       case "tile_ristar_road_forbidden":
       case "gem":
       case "gemdark":
+        opacity = 0.7;
         textureScale = 1;
         break;
 
       default:
+        opacity = 1;
         textureScale = 0.9;
         break;
     }
+
+    const material = texture.material as MeshBasicMaterial;
+    material.opacity = opacity;
     
-    const textureSize = Global.gameManager.getPixelSize(this.width * textureScale);
+    const textureSize = getPixelSize(this.width * textureScale);
 
     texture.scale.set(textureSize, textureSize, 1);
     this.textures.add(texture);
+    
     const num = this.textures.children.length;
 
-    texture.position.setZ(Global.gameManager.getPixelSize(this.height / 2) + 0.07 * num);
+    texture.position.setZ(getPixelSize(this.height / 2) + 0.07 * num);
 
     return texture;
+  }
+
+  //获取已添加的动态textrue
+  public getDynamicTexture(name){
+    const find = this.dynamicTextures.find(dynamicTexture => dynamicTexture.name === name);
+    return find;
   }
 
   public initPreviewTexture(){
     //没有装置、并且没有ban格子的话，就生成一个占位符texture
     if(!this.trap && !this.isBanned && this.buildableType === "MELEE"){
-      const textureSize = Global.gameManager.getPixelSize(this.width * 0.9);
+      const textureSize = getPixelSize(this.width * 0.9);
       const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
       const textureMat = new THREE.MeshBasicMaterial({
         map: null,
         transparent: true
       });
       this.previewTexture = new THREE.Mesh( textureGeo, textureMat );
-      this.previewTexture.position.setZ(Global.gameManager.getPixelSize(this.height / 2) + 0.15);
+      this.previewTexture.position.setZ(getPixelSize(this.height / 2) + 0.15);
       this.previewTexture.visible = false;
 
       this.object.add(this.previewTexture);
@@ -285,9 +302,9 @@ class Tile{
 
     if(!boxGeo){
       boxGeo = new BoxGeometry( 
-        Global.gameManager.getPixelSize(width) - margin,
-        Global.gameManager.getPixelSize(width) - margin,
-        Global.gameManager.getPixelSize(height),
+        getPixelSize(width) - margin,
+        getPixelSize(width) - margin,
+        getPixelSize(height),
       );
       Tile.boxGeos.push({
         width, height, margin,
@@ -324,7 +341,7 @@ class Tile{
   }
 
   public getPixelHeight(){
-    return Global.gameManager.getPixelSize(this.height)
+    return getPixelSize(this.height)
   }
 
   public bindTrap(trap: Trap){
@@ -377,15 +394,31 @@ class Tile{
   }
 
   public get(){
-    const state = {
-      trap: this.trap
+    const states = {
+      trapStates: this.trap,
+      textureStates: this.dynamicTextures.map(dynamicTexture => {
+        return {
+          name: dynamicTexture.name,
+        }
+      })
     };
 
-    return state;
+    return states;
   }
 
-  public set(state){
-    this.trap = state.trap;
+  public set(states){
+    const {trapStates, textureStates} = states;
+    this.trap = trapStates;
+
+    this.dynamicTextures.forEach(dynamicTexture => {
+      const { name } = dynamicTexture;
+      const find = textureStates.find(textureState => textureState.name === name);
+      if(find){
+        dynamicTexture.texture.visible = true;
+      }else{
+        dynamicTexture.texture.visible = false;
+      }
+    })
   }
 }
 

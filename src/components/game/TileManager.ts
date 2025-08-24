@@ -145,6 +145,14 @@ class TileManager{
   }
 
   addEvent(option: TileEventOption){
+    const find = this.events.find(event => {
+      return event.key === option.key && 
+        event.type === option.type && 
+        event.x === option.x &&
+        event.y === option.y
+    });
+    if(find) return;
+
     this.events.push({
       key: option.key,
       type: option.type,
@@ -153,6 +161,18 @@ class TileManager{
       enemy: option.enemy,
       isMerge: option.isMerge? true : false,
       callback: option.callback
+    })
+
+    //事件添加时就在地块上的敌人，需要进行一次判断
+    option.type === "in" && Global.waveManager?.enemiesInMap?.forEach(enemy => {
+      if(
+        option.x === enemy.tilePosition.x &&
+        option.y === enemy.tilePosition.y &&
+        (!option.enemy || option.enemy.includes(enemy.key))
+      ){
+
+        option.callback(enemy);
+      }
     })
   }
 
@@ -167,6 +187,7 @@ class TileManager{
     newEvent && newEvent.callback(enemy);
   }
 
+  //todo 目前只有单个事件，需要做成兼容多个
   getEvent(position: Vector2, type: string, enemy): TileEvent{
     const find = this.events.find(event => {
       return event.x === position.x &&
@@ -181,17 +202,25 @@ class TileManager{
 
   get(){
     const state = {
-      tileStates: this.flatTiles.map(tile => tile.get())
+      tileStates: this.flatTiles.map(tile => tile.get()),
+      eventStates: [...this.events]
     };
 
     return state;
   }
 
   set(state){
+    const {
+      tileStates,
+      eventStates
+    } = state;
+
     for(let i = 0; i < this.flatTiles.length; i++){
       const tile = this.flatTiles[i];
-      tile.set(state.tileStates[i]);
+      tile.set(tileStates[i]);
     }
+
+    this.events = [...eventStates];
   }
 }
 

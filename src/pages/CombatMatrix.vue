@@ -121,8 +121,7 @@
         </div>
       </div>
 
-      <p style="color: red; font-size: 14px;">词条为对地图隐藏怪组进行分析得出，可能有误，仅供参考！</p>
-      <span style="color: red; font-size: 14px;">额外出现爱国者是用不再罚站的爱国者替换原本的爱国者</span>
+      <span style="color: red; font-size: 14px;">词条为对地图隐藏怪组进行分析得出，可能有误，仅供参考！</span>
       
       <div 
         class="submit"
@@ -197,6 +196,7 @@ const parseData = () => {
   const regex = /(.+?)([1-9])$/;
   const regex2 = /(.+?)(base|high)$/;
   combatMatrixData?.forEach(data => {
+    if(data.key === "before") return;
     const enemies = {};
     data.enemies.forEach(enemy => {
 

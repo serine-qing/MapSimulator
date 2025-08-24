@@ -6,6 +6,7 @@ import Tile from "./Tile";
 import { Countdown } from "./CountdownManager";
 import TrapHandler from "../entityHandler/TrapHandler";
 import Global from "../utilities/Global";
+import { getCoordinate, getPixelSize } from "../utilities/utilities";
 
 class Trap{
   data: trapData;  //原始数据
@@ -63,7 +64,7 @@ class Trap{
 
   initObject(){
     this.object = new THREE.Object3D();
-    const coordinate = Global.gameManager.getCoordinate(this.position);
+    const coordinate = getCoordinate(this.position);
     this.object.position.x = coordinate.x;
     this.object.position.y = coordinate.y;
 
@@ -115,10 +116,10 @@ class Trap{
 
     }else if(this.skeletonData){
 
-      this.object.position.z = Global.gameManager.getPixelSize(height + 1/14) ;
+      this.object.position.z = getPixelSize(height + 1/14) ;
 
     }else if(this.textureMat){
-      this.object.position.z = Global.gameManager.getPixelSize(height) + 0.15;
+      this.object.position.z = getPixelSize(height) + 0.15;
 
     }
   }
@@ -152,7 +153,7 @@ class Trap{
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
     this.object.add(this.skeletonMesh);
-    this.skeletonMesh.position.y = Global.gameManager.getPixelSize(-1/4);
+    this.skeletonMesh.position.y = getPixelSize(-1/4);
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     
     this.skeletonMesh.state.setAnimation(
@@ -164,7 +165,7 @@ class Trap{
   }
 
   initTexture(){
-    const textureSize = Global.gameManager.getPixelSize(1);
+    const textureSize = getPixelSize(1);
     const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
     this.textureMesh = new THREE.Mesh(textureGeo, this.textureMat);
     GC_Add(textureGeo);

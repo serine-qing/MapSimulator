@@ -75,6 +75,11 @@ const stageId = ref();   //当前关卡id
 const currentStage:any = ref();   //当前关卡
 
 getStorys().then((res) => {
+  res.data.storys.forEach(story => {
+    if(story.type !== "全息作战矩阵"){
+      story.childNodes.reverse();
+    }
+  })
   storys.value = res.data.storys;
   //网址带有关卡id 就进行初始化
   const id = route.query.id as string;

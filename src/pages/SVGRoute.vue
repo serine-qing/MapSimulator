@@ -33,6 +33,7 @@ import { gameCanvas } from '@/components/game/GameCanvas';
 import AnimationFrame from '@/components/utilities/AnimationFrame';
 import eventBus from '@/components/utilities/EventBus';
 import GameConfig from '@/components/utilities/GameConfig';
+import { getCoordinate } from '@/components/utilities/utilities';
 import { ref, shallowRef, watch } from 'vue';
 const { gameManager } = defineProps(["gameManager", "showEnemyMenu"]);
 const nodes = shallowRef([]);
@@ -110,7 +111,7 @@ const createSVGRoute = (nodes) => {
 
     if(position){
       currentPos = gameManager.gameView.localToScreen(
-        gameManager.getCoordinate(position)
+        getCoordinate(position)
       );
       x = currentPos.x;
       y = currentPos.y;

@@ -102,16 +102,16 @@ class GameManager{
 
   public start(){
     
-    assetsManager.allOnload.then( () => {
-      
-      this.restart();
-      
-      eventBus.emit("gameStart")
+    assetsManager.allOnload.then( () => { 
 
       this.gameView.init();
 
       this.handleMouseMove();
       this.handleClick();
+
+      this.restart();
+      
+      eventBus.emit("gameStart")
 
       AnimationFrame.addAnimationFrame({
         name: "Gameloop",
@@ -120,25 +120,6 @@ class GameManager{
       });
 
     })
-
-  }
-
-  public getPixelSize(x:number):number {
-    return x * GameConfig.TILE_SIZE;
-  }
-
-  public getCoordinate(x:number | Vec2 | THREE.Vector2, y?:number): Vec2{
-    if(typeof x === "number" && y !== undefined){
-      return {
-        x: x * GameConfig.TILE_SIZE,
-        y: y * GameConfig.TILE_SIZE,
-      }
-    }else if(typeof x === "object" && y === undefined){
-      return {
-        x: x.x * GameConfig.TILE_SIZE,
-        y: x.y * GameConfig.TILE_SIZE,
-      }
-    }
 
   }
 

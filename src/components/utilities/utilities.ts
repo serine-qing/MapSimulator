@@ -1,3 +1,4 @@
+import GameConfig from "./GameConfig";
 
 //获取两点形成的矩形里面所有的point坐标
 const getRectPoints = (x0:number, y0:number, x1:number, y1:number) : Array<any> => {
@@ -114,4 +115,23 @@ function timeFormat(timestamp: number): string{
   return str ;
 }
 
-export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, timeFormat, accuracyNum}
+const getPixelSize = (x:number):number => {
+  return x * GameConfig.TILE_SIZE;
+}
+
+const getCoordinate = (x:number | Vec2 | THREE.Vector2, y?:number): Vec2 => {
+  if(typeof x === "number" && y !== undefined){
+    return {
+      x: x * GameConfig.TILE_SIZE,
+      y: y * GameConfig.TILE_SIZE,
+    }
+  }else if(typeof x === "object" && y === undefined){
+    return {
+      x: x.x * GameConfig.TILE_SIZE,
+      y: x.y * GameConfig.TILE_SIZE,
+    }
+  }
+
+}
+
+export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, timeFormat, accuracyNum, getPixelSize, getCoordinate}

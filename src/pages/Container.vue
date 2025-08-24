@@ -136,6 +136,7 @@ import TrapManager from '@/components/game/TrapManager';
 import eventBus from '@/components/utilities/EventBus';
 import GameView from '@/components/game/GameView';
 import AnimationFrame from '../components/utilities/AnimationFrame';
+import { getPixelSize } from '@/components/utilities/utilities';
 
 const { gameManager, attackRangeCheckAll, countDownCheckAll, showEnemyMenu } = defineProps(
   ["gameManager","attackRangeCheckAll", "countDownCheckAll", "showEnemyMenu"]
@@ -390,7 +391,7 @@ const updateTrapSize = () => {
 
     const label = trap.labelVue;
     
-    const trapHeight = gameManager.getPixelSize(GameConfig.TILE_SIZE);
+    const trapHeight = getPixelSize(GameConfig.TILE_SIZE);
     const trapWidth = trapHeight;
 
     label.style = {

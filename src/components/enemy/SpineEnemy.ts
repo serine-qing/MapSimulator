@@ -6,6 +6,7 @@ import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
 import { gameCanvas } from "../game/GameCanvas";
 import Global from "../utilities/Global";
+import { getCoordinate, getPixelSize } from "../utilities/utilities";
 
 class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据
@@ -33,7 +34,7 @@ class SpineEnemy extends Enemy{
     this.object.add(this.skeletonMesh);
     
     const offsetY = this.motion === "WALK"? -1/4 : 0;
-    const coordinateOffset = Global.gameManager.getCoordinate(0, offsetY)
+    const coordinateOffset = getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
     this.skeletonMesh.position.y = coordinateOffset.y;
@@ -45,7 +46,7 @@ class SpineEnemy extends Enemy{
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
     this.skeletonMesh.position.z = this.motion === "WALK"? 
-      Global.gameManager.getPixelSize( 1/7 + this.ZOffset) : Global.gameManager.getPixelSize( 10/7);
+      getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
 
     this.getSkelSize();
 
@@ -94,7 +95,7 @@ class SpineEnemy extends Enemy{
     
     //恢复track的动画帧
     const track = this.skeletonMesh.state.getCurrent(0);
-    track.trackTime = 0;
+    if(track) track.trackTime = 0;
 
   }
 
@@ -106,7 +107,7 @@ class SpineEnemy extends Enemy{
     if(!Global.gameManager.isSimulate && this.object){
       this.handleGradient();
       
-      if(delta && this.isStarted && !this.isFinished){
+      if(delta && this.isStarted && (!this.isFinished || this.exitCountDown > 0)){
         //锁定spine朝向向相机，防止梯形畸变
         this.skeletonMesh.lookAt(gameCanvas.camera.position);
 
@@ -125,14 +126,16 @@ class SpineEnemy extends Enemy{
 
     if(this.exit){
       //退出渐变处理
-      if(this.exitCountDown > 0){
+      if(this.exitCountDown > 1){
+        this.exitCountDown -= 0.05 * Global.gameManager.gameSpeed;
+        
+      }else if(this.exitCountDown > 0 ){
         color.r = 0;
         color.g = 0;
         color.b = 0;
         color.a = this.exitCountDown;
-        this.exitCountDown -= 0.1;
+        this.exitCountDown -= 0.05 * Global.gameManager.gameSpeed;
         
-        this.skeletonMesh.update(0)
       }else{
         this.hide();
         color.r = 1;

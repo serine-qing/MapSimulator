@@ -34,7 +34,7 @@ const Handler = {
           every: false,
           callback: (ymghol: Enemy) => {
             if(ymghol.idleAnimate === "Invisible"){
-              enemy.countdown.triggerCountdown("jump");
+              enemy.triggerSkill("jump");
             }
           }
         })

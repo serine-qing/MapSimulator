@@ -66,7 +66,10 @@ class MapModel{
 
     if(
       !this.hiddenGroups &&
-      this.sourceData.levelId.includes("obt/recalrune")
+      (
+        this.sourceData.levelId.includes("obt/recalrune") ||
+        this.sourceData.levelId.includes("obt/crisis")
+      )
     ){
       this.parseCombatMatrix();  
     }
