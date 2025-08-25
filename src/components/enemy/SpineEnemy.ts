@@ -105,14 +105,15 @@ class SpineEnemy extends Enemy{
     super.render(delta);
 
     if(!Global.gameManager.isSimulate && this.object){
-      this.handleGradient();
+      
       
       if(delta && this.isStarted && (!this.isFinished || this.exitCountDown > 0)){
+        this.handleGradient();
         //锁定spine朝向向相机，防止梯形畸变
         this.skeletonMesh.lookAt(gameCanvas.camera.position);
 
         this.skeletonMesh.update(
-          this.deltaTrackTime(delta)
+          this.deltaTrackTime(this.exitCountDown > 0 && !this.die? 0.001 : delta)  //在退出动画中只更新死亡动画
         )
 
       }
@@ -124,37 +125,32 @@ class SpineEnemy extends Enemy{
   private handleGradient(){
     const color = this.skeletonMesh.skeleton.color;
 
-    if(this.exit){
-      //退出渐变处理
-      if(this.exitCountDown > 1){
-        this.exitCountDown -= 0.05 * Global.gameManager.gameSpeed;
-        
-      }else if(this.exitCountDown > 0 ){
-        color.r = 0;
-        color.g = 0;
-        color.b = 0;
-        color.a = this.exitCountDown;
-        this.exitCountDown -= 0.05 * Global.gameManager.gameSpeed;
-        
-      }else{
+    //退出渐变处理
+    if(this.exitCountDown > 1){
+      this.exitCountDown -= 0.05 * Global.gameManager.gameSpeed;
+      
+    }else if(this.exitCountDown > 0 ){
+      color.r = 0;
+      color.g = 0;
+      color.b = 0;
+      color.a = this.exitCountDown;
+      this.exitCountDown -= 0.05 * Global.gameManager.gameSpeed;
+      
+      if(this.exitCountDown < 0){
         this.hide();
         color.r = 1;
         color.g = 1;
         color.b = 1;
         color.a = 1;
+
+        this.exitCountDown = 0;
       }
-    }else{
-      color.r = 1;
-      color.g = 1;
-      color.b = 1;
-      color.a = 1;
     }
   }
+  
 
   //根据速度方向更换spine方向
-  protected changeFaceToward(){
-    super.changeFaceToward();
-  
+  protected updateFaceToward(){
     if(!Global.gameManager.isSimulate && this.object) this.skeletonMesh.scale.x = this.faceToward;
   }
 
@@ -200,6 +196,19 @@ class SpineEnemy extends Enemy{
     }else{
       console.error(`${this.key}动画名获取失败！`)
     }
+  }
+
+  public set(state){
+    super.set(state);
+    if(this.exitCountDown !== 0){
+      console.log(this.exitCountDown)
+    }
+    //模拟数据没有计算退出渐变，兼容下
+    const color = this.skeletonMesh.skeleton.color;
+    color.r = 1;
+    color.g = 1;
+    color.b = 1;
+    color.a = 1;
   }
 
   public destroy() {

@@ -92,6 +92,7 @@ class Enemy{
 
   attributes: {[key: string]: number} = {};    //属性
   hp: number;
+  die: boolean = false;
   //属性乘区 每帧计算
   finalAttributes = {
     atk: 1,
@@ -146,7 +147,7 @@ class Enemy{
   isFinished: boolean = false;
   exitCountDown: number = 0;   //隐藏spine的渐变倒计时
 
-  public exit: boolean = false;
+  public visible: boolean = false;
 
   public shadow: THREE.Mesh;
   public activeShadow: THREE.Mesh;
@@ -172,7 +173,9 @@ class Enemy{
   public moveAnimate: string;   //移动的动画名
   public idleAnimate: string;   //站立的动画名
   public meshOffset: Vec2;                //模型偏移
-  public meshSize: Vec2;                //模型宽高
+  public meshSize: Vec2 = {
+    x: 0, y: 0
+  };                //模型宽高
   protected ZOffset: number = 0;             //模型Z轴位移
   protected animationScale: number = 1.0;  //动画执行速率
   public isExtra: boolean = false;         //是否是额外出怪
@@ -550,6 +553,7 @@ class Enemy{
     this.updatePositions();
     this.updateAttrs();
     this.updateAction(delta);
+    this.updateFaceToward();
     this.updateHP();
 
     const watcherFuncs = this.watchers.map(watcher => watcher.function);
@@ -681,7 +685,7 @@ class Enemy{
           if( this.nextNode === null || this.nextNode === undefined ){
             this.nextCheckPoint();
           }
-          this.changeFaceToward();
+          this.changeTowardBySpeed();
           this.updateShadowHeight();
           break;
         }
@@ -751,7 +755,7 @@ class Enemy{
           this.nextCheckPoint();
         }
 
-        this.changeFaceToward();
+        this.changeTowardBySpeed();
         this.updateShadowHeight();
 
 
@@ -809,6 +813,7 @@ class Enemy{
       ){
         //如果currentNode没有nextNode，就是检查点终点
         this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+        this.changeTowardByNode();
       }else if(this.nextNode === currentNode){
         const arriveDistance = this.route.visitEveryNodeCenter? 0.05 : 0.25;
         //检查点终点
@@ -819,31 +824,32 @@ class Enemy{
 
         if(distance <= arriveDistance){
           this.nextNode = currentNode.nextNode;
+          this.changeTowardByNode();
         }
 
       }
     }else{
+      const old = this.nextNode;
       this.nextNode = currentNode.nextNode ? currentNode.nextNode : currentNode;
+      if(old !== this.nextNode) this.changeTowardByNode();
     }
 
   }
 
   private updateHP(){
     if(this.hp <= 0){
-      this.die();
+      if(!Global.gameManager.isSimulate){
+        this.animationStateTransition({
+          transAnimation: "Die",
+          isWaitTrans: true
+        })
+      }
+      this.die = true;
+      this.handleDie();
+      this.finishedMap();
     }
   }
 
-  private die(){
-    if(!Global.gameManager.isSimulate){
-      this.animationStateTransition({
-        transAnimation: "Die",
-        isWaitTrans: true
-      })
-    }
-    this.handleDie();
-    this.finishedMap();
-  }
 
   private getWaitTime(type: string, time: number): number{
     let countDownTime = 0;
@@ -1113,31 +1119,60 @@ class Enemy{
   }
 
   public show(){
-    this.exit = false;
+    this.visible = true;
     if(!Global.gameManager.isSimulate && this.object) this.object.visible = true;
   }
 
   public hide(){  
-    this.exit = true;
+    this.visible = false;
     if(!Global.gameManager.isSimulate && this.object) this.object.visible = false;
   }
 
   //渐变退出，用exitCountDown时间控制（不同的子类有不同的实现方法）
   private gradientHide(countDown: number){  
-    this.exit = true;
     if(!Global.gameManager.isSimulate) {
       this.exitCountDown = countDown? countDown : 1;
+    }else{
+      this.hide();
     }
   }
 
-  public visible(): boolean{
-    return this.isStarted && !this.exit;
-  }
+  protected updateFaceToward(){}
 
   //根据速度方向更换spine方向
-  protected changeFaceToward(){
-    if(this.velocity.x > 0.001) this.faceToward = 1;
-    if(this.velocity.x < -0.001) this.faceToward = -1;
+  private changeTowardBySpeed(){
+    if(this.unitVector.x > 0.1) this.faceToward = 1;
+    else if(this.unitVector.x < -0.1) this.faceToward = -1;
+  }
+
+  private changeTowardByNode(){
+    let nextNode = this.nextNode;
+    let offsetX;
+    while(nextNode){
+      offsetX = this.tilePosition.x - nextNode.position.x;
+      if(offsetX !== 0) break;
+      nextNode = nextNode.nextNode;
+    }
+
+    if(!offsetX){
+      const checkPoints = this.route.checkpoints;
+      for(let i = this.checkPointIndex; i < checkPoints.length; i++){
+        const current = checkPoints[i];
+        if(current.type === "DISAPPEAR") break;
+        else if(current.type !== "MOVE") continue;
+        const targetPos = current.position;
+        const reachOffsetX = current.reachOffset.x;
+        
+        offsetX = this.tilePosition.x - targetPos.x - reachOffsetX;
+
+        if(offsetX !== 0) break;
+      }
+    }
+
+    if(offsetX){
+      this.faceToward = offsetX < 0? 1 : -1;
+    }
+
   }
 
   protected idle(){
@@ -1273,7 +1308,8 @@ class Enemy{
       animationScale: this.animationScale,
       transAnimationPlaying: this.transAnimationPlaying,
       shadowHeight: this.shadowHeight,
-      exit: this.exit,
+      visible: this.visible,
+      exitCountDown: this.exitCountDown,
       simulateTrackTime: this.simulateTrackTime,
       obstacleAvoidanceVector: this.obstacleAvoidanceVector, 
       obstacleAvoidanceCalCount: this.obstacleAvoidanceCalCount,
@@ -1281,6 +1317,7 @@ class Enemy{
       route: this.route,
       tilePosition: this.tilePosition,
       hp: this.hp,
+      die: this.die,
       changeTileEvents: [...this.changeTileEvents],
       watchers: [...this.watchers],
       buffs: [...this.buffs],
@@ -1306,7 +1343,8 @@ class Enemy{
       animationScale,
       transAnimationPlaying,
       shadowHeight,
-      exit,
+      visible,
+      exitCountDown,
       currentSecond,
       simulateTrackTime,
       obstacleAvoidanceVector,
@@ -1315,6 +1353,7 @@ class Enemy{
       route,
       tilePosition,
       hp,
+      die,
       changeTileEvents,
       watchers,
       buffs,
@@ -1328,7 +1367,8 @@ class Enemy{
     this.faceToward = faceToward;
     this.nextNode = nextNode;
     this.isStarted = isStarted;
-    this.exit = exit;
+    this.visible = visible;
+    this.exitCountDown = exitCountDown;
     this.currentSecond = currentSecond;
     this.isFinished = isFinished;
     this.transAnimationPlaying = transAnimationPlaying;
@@ -1345,6 +1385,7 @@ class Enemy{
     this.route = route;
     this.tilePosition = tilePosition;
     this.hp = hp;
+    this.die = die;
     this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
     this.buffs = [...buffs];
@@ -1362,9 +1403,11 @@ class Enemy{
       }
 
       this.shadow.position.z = this.shadowHeight;
-      this.visible()? this.show() : this.hide();
-      this.changeFaceToward();
-      this.updateShadowHeight();
+      this.visible? this.show() : this.hide();
+      if(this.tilePosition){
+        this.updateFaceToward();
+        this.updateShadowHeight();
+      }
 
       if(!isStarted || isFinished){
         //如果拖动模拟时间条到未开始或结束，就隐藏路线显示

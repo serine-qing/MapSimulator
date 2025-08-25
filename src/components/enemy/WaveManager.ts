@@ -27,6 +27,7 @@ class WaveManager{
   public enemyId: number = 0;
   public maxEnemyCount: number = 0;
   public finishedEnemyCount: number = 0;
+  private isFinished: boolean = false;
 
   public visualRoutes = [];
   constructor(){
@@ -277,17 +278,15 @@ class WaveManager{
 
   //检查是否游戏结束
   private checkFinished(){
-
-    let finished = false;
     
     if(this.isSpawnFinished()){
       
       if(this.enemiesInMap.length === 0){
         //波次结束，并且场上无敌人
-        finished = true;
+        this.isFinished = true;
       }else{
         
-        finished = this.enemiesInMap.every(enemy => {
+        this.isFinished = this.enemiesInMap.every(enemy => {
           //敌人结束 或者 敌人已经开始但是是非首要目标
           return enemy.isFinished || (enemy.isStarted && enemy.notCountInTotal)
         })
@@ -295,9 +294,8 @@ class WaveManager{
       
     }
     
-    if(finished){
-      
-      Global.gameManager.isFinished = true;
+    if(this.isFinished){
+      Global.gameManager.handleFinish();
     }
   }
 
@@ -363,7 +361,7 @@ class WaveManager{
   }
 
   public update(delta: number){
-    if(Global.gameManager.isFinished) return;
+    if(this.isFinished) return;
     this.gameSecond = Global.gameManager.gameSecond;
     this.waveSecond += delta;
 
@@ -389,7 +387,7 @@ class WaveManager{
 
     }
 
-    if(Global.gameManager.isFinished) return;
+    if(this.isFinished) return;
     this.enemiesInMap.forEach(
       enemy => {
           enemy.update(delta)
@@ -433,7 +431,8 @@ class WaveManager{
       gameSecond: this.gameSecond,
       waveSecond: this.waveSecond,
       finishedEnemyCount: this.finishedEnemyCount,
-      extraActionStates
+      extraActionStates,
+      isFinished: this.isFinished
     }
 
     return state;
@@ -449,7 +448,8 @@ class WaveManager{
       finishedEnemyCount,
       actionStates,
       enemyStates,
-      extraActionStates
+      extraActionStates,
+      isFinished
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
@@ -458,7 +458,8 @@ class WaveManager{
     this.gameSecond = gameSecond;
     this.waveSecond = waveSecond;
     this.finishedEnemyCount = finishedEnemyCount;
-
+    this.isFinished = isFinished;
+    
     const actions = this.actions.flat();
     for(let i = 0; i< actions.length; i++){
       const aState = actionStates[i];

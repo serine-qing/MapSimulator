@@ -172,7 +172,7 @@ const initEnemyLabels = () => {
 const updateEnemyVisible = () => {
   enemies.forEach(enemy => {
     const label = enemyLabels.value[enemy.id];
-    label.visible = enemy.visible();
+    label.visible = enemy.visible;
   });
 }
 

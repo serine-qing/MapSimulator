@@ -56,6 +56,7 @@ class GameManager{
   public gameSecond: number = 0;    //当前游戏时间
   public simStep: number;            //模拟数据步长（秒）
   public isFinished: boolean = false;
+  public finishedSecond;     //结束时间
 
   public tokenCards: TokenCard[];
   private activeTokenCard: TokenCard;
@@ -159,6 +160,7 @@ class GameManager{
   }
 
   public update(){
+    this.checkFinished();
     if(!this.pause && !this.isFinished){
       const delta = this.updateInterval;
       this.delta += delta;
@@ -189,6 +191,16 @@ class GameManager{
 
     if(!this.isSimulate) eventBus.emit("update:isFinished", this.isFinished);
 
+  }
+
+  private checkFinished(){
+    if(this.finishedSecond && this.gameSecond >= this.finishedSecond){
+      this.isFinished = true;
+    }
+  }
+
+  public handleFinish(){
+    this.finishedSecond = this.gameSecond + 1;
   }
 
   private intersectObjects(x: number, y: number): any{
@@ -420,6 +432,7 @@ class GameManager{
     let state: {[key: string]: any} = {
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
+      finishedSecond: this.finishedSecond,
       SPFAState: this.SPFA.get(),
       trapState: this.trapManager.get(),
       tileState: this.tileManager.get(),
@@ -439,6 +452,7 @@ class GameManager{
     const {
       gameSecond, 
       isFinished, 
+      finishedSecond,
       SPFAState, 
       trapState, 
       tileState, 
@@ -471,6 +485,7 @@ class GameManager{
     this.waveManager.set(eManagerState);
     this.countdownManager.set(countdownState);
     this.isFinished = isFinished;
+    this.finishedSecond = finishedSecond;
 
     this.gractrl?.set(gractrlState);
     

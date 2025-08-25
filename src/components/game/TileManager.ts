@@ -140,8 +140,22 @@ class TileManager{
   private initEvents(){
     this.flatTiles.forEach(tile => {
       act35side.initTileEvents(tile);
-    });
 
+      switch (tile.tileKey) {
+        case "tile_hole":
+          this.addEvent({
+            key: "hole",
+            type: "in",
+            x: tile.position.x,
+            y: tile.position.y,
+            callback: (enemy: Enemy) => {
+              enemy.hp = 0;
+            }
+          })
+          break;
+      
+      }
+    });
   }
 
   addEvent(option: TileEventOption){
@@ -177,27 +191,44 @@ class TileManager{
   }
 
   changeTile(outPos: Vector2, inPos: Vector2, enemy: Enemy){
-    const newEvent = this.getEvent(inPos, "in", enemy);
-    const oldEvent = outPos ? this.getEvent(outPos, "in", enemy) : null;
-    if(newEvent?.isMerge && oldEvent?.key === newEvent.key){
-      //合并事件，不重复触发
-      return;
-    } 
-    outPos && this.getEvent(outPos, "out", enemy)?.callback(enemy);
-    newEvent && newEvent.callback(enemy);
+    const newEvents = this.getEvents(inPos, "in", enemy);
+    const oldEvents = outPos ? this.getEvents(outPos, "in", enemy) : null;
+    const outEvents = this.getEvents(outPos, "out", enemy);
+
+    for(let newIndex = 0; newIndex < newEvents.length; newIndex++){
+      const newEvent = newEvents[newIndex];
+      const oldIndex = oldEvents.findIndex(oldEvent => oldEvent?.key === newEvent.key);
+      if(newEvent?.isMerge && oldIndex > -1 ){
+        //合并事件，不重复触发
+        const key = newEvent.key;
+
+        newEvents.splice(newIndex, 1);
+        const outIndex = outEvents.findIndex(outEvent => outEvent.key === key);
+        outIndex > -1 && outEvents.splice(outIndex, 1);
+
+        newIndex --;
+      }
+    }
+
+    outEvents.forEach(outEvent => outEvent.callback(enemy));
+    newEvents.forEach(newEvent => newEvent.callback(enemy));
+
   }
 
-  //todo 目前只有单个事件，需要做成兼容多个
-  getEvent(position: Vector2, type: string, enemy): TileEvent{
-    const find = this.events.find(event => {
-      return event.x === position.x &&
+  getEvents(position: Vector2, type: string, enemy): TileEvent[]{
+    const finds = [];
+    
+    position && this.events.forEach(event => {
+      if(event.x === position.x &&
         event.y === position.y &&
         event.type === type &&
-        (!event.enemy || event.enemy.includes(enemy.key)
-      )
+        (!event.enemy || event.enemy.includes(enemy.key))
+      ){
+        finds.push(event);
+      }
     })
 
-    return find;
+    return finds;
   }
 
   get(){
