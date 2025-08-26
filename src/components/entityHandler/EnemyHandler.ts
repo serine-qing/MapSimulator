@@ -112,8 +112,12 @@ const EnemyHandler = {
         }
           
         break;
-      case "strength":     //传令兵
-        if(enemy.key === "enemy_1080_sotidp" || enemy.key === "enemy_1080_sotidp_2"){
+      case "strength":     //传令兵，爱国者
+        if(
+          enemy.key === "enemy_1080_sotidp" || 
+          enemy.key === "enemy_1080_sotidp_2" ||
+          enemy.key === "enemy_1506_patrt"
+        ){
           Global.gameBuff.addBuff({
             id: "strength" + enemy.id,
             key: "strength",
@@ -167,75 +171,7 @@ const EnemyHandler = {
           }
         })
         break;
-      case "switchmodetrigger":
-        if(enemy.key === "enemy_10116_ymgtop" || enemy.key === "enemy_10116_ymgtop_2"){ //水遁忍者
 
-          enemy.addSkill({
-            name: "switchmodetrigger",
-            animateTransition: {
-              moveAnimate: "Skill_Loop",
-              idleAnimate: "Skill_Loop",
-              transAnimation: "Skill_Begin",
-              isWaitTrans: true
-            },
-            initCooldown,
-          })
-
-        }
-        
-        break;
-
-      case "takeoff":
-        //风遁忍者
-        if(enemy.key === "enemy_10117_ymggld" || enemy.key === "enemy_10117_ymggld_2"){
-          enemy.addWatcher({
-            name: "takeoff",
-            function: () => {
-              if(enemy.speedRate() >= 8){
-                enemy.animationStateTransition({
-                  moveAnimate: "Fly_Move",
-                  idleAnimate: "Fly_Idle",
-                  transAnimation: "Fly_Begin",
-                  animationScale: 2.85,
-                  isWaitTrans: true
-                });
-                enemy.removeWatcher("takeoff");
-              }
-            }
-          });
-        }
-        break;
-      
-      case "jump":  //雷遁忍者
-        const jumpspeedup = enemy.talents.find(talent =>  talent.key === "jumpspeedup")?.value?.move_speed;
-
-        enemy.addSkill({
-          name: "jump",
-          animateTransition: {
-            transAnimation: "Jump",
-            startLag: 0.33,
-            endLag: 0.33,
-            isWaitTrans: false
-          },
-          initCooldown,
-          cooldown,
-          trigger: "manual",
-          callback: () => {
-            enemy.addBuff({
-              id: "jumpspeedup",
-              key: "jumpspeedup",
-              overlay: false,
-              duration: 2,
-              effect: [{
-                attrKey: "moveSpeed",
-                method: "mul",
-                value: jumpspeedup ? jumpspeedup : 3
-              }]
-            })
-          }
-        })
-
-        break;
     }
   },
 
@@ -243,7 +179,11 @@ const EnemyHandler = {
     enemy.talents?.forEach(talent => {
       switch (talent.key) {
         case "strength":       //传令兵
-          if(enemy.key === "enemy_1080_sotidp" || enemy.key === "enemy_1080_sotidp_2"){
+          if(
+            enemy.key === "enemy_1080_sotidp" || 
+            enemy.key === "enemy_1080_sotidp_2" ||
+            enemy.key === "enemy_1506_patrt"
+          ){
             Global.gameBuff.removeBuff("strength" + enemy.id);
           }
           break;

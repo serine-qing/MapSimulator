@@ -3,11 +3,13 @@ import { CountdownManager } from "../game/CountdownManager";
 import GameBuff from "../game/GameBuff";
 import GameManager from "../game/GameManager";
 import GameView from "../game/GameView";
+import MapModel from "../game/MapModel";
 import SPFA from "../game/SPFA";
 import TileManager from "../game/TileManager";
 import TrapManager from "../game/TrapManager";
 
 interface Global_Type{
+  mapModel: MapModel,
   gameManager: GameManager,
   waveManager: WaveManager,
   trapManager: TrapManager,
@@ -20,6 +22,7 @@ interface Global_Type{
 }
 
 const Global: Global_Type = {
+  mapModel: null,
   gameManager: null,
   waveManager: null,
   trapManager: null,
@@ -30,6 +33,7 @@ const Global: Global_Type = {
   gameView: null,
 
   reset: () => {
+    Global.mapModel = null;
     Global.gameManager = null;
     Global.waveManager = null;
     Global.trapManager = null;

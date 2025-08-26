@@ -1,20 +1,23 @@
 import { GC_Add } from "../game/GC";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
+import act42side from "./众生行记";
 
 const start = (trap: Trap) => {
+  act42side.handleTrapStart(trap);
+  
   switch (trap.key) {
     //压力舒缓帮手
     case "trap_253_boxnma":
     case "trap_254_boxmac":
-      const duration = trap.extraData.find(data => data.key === "born_duration")?.value;
+      const duration = trap.customData.skillBlackboard.find(data => data.key === "born_duration")?.value;
 
       trap.countdown.addCountdown({
         name: "waiting",
         initCountdown: duration,
         callback: () => {
           const waveManager =  Global.gameManager.waveManager;
-          waveManager.startExtraAction(trap.extraWaveId);
+          waveManager.startExtraAction(trap.extraWaveKey);
           trap.hide();
         }
       })

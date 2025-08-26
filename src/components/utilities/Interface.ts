@@ -133,8 +133,8 @@ declare global {
     mesh?: THREE.Mesh,     //fbx数据有mesh
     skeletonData?: any,     //spine数据有skeletonData
     textureMat?: THREE.MeshBasicMaterial  //texture数据才有
-    extraData?: any[],      //额外数据
-    extraWave?: any[],      //额外波次
+    extraWaveKey?: string,      //额外波次key
+    customData: {[key: string]: any},            //自定义数据
   }
 
   interface Effect{

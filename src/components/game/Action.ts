@@ -4,6 +4,7 @@ import Trap from "./Trap"
 
 class Action{
   id: number
+  key: string
   actionType: string      //敌人生成模式
   startTime: number        //该波次开始时间
   dontBlockWave: boolean   //是否不影响下一波次刷新
@@ -15,8 +16,9 @@ class Action{
   isStarted: boolean = false    //是否开始
   actionTime: number;           //实际执行时间
   constructor(data: ActionData){
-    const { actionType, startTime, dontBlockWave, blockFragment } = data;
+    const { key, actionType, startTime, dontBlockWave, blockFragment } = data;
 
+    this.key = key;
     this.actionType = actionType;
     this.startTime = startTime;
     this.dontBlockWave = dontBlockWave;

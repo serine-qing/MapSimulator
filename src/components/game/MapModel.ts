@@ -15,6 +15,13 @@ import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
 import { immuneTable } from "../utilities/Interface";
+import act42side from "../entityHandler/众生行记";
+import Global from "../utilities/Global";
+
+interface extraActionData{
+  key: string,
+  actionDatas: ActionData[]
+}
 
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
@@ -24,12 +31,15 @@ class MapModel{
 
   public runesHelper: RunesHelper;
 
+  public characterLimit: number;       //部署位
+  public squadNum: number;             //携带位
+
   public tileManager: TileManager; //地图tiles
   public tokenCards: any[] = [];
   public trapDatas: trapData[] = [];
 
   public actionDatas: ActionData[][] = [];
-  public extraActionDatas: ActionData[][] = [];
+  public extraActionDatas: extraActionData[] = [];
 
   public enemyDatas: EnemyData[] = [];
 
@@ -46,29 +56,35 @@ class MapModel{
 
   //异步数据，需要在实例化的时候手动调用
   public async init(){
+    Global.mapModel = this;
     this.getRunes();
+    const { options, mapData, routes, extraRoutes, waves, enemyDbRefs, levelId } = this.sourceData;
 
-    this.tileManager = new TileManager(this.sourceData.mapData);
+    this.tileManager = new TileManager(mapData);
     this.runesHelper.checkBannedTiles(this.tileManager);
     
+    this.characterLimit = options.characterLimit + this.runesHelper.charNumDdd;
+    this.squadNum = this.runesHelper.squadNum;
+
     //获取可使用的装置图标
     await this.getTokenCards();
     //获取trap数据
     await this.getTrapDatas();
     
     //解析敌人路径
-    this.routes = this.parseEnemyRoutes(this.sourceData.routes);
-    this.extraRoutes = this.parseEnemyRoutes(this.sourceData.extraRoutes);
-    //解析波次数据
-    this.parseWaves(this.sourceData.waves);
+    this.routes = this.parseEnemyRoutes(routes);
+    this.extraRoutes = this.parseEnemyRoutes(extraRoutes);
 
-    await this.initEnemyData(this.sourceData.enemyDbRefs);
+    //解析波次数据
+    this.parseWaves(waves);
+
+    await this.initEnemyData(enemyDbRefs);
 
     if(
       !this.hiddenGroups &&
       (
-        this.sourceData.levelId.includes("obt/recalrune") ||
-        this.sourceData.levelId.includes("obt/crisis")
+        levelId.includes("obt/recalrune") ||
+        levelId.includes("obt/crisis")
       )
     ){
       this.parseCombatMatrix();  
@@ -80,55 +96,19 @@ class MapModel{
 
     this.parseExtraWave();
 
-    //绑定route和enemydata 或trap
+    //绑定actions的 route和enemydata、trap
     this.actionDatas.flat().forEach( action => {
       //route可能为null
-      const findRoute: EnemyRoute = this.routes.find( route => route.index === action.routeIndex );
-      let findEnemyData: EnemyData;
-      let findTrap: trapData;
-      switch (action.actionType) {
-        case "SPAWN":
-          findEnemyData = this.enemyDatas.find(e => e.waveKey === action.key);
-          break;
-      
-        case "ACTIVATE_PREDEFINED":
-          findTrap = this.trapDatas.find(data => data.alias === action.key);
-          break;
-      }
-      
-
-      if(findRoute) action.route = findRoute;
-      if(findEnemyData) {
-        action.enemyData = findEnemyData
-        findEnemyData.count ++;
-      }else if(findTrap){
-        //wave中的trap是指名道姓的实体
-        action.trapData = findTrap;
-      }
+      this.actionDataBindEnemyAndTrap(action, false);
     })
 
-    this.extraActionDatas.flat().forEach(action => {
-      const findRoute: EnemyRoute = this.extraRoutes.find( route => route.index === action.routeIndex );
-      let findEnemyData: EnemyData;
-      let findTrap: trapData;
-      switch (action.actionType) {
-        case "SPAWN":
-          findEnemyData = this.enemyDatas.find(e => e.waveKey === action.key);
-          break;
-      
-        case "ACTIVATE_PREDEFINED":
-          findTrap = this.trapDatas.find(data => data.alias === action.key);
-          break;
-      }
-      
+    //绑定额外actions的 route和enemydata、trap
+    this.extraActionDatas.forEach(extraActionData => {
+      const actionDatas = extraActionData.actionDatas;
 
-      if(findRoute) action.route = findRoute;
-      if(findEnemyData) {
-        action.enemyData = findEnemyData
-      }else if(findTrap){
-        //wave中的trap是指名道姓的实体
-        action.trapData = findTrap;
-      }
+      actionDatas.forEach(action => {
+        this.actionDataBindEnemyAndTrap(action, true);
+      })
     })
 
     this.initSPFA();
@@ -205,11 +185,11 @@ class MapModel{
 
         }
 
-        let extraData = null;
+        let skillBlackboard = null;
 
         //额外数据
         if(overrideSkillBlackboard){
-          extraData = overrideSkillBlackboard.map(item => {
+          skillBlackboard = overrideSkillBlackboard.map(item => {
             return {
               key: item.key,
               value: item.valueStr === null? item.value : item.valueStr
@@ -225,7 +205,9 @@ class MapModel{
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
           mainSkillLvl,
-          extraData
+          customData:{
+            skillBlackboard
+          }
         });
 
         trapKeys.add(key);
@@ -240,7 +222,7 @@ class MapModel{
           direction: "UP",
           position: null,
           mainSkillLvl: tokenCard.mainSkillLvl,
-          extraData: null
+          customData: {}
         };
         this.trapDatas.push(trapData);
 
@@ -373,24 +355,9 @@ class MapModel{
     })
     
     //全息作战矩阵tag
-    const combatRunes = this.extraRunes?.combatRunes;
-    combatRunes && combatRunes.forEach(key => {
-      runesData.push({
-        "difficultyMask": "ALL",
-        "key": "level_hidden_group_enable",
-        "professionMask": 1023,
-        "buildableMask": "ALL",
-        "blackboard": [
-          {
-            "key": "key",
-            "value": 0.0,
-            "valueStr": key
-          }
-        ]
-      })
-    })
-
-    this.runesHelper = new RunesHelper(runesData);
+    const matrixRunes = this.extraRunes?.matrixRunes;
+    const runes = this.parseMatrixRunes(matrixRunes);
+    this.runesHelper = new RunesHelper([...runesData, ...runes]);
 
   }
 
@@ -444,6 +411,7 @@ class MapModel{
               actionKey = this.runesHelper.checkEnemyChange( action.key );
               break;
             case "ACTIVATE_PREDEFINED": //激活装置
+            case "TRIGGER_PREDEFINED": //激活实体技能（装置等）
               actionKey = action.key;
               break;
           }
@@ -771,8 +739,8 @@ class MapModel{
     const branches = this.sourceData.branches;
 
     this.trapDatas.forEach(trapData => {
-      const actionIndex = trapData.extraData?.find(item => item.key === "action_index")?.value;
-      let branchId = trapData.extraData?.find(item => item.key === "branch_id")?.value;
+      const actionIndex = trapData.customData.skillBlackboard?.find(item => item.key === "action_index")?.value;
+      let branchId = trapData.customData.skillBlackboard?.find(item => item.key === "branch_id")?.value;
       
       if(actionIndex!== undefined && !branchId){
         switch (trapData.key) {
@@ -786,26 +754,73 @@ class MapModel{
 
       if(branchId){
         const brancheData = branches[branchId]?.phases;
-        let actions: ActionData[];
+
+        trapData.extraWaveKey = branchId + (actionIndex? actionIndex : "");
 
         if(actionIndex !== null && actionIndex !== undefined){
           const findAction = brancheData[0]?.actions[actionIndex];
-          actions = this.parseActions([
+          //只有单个action
+          this.parseExtraActions(trapData.extraWaveKey, [
             {
               preDelay: 0,
               actions: [findAction]
             }
-          ], 0);
+          ]);
         }else{
-          
-          actions = this.parseActions(brancheData, 0);
+          this.parseExtraActions(trapData.extraWaveKey, brancheData);
           
         }
 
-        trapData.extraWave = actions;
-        this.extraActionDatas.push(actions);
       }
     })
+
+    act42side.parseExtraWave(this.trapDatas, branches);
+  }
+
+  public parseExtraActions(key: string, data){
+    const actionDatas = this.parseActions(data, 0);
+    
+    this.extraActionDatas.push({
+      key,
+      actionDatas,
+    });
+  }
+
+  private actionDataBindEnemyAndTrap(action: ActionData, isExtra: boolean){
+    const routes = isExtra? this.extraRoutes : this.routes;
+    const findRoute: EnemyRoute = routes.find( route => route.index === action.routeIndex );
+    let findEnemyData: EnemyData;
+    let findTrap: trapData;
+    switch (action.actionType) {
+      case "SPAWN":
+        findEnemyData = this.enemyDatas.find(e => e.waveKey === action.key);
+        break;
+    
+      case "ACTIVATE_PREDEFINED":
+        findTrap = this.trapDatas.find(data => data.alias === action.key);
+        break;
+
+      case "TRIGGER_PREDEFINED":
+        const regex = /^([^:]+):/;
+        const match = action.key.match(regex);
+        const isInstance = action.key.includes("#");
+
+        if(match) findTrap = this.trapDatas.find(data => {
+          const key = isInstance? data.alias : data.key;
+          return key === match[1];
+        });
+        break;
+    }
+    
+
+    if(findRoute) action.route = findRoute;
+    if(findEnemyData) {
+      action.enemyData = findEnemyData
+      if(!isExtra) findEnemyData.count ++;
+    }else if(findTrap){
+      //wave中的trap是指名道姓的实体
+      action.trapData = findTrap;
+    }
   }
 
   private initSPFA(){
@@ -820,6 +835,7 @@ class MapModel{
 
   //解析全息作战矩阵数据
   public parseCombatMatrix(){
+
     this.hiddenGroups = [];
     this.sourceData.waves.forEach(wave => {
       wave.fragments?.forEach(fragment => {
@@ -833,6 +849,18 @@ class MapModel{
               }else{
                 this.hiddenGroups.push({
                   key: action.hiddenGroup,
+                  group: null,
+                  runes: [{
+                    "key": "level_hidden_group_enable",
+                    "blackboard": [
+                      {
+                        "key": "key",
+                        "value": 0.0,
+                        "valueStr": action.hiddenGroup
+                      }
+                    ]
+                  }],
+                  desc: "",
                   enemies: [ enemy ]
                 });
               }
@@ -843,6 +871,45 @@ class MapModel{
         });
       });
     })
+
+    this.hiddenGroups.forEach(group => {
+      const enemies = {};
+      group.enemies.forEach(enemy => {
+        if(!enemies[enemy.key]){
+          enemies[enemy.key] = {
+            name: enemy.name,
+            count: 1
+          };
+        }else{
+          enemies[enemy.key].count ++;
+        }
+      })
+
+      delete group.enemies;
+      Object.values(enemies).forEach((enemy: any) => {
+        group.desc += `额外出现${enemy.count}个${enemy.name} `
+      });
+
+
+    })
+
+    console.log("全息作战矩阵符文参考",this.hiddenGroups)
+  }
+
+
+  public parseMatrixRunes(matrixRunes){
+    if(!matrixRunes) return [];
+
+    return matrixRunes.map(rune => {
+      return {
+        "difficultyMask": "ALL",
+        "key": rune.key,
+        "professionMask": 1023,
+        "buildableMask": "ALL",
+        "blackboard": rune.blackboard
+      }
+    })
+
   }
 
 }

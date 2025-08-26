@@ -3,7 +3,7 @@
   <div class="wrapper">
     <div class="left">
 
-      <div style="opacity: 0.4; cursor:not-allowed;" class="tags-container">
+      <div class="tags-container">
         <div class="title">基础</div>
         <div class="tags-box">
 
@@ -25,57 +25,13 @@
             </div>
           </div>
 
-          <div class="tag-collection or">
-
-            <div class="background">
-              <div class="fix"></div>
-            </div>
-
-            <div class="content">
-              <div class="collection-type">
-                <div class="icon"></div>
-                <div class="text">OR</div>
-              </div>
-
-              <div class="tag active">
-                <div class="hexagon-inner"></div>
-                <div class="tag-score">3</div>
-              </div>
-
-              <div class="tag disable">
-                <div class="hexagon-inner">
-                  <div class="tag-icon">互斥冲突</div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="tags-container">
-        <div class="title">附加</div>
-        <div class="tags-box">
-
           <div
             class="tags-div"
-            v-for="tag in tagsData"
+            v-for="tag in baseTagsData"
           >
             <div 
-              v-if="!tag.children"
-              class="tag"
-              :class="{active: tag.active}"
-              style="font-size: 10px;"
-              
-              @click="handleTagClick(tag)"
-            >
-              <div class="hexagon-inner">{{ tag.key }}</div>
-            </div>
-
-            <div 
               class="tag-collection or"
-              v-else
+              v-if="'children' in tag"
             >
 
               <div class="background">
@@ -114,6 +70,85 @@
 
               </div>
             </div>
+            <div 
+              v-else
+              class="tag"
+              :class="{active: tag.active}"
+              style="font-size: 10px;"
+              
+              @click="handleTagClick(tag)"
+            >
+              <div class="hexagon-inner">{{ tag.key }}</div>
+            </div>
+
+            
+
+          </div>
+
+        </div>
+      </div>
+
+      <div class="tags-container">
+        <div class="title">附加</div>
+        <div class="tags-box">
+
+          <div
+            class="tags-div"
+            v-for="tag in extraTagsData"
+          >
+            <div 
+              class="tag-collection or"
+              v-if="'children' in tag"
+            >
+
+              <div class="background">
+                <div class="fix"></div>
+              </div>
+
+              <div class="content">
+                <div class="collection-type">
+                  <div class="icon"></div>
+                  <div class="text">OR</div>
+                </div>
+
+                <template v-for="(childTag, index) in tag.children">
+                  <div 
+                    class="tag"
+                    v-if="childTag.active || tag.children.every(child => !child.active)"
+                    :class="{active: childTag.active}"
+                    style="font-size: 10px;"
+                    @click="handleMergeTagClick(tag, index)"
+                  >
+                    <div style="font-size: 10px;" class="hexagon-inner">{{ childTag.key }}</div>
+                    <!-- <div class="tag-score">???</div> -->
+                  </div>
+
+                  <div 
+                    v-else
+                    @click="handleMergeTagClick(tag, index)"
+                    class="tag disable"
+                  >
+                    <div class="hexagon-inner">
+                      <div class="tag-icon">互斥冲突</div>
+                    </div>
+                  </div>
+                </template>
+                
+
+              </div>
+            </div>
+            <div 
+              v-else
+              class="tag"
+              :class="{active: tag.active}"
+              style="font-size: 10px;"
+              
+              @click="handleTagClick(tag)"
+            >
+              <div class="hexagon-inner">{{ tag.key }}</div>
+            </div>
+
+            
 
           </div>
 
@@ -142,9 +177,7 @@
           >{{ activeTag.key }}</div>
 
           <div class="text">
-            <p 
-              v-for="enemy in activeTag.enemies"
-            >额外出现{{ enemy.count }}个{{ enemy.name }}</p>
+            <p>{{ activeTag.desc }}</p>
           </div>
         </div>
 
@@ -155,19 +188,36 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, toRaw, watch } from 'vue';
+interface TagSGroup{
+  key: string,               //tagsgroup名
+  children: Tag[],
+}
 
-const { combatMatrixData, levelId } = defineProps(["combatMatrixData", "levelId"])
+interface Tag{
+  key: string,              //rune名
+  group: string | null,     //分组名(or)
+  desc: string,             //效果文字描述
+  runes: any,                //rune效果
+  active: boolean,          //是否激活 
+}
+
+
+import { getMatrixRunes } from '@/api/stages';
+import { shallowRef, toRaw, watch } from 'vue';
+
+const { levelId } = defineProps(["levelId"])
 const emit = defineEmits(["changeCombatRunes"]);
 
-const tagsData = ref([]);
-const activeTags = ref([]);
-const currentActiveTags = ref([]);   //当前游戏应用的tags，用于检测改变
+const baseTagsData = shallowRef<(Tag | TagSGroup)[]>([]);
+const extraTagsData = shallowRef<(Tag | TagSGroup)[]>([]);
+const activeTags = shallowRef<Tag[]>([]);
+const currentActiveTags = shallowRef<string[]>([]);   //当前游戏应用的tags，用于检测改变
 
 const updateActiveTags = () => {
   activeTags.value = [];
-  tagsData.value.forEach(tag => {
-    if(tag.children){
+
+  [...baseTagsData.value, ...extraTagsData.value].forEach(tag => {
+    if( "children" in tag ){
       tag.children.forEach(child => {
         child.active && activeTags.value.push(child);
       });
@@ -177,7 +227,7 @@ const updateActiveTags = () => {
   });
 }
 
-const handleTagClick = (tag) => {
+const handleTagClick = (tag: Tag) => {
   tag.active = !tag.active;
   updateActiveTags();
 }
@@ -192,69 +242,40 @@ const handleMergeTagClick = (mergeTag, index) => {
   updateActiveTags();
 }
 
-const parseData = () => {
-  const regex = /(.+?)([1-9])$/;
-  const regex2 = /(.+?)(base|high)$/;
-  combatMatrixData?.forEach(data => {
-    if(data.key === "before") return;
-    const enemies = {};
-    data.enemies.forEach(enemy => {
+const parseRunesData = (runes: Tag[]): (Tag | TagSGroup)[] => {
+  const data: (Tag | TagSGroup)[] = [];
+  runes.forEach(rune => {
+    rune.active = false;
 
-      if(!enemies[enemy.key]){
-        enemies[enemy.key] = {
-          name: enemy.name,
-          count: 1
-        };
-      }else{
-        enemies[enemy.key].count ++;
-      }
-    })
-
-    const match = data.key.match(regex);
-    const match2 = data.key.match(regex2);
-    let mergeKey;
-    if(match || match2){
-      mergeKey = match? match[1] : match2[1];
-    }
-
-    if(data.key.includes("dpshld")){
-      mergeKey = "dpshld";
-    }
-
-    if(mergeKey){
-      const find = tagsData.value.find(data => data.mergeKey === mergeKey);
-
+    if(rune.group){
+      const find = data.find(tag => tag.key === rune.group) as TagSGroup;
       if(find){
 
-        find.children.push({
-          key: data.key,
-          enemies,
-          active: false
-        })
-
-        find.children.sort((a ,b) => {
-          return parseInt(a.key.replace(mergeKey, "")) - parseInt( b.key.replace(mergeKey, ""));
-        })
+        find.children.push( rune )
 
       }else{
 
-        tagsData.value.push({
-          mergeKey,
-          children:[{
-            key: data.key,
-            enemies,
-            active: false
-          }]
+        data.push({
+          key: rune.group,
+          children: [ rune ]
         })
+
       }
     }else{
-      tagsData.value.push({
-        key: data.key,
-        enemies,
-        active: false
-      })
+      data.push( rune )
     }
 
+  });
+
+  return data;
+}
+
+const regex = /[^/]+$/;
+const getData = () => {
+  const id = levelId.match(regex)[0];
+  getMatrixRunes(id).then(res => {
+    baseTagsData.value = parseRunesData(res.data.base);
+    extraTagsData.value = parseRunesData(res.data.extra);
   })
 }
 
@@ -270,21 +291,27 @@ const hasChanged = () => {
 //提交更改
 const handleSubmit = () => {
   if(hasChanged()){
-    
+    const runes = [];
+    activeTags.value.forEach(tag => {
+      tag.runes.forEach(rune => {
+        runes.push(rune);
+      })
+    })
     currentActiveTags.value = activeTags.value.map(activeTag => activeTag.key);
-    emit('changeCombatRunes', toRaw(currentActiveTags.value)) 
+    emit('changeCombatRunes', toRaw(runes)) 
   }
 }
 
-let currentLevelId;
-watch(() => combatMatrixData, () => {
-  
-  if(currentLevelId !== levelId){
-    currentLevelId = levelId;
-    tagsData.value = [];
-    activeTags.value = [];
-    currentActiveTags.value = [];
-    parseData();
+watch(() => levelId, () => {
+  baseTagsData.value = [];
+  extraTagsData.value = [];
+  activeTags.value = [];
+  currentActiveTags.value = [];
+  if(
+    levelId.includes("obt/recalrune") ||
+    levelId.includes("obt/crisis")
+  ){
+    getData();
   }
 
 })
@@ -353,7 +380,7 @@ $tag-height: 60px;
 
   .background{
     position: absolute;
-    top: calc($tag-height - 20px) / 2;
+    top: calc(($tag-height - 20px) / 2);
     height: 20px;
     width: calc(100% - 20px);
     background-color: #2c2c2c;

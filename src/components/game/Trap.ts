@@ -34,8 +34,7 @@ class Trap{
 
   isSelected: boolean = false;       //是否被鼠标选中
 
-  extraData: any;
-  extraWaveId: number;
+  extraWaveKey: string;
   countdown: Countdown;
 
   labelVue: any;   //前台显示数据
@@ -44,7 +43,7 @@ class Trap{
     CountDownVisible: true
   }
 
-  customData = {};                 //自定义数据
+  customData: {[key: string]: any} = {};                 //自定义数据
 
   constructor(data: trapData){
     this.data = data;
@@ -56,7 +55,9 @@ class Trap{
     this.mainSkillLvl = data.mainSkillLvl;
     this.visible = !data.hidden;
 
-    this.extraData = data.extraData;
+    this.extraWaveKey = data.extraWaveKey;
+
+    this.customData = data.customData;
     this.countdown = Global.gameManager.countdownManager.getCountdownInst();
 
     this.initSkill();

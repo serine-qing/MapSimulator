@@ -1,6 +1,48 @@
 import Enemy from "../enemy/Enemy";
+import Trap from "../game/Trap";
+import Global from "../utilities/Global";
 
 const Handler = {
+  parseExtraWave: (trapDatas: trapData[], branches: any) => {
+    trapDatas.forEach(trapData => {
+      switch (trapData.key) {
+        case "trap_250_hlctrl":
+          const brancheData = branches?.popeRoute?.phases[0]?.actions;
+          if(brancheData){
+            trapData.customData.extraKeys = [];
+
+            brancheData.forEach((branche, index) => {
+              const key = `phase${index}`;
+              trapData.customData.extraKeys.push(key);
+              Global.mapModel.parseExtraActions(key ,[
+                {
+                  preDelay: 0,
+                  actions: [branche]
+                }
+              ])
+            })
+          }
+
+          break;
+      }
+    })
+  },
+
+  handleTrapStart: (trap: Trap) => {
+    switch (trap.key) {
+      //寻根圣事 绑定事件
+      case "trap_250_hlctrl":
+        //todo 继续工作
+        //寻根圣事 开启下一boss波次
+        trap['ShownNextTile'] = () => {
+          Global.waveManager.startExtraAction(trap.customData.extraKeys[0]);
+          console.log(324243)
+        };
+        break;
+    }
+  },
+
+
   handleTalent: (enemy: Enemy, talent: any) => {
 
     const {duration, range_radius} = talent.value;

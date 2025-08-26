@@ -211,28 +211,21 @@ const getAttrChange = (name, attrChange): string => {
   let res = "";
   
   attrChange?.forEach(item => {
-    const {type, value, calMethod} = item;
-    
-    const updown = value >= 1 ? "提升" : "降低";
+    const {value, calMethod} = item;
+
+    let updown = value >= 1 ? "提升" : "降低";
     const color = value >= 1 ? "red" : "blue";
     let val;
 
     if( calMethod === "add"){
       val = value;
     }else if(calMethod === "mul"){
+      updown += "至";
       val = accuracyNum(value * 100) + "%";
     }
     
     res += "<p>"
-    switch (type) {
-      case "FOUR_STAR":
-        res += `突袭${name}${updown}:`
-        break;
-    
-      default:
-        res += `通用${name}${updown}:`
-        break;
-    }
+    res += `${name}${updown}:`
     res += `<span style = 'color:${color}'>    ${val}</span></p>`;
     
   });

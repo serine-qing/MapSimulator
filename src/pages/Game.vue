@@ -36,11 +36,10 @@ const changeRunesData = (data) => {
 //#endregion
 
 //#region 全息作战矩阵
-
-const combatMatrixData = shallowRef(null);
-let combatRunes = []
+const isCombatMatrix = ref(false);
+let matrixRunes = []
 const changeCombatRunes = (data) => {
-  combatRunes = data;
+  matrixRunes = data;
   newGame(mapData)
 }
 //#endregion
@@ -84,7 +83,7 @@ const reset = () => {
   maxEnemyCount.value = 0;
   finishedEnemyCount.value = 0;
   runesData = [];
-  combatRunes = [];
+  matrixRunes = [];
   sandTableData.value = null;
 }
 reset();
@@ -166,17 +165,25 @@ const newGame = async (map) => {
   isStart.value = true;
   isFinished.value = false;
   loading.value = true;
+
+  if(
+    mapData.levelId.includes("obt/recalrune") ||
+    mapData.levelId.includes("obt/crisis")
+  ){
+    isCombatMatrix.value = true;
+  }else{
+    isCombatMatrix.value = false;
+  }
   
   mapModel = new MapModel(mapData, {
     runesData,
-    combatRunes
+    matrixRunes
   });
 
   await mapModel.init();
 
   reset();
   
-  combatMatrixData.value = mapModel.hiddenGroups;
   sandTableData.value = mapData.sandTable;
 
   gameSpeed.value = GameConfig.GAME_SPEED;
@@ -200,6 +207,7 @@ const challenge = ref("");
 const description = ref("");
 const stageAttrInfo = ref("");
 const characterLimit = ref(0);
+const squadNum = ref(13);
 
 //生成关卡详情
 const generateStageInfo = () => {
@@ -209,7 +217,8 @@ const generateStageInfo = () => {
 
   challenge.value = _challenge?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
   description.value = _description?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
-  characterLimit.value = mapData.options.characterLimit;
+  characterLimit.value = mapModel.characterLimit;
+  squadNum.value = mapModel.squadNum;
 
   const enemyDatas = mapModel.enemyDatas;
 
@@ -373,8 +382,7 @@ defineExpose({
 <template>
 <div class="game-container" v-loading="loading">  
   <CombatMatrix
-    v-show="combatMatrixData"
-    :combatMatrixData = "combatMatrixData"
+    v-show="isCombatMatrix"
     :levelId = "levelId"
     @changeCombatRunes = "changeCombatRunes"
   />
@@ -479,7 +487,7 @@ defineExpose({
   <div class="info">
     <h2>{{ title }}</h2>
     <p class="description">{{ description }}</p>
-    <p>部署上限：{{ characterLimit }}</p>
+    <p>部署上限：{{ characterLimit }}，可携带干员数：{{ squadNum }}</p>
     <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>
     <p v-if="stageAttrInfo"><span class="challenge">属性加成：</span>
       <span v-html="stageAttrInfo"></span>

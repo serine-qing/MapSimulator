@@ -11,6 +11,9 @@ class RunesHelper{
   private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
   private bannedTiles: Vec2[] = [];
   private talentChanges: any[] = [];
+
+  public charNumDdd: number = 0;
+  public squadNum: number = 13;
   constructor(runes: any){
     this.runes = runes;
 
@@ -96,6 +99,7 @@ class RunesHelper{
             
             switch (item.key) {
               case "enemy":
+              case "key":       //MT-S-5 enemy填成key了
                 change["enemy"] = item.valueStr.split("|");
                 break;
               default:
@@ -122,7 +126,16 @@ class RunesHelper{
         //沙盘推演会用到，修改rune值的
         case "add_other_rune_blackb":
           addOtherRuneBlackbord.push(rune);
-          
+          break;
+
+        //增减部署位
+        case "global_placable_char_num_add":
+          this.charNumDdd += blackboard[0].value;
+          break;
+
+        //更改可携带干员数
+        case "global_squad_num_limit":
+          this.squadNum = blackboard[0].value;
           break;
       }
       

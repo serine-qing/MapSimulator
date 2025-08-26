@@ -150,26 +150,19 @@ class WaveManager{
 
 
   public initExtraActions(){
-    let id = 0;
+    this.mapModel.extraActionDatas.forEach(extraActionData => {
+      const actions = this.createActions(extraActionData.actionDatas);
+      actions.forEach(action => action.enemy.isExtra = true);
+      
+      this.extraActions.push({
+        key: extraActionData.key,
+        isStart: false,
+        isFinish: false,
+        waveSecond: 0,
+        actions
+      })
 
-    Global.trapManager.traps.forEach(trap => {
-      const extraWave = trap.data.extraWave;
-      if(extraWave){
-        const actions = this.createActions(trap.data.extraWave);
-        actions.forEach(action => action.enemy.isExtra = true);
-        
-        this.extraActions.push({
-          id,
-          isStart: false,
-          isFinish: false,
-          waveSecond: 0,
-          actions
-        })
-
-        trap.extraWaveId = id;
-        id++;
-      }
-    });
+    })
 
   }
 
@@ -204,11 +197,13 @@ class WaveManager{
           break;
         
         case "ACTIVATE_PREDEFINED":
+        case "TRIGGER_PREDEFINED":
           const trapData = actionData.trapData;
           if(trapData){
             action.trap = Global.trapManager.traps.find(trap => trap.alias === trapData.alias);
           }
           break;
+
       }
     })
   
@@ -314,8 +309,8 @@ class WaveManager{
     return spawnFinished;
   }
 
-  public startExtraAction(id: number){
-    const extraAction = this.getExtraAction(id);
+  public startExtraAction(key: string){
+    const extraAction = this.getExtraAction(key);
     if(extraAction){
       extraAction.isStart = true;
       extraAction.isFinish = false;
@@ -323,8 +318,8 @@ class WaveManager{
     }
   }
 
-  public getExtraAction(id: number){
-    const find = this.extraActions.find(extraAction => extraAction.id === id);
+  public getExtraAction(key: string){
+    const find = this.extraActions.find(extraAction => extraAction.key === key);
     return find? find : null;
   }
 
@@ -350,6 +345,14 @@ class WaveManager{
               }
             }
 
+            break;
+          case "TRIGGER_PREDEFINED":
+            const regex = /:([^:]+)$/;
+            const match = action.key.match(regex);
+            if(match){
+              const eventName = match[1];
+              // action.trap[eventName] && action.trap[eventName]();
+            }
             break;
         }
         action.start();
