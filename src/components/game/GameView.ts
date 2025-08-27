@@ -8,6 +8,7 @@ import { gameCanvas } from '@/components/game/GameCanvas';
 import Trap from "./Trap"
 import { GC_Sweep } from "./GC"
 import Global from "../utilities/Global"
+import { getPixelSize } from "../utilities/utilities";
 
 class GameView{
   
@@ -15,6 +16,7 @@ class GameView{
   public tileObjects = new THREE.Group();
   public trapObjects = new THREE.Group();
   public enemyObjects = new THREE.Group();
+  private tileBgImage: THREE.Mesh;
 
   constructor(){
     Global.gameView = this;
@@ -29,10 +31,18 @@ class GameView{
   //初始化地图tiles
   private initMap(){
     this.mapContainer = new THREE.Object3D();
+    
     Global.tileManager.tiles.flat().forEach((tile: Tile)=>{
       tile.initMeshs();
       this.tileObjects.add(tile.object);
     })
+
+    //有背景图片，需要tile添加底部黑色图片，防止缝隙透光
+    if( this.tileBgImage ){
+      this.mapContainer.add(this.tileBgImage);
+      Global.tileManager.flatTiles.forEach(tile => tile.createBottom())
+    }
+
     this.mapContainer.add(this.tileObjects);
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
@@ -65,6 +75,26 @@ class GameView{
       
     })
     this.mapContainer.add(this.enemyObjects);
+  }
+
+  public setBgImage(texture: THREE.Texture){
+    const materia = new THREE.MeshBasicMaterial({
+      map: texture
+    });
+    const width = getPixelSize(Global.tileManager.width);
+    const height = getPixelSize(Global.tileManager.height);
+
+    const geometry = new THREE.PlaneGeometry(width, height);
+    this.tileBgImage = new THREE.Mesh(geometry, materia);
+    
+    this.tileBgImage.position.x = width / 2 - GameConfig.TILE_SIZE / 2;
+    this.tileBgImage.position.y = height / 2 - GameConfig.TILE_SIZE / 2 + 0.1;
+    this.tileBgImage.position.z = -0.1;
+
+    if( this.mapContainer ){
+      this.mapContainer.add(this.tileBgImage);
+      Global.tileManager.flatTiles.forEach(tile => tile.createBottom())
+    }
   }
 
   public localToScreen(position){

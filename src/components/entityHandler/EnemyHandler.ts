@@ -5,7 +5,10 @@ import act42side from "./众生行记";
 import act44side from "./墟";
 
 const EnemyHandler = {
+
   handleStart: (enemy: Enemy) => {
+    act42side.handleEnemyStart(enemy);
+
     if(enemy.isExtra){
       switch (enemy.key) {
         //压力舒缓帮手
@@ -27,13 +30,12 @@ const EnemyHandler = {
         enemy.unMoveable = false;
         enemy.cantFinished = true;
         break;
-      case "enemy_10082_mpweak": //弱化节点碎屑
+      case "enemy_10082_mpweak": //弱化节点
         enemy.unMoveable = true;
         break;
       case "enemy_1367_dseed":  //血泊
         enemy.unMoveable = true;
         enemy.notCountInTotal = true;
-        break;
     }
   },
 
@@ -90,7 +92,13 @@ const EnemyHandler = {
                 //念旧
                 case "enemy_10057_cjstel":
                 case "enemy_10057_cjstel_2":
-                  enemy.motion = "FLY"
+                  enemy.animationStateTransition({
+                    idleAnimate: "Idle_b",
+                    moveAnimate: "Move",
+                    transAnimation: "Takeoff",
+                    isWaitTrans: true,
+                  })
+                  enemy.motion = "FLY";
                   break;
               }
             }

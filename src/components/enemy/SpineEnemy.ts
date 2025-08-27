@@ -37,7 +37,7 @@ class SpineEnemy extends Enemy{
     const coordinateOffset = getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
-    this.skeletonMesh.position.y = coordinateOffset.y;
+    this.skeletonMesh.position.y = coordinateOffset.y + getSkelOffset(this).y;
 
     const spineScale = getSpineScale(this);
     this.object.scale.set(spineScale,spineScale,1);
@@ -45,7 +45,7 @@ class SpineEnemy extends Enemy{
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    this.skeletonMesh.position.z = this.motion === "WALK"? 
+    this.skeletonMesh.position.z = this.defaultMotion === "WALK"? 
       getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
 
     this.getSkelSize();
@@ -80,7 +80,10 @@ class SpineEnemy extends Enemy{
 
     }else{
       //地面单位预先计算大小和偏移
-      this.meshOffset = getSkelOffset(this);
+      this.meshOffset = {
+        x: 0,
+        y: 0
+      };
       const meshSize = new THREE.Vector2();
       const meshOffset = new THREE.Vector2();
       
@@ -200,9 +203,8 @@ class SpineEnemy extends Enemy{
 
   public set(state){
     super.set(state);
-    if(this.exitCountDown !== 0){
-      console.log(this.exitCountDown)
-    }
+
+    if(Global.gameManager.isSimulate) return;
     //模拟数据没有计算退出渐变，兼容下
     const color = this.skeletonMesh.skeleton.color;
     color.r = 1;

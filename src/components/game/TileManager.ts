@@ -32,6 +32,7 @@ class TileManager{
   public height: number;    //矩阵高度(y)
   public width: number;    //矩阵宽度(x)
   public events: TileEvent[] = [];
+  
   constructor(mapData:any){
     Global.tileManager = this;
     
@@ -149,7 +150,7 @@ class TileManager{
             x: tile.position.x,
             y: tile.position.y,
             callback: (enemy: Enemy) => {
-              enemy.hp = 0;
+              if(enemy.motion === "WALK") enemy.hp = 0;
             }
           })
           break;

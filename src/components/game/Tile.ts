@@ -6,9 +6,15 @@ import { GC_Add } from "./GC";
 import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
+import DataObject from "../enemy/DataObject";
 
-class Tile{
+
+
+class Tile extends DataObject{
   static boxGeos = [];
+  static bottomMat = new MeshBasicMaterial({
+    color: "#000000"
+  });
 
   tileData: any;
   blackboard: any[];
@@ -17,6 +23,8 @@ class Tile{
   height: number;
   margin: number;
   position: THREE.Vector2;
+
+  visible: boolean = true;
 
   passableMask: string;
   buildableType: string;  //可供部署类型
@@ -39,6 +47,7 @@ class Tile{
 
   trap: Trap = null;   //当前地块上的装置
   constructor(tileData: TileData , position: Vec2){
+    super();
     this.tileData = tileData;
 
     const {tileKey, heightType, buildableType, passableMask, blackboard} = tileData;
@@ -189,6 +198,16 @@ class Tile{
     this.object.add(this.cube);
   }
 
+  public createBottom(){
+    if(this.margin > 0){
+      const geometry = this.getBoxGeo(this.width, 0, 0);
+
+      const bottom = new Mesh( geometry, Tile.bottomMat); 
+      bottom.position.z = getPixelSize( -this.height / 2);
+      this.object.add(bottom);
+    }
+  }
+
   //生成地块上的图像
   private createTexture(){
 
@@ -216,11 +235,12 @@ class Tile{
 
   //isDynamic: 是否是动态Texture，动态需要缓存
   public addTexture(textureName: string): Mesh{
+
     const texture = getTexture(textureName);
     if(!texture) return;
 
     let textureScale;
-    let opacity;
+    let opacity = 1;
     switch (textureName) {
       case "tile_floor":
         textureScale = 0.85;
@@ -386,6 +406,11 @@ class Tile{
     return passable;
   }
 
+  public setVisible(visible: boolean){
+    this.visible = visible;
+    if(this.object) this.object.visible = visible;
+  }
+
   public destroy() {
     //释放内存
     this.object = null;
@@ -395,6 +420,7 @@ class Tile{
 
   public get(){
     const states = {
+      visible: this.visible,
       trapStates: this.trap,
       textureStates: this.dynamicTextures.map(dynamicTexture => {
         return {
@@ -407,7 +433,8 @@ class Tile{
   }
 
   public set(states){
-    const {trapStates, textureStates} = states;
+    const {visible, trapStates, textureStates} = states;
+    this.setVisible(visible);
     this.trap = trapStates;
 
     this.dynamicTextures.forEach(dynamicTexture => {

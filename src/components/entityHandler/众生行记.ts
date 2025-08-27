@@ -1,19 +1,49 @@
+import assetsManager from "../assetManager/assetsManager";
 import Enemy from "../enemy/Enemy";
+import Tile from "../game/Tile";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
+import Unrealshapes_BG from "@/assets/images/Unrealshapes_BG.png"
 
 const Handler = {
-  parseExtraWave: (trapDatas: trapData[], branches: any) => {
+  parseRune: (rune) => {
+    if(rune.key === "env_system_new"){
+      const type = rune.blackboard.find(item => item.key === "key")?.valueStr;
+      if(type === "env_act42side_level_ctrl"){
+
+        const customData = Global.gameManager.customData;
+        customData.hiddenRect = [];
+
+        rune.blackboard.forEach(item => {
+          if(item.key.includes("rect_")){
+            customData.hiddenRect.push(item.valueStr.split("|"));
+            
+          }
+        })
+      }
+    }
+  },
+
+  parseExtraWave: (trapDatas: trapData[], branches: any, extraRoutes) => {
     trapDatas.forEach(trapData => {
       switch (trapData.key) {
         case "trap_250_hlctrl":
           const brancheData = branches?.popeRoute?.phases[0]?.actions;
           if(brancheData){
-            trapData.customData.extraKeys = [];
+            let isFly = true;
 
+            const customData = Global.gameManager.customData;
+            customData.popeKeys = [];
+            customData.popeIndex = 0;
             brancheData.forEach((branche, index) => {
+              //YJ这乱填key 有的不是圣徒也填进去了
+              branche.key = "enemy_1567_pope";
+              //YJ乱填motionMode，还有人类吗，这游戏到底是怎么跑起来的
+              extraRoutes[branche.routeIndex].motionMode = isFly? "FLY" : "WALK";
+              isFly = !isFly;
+
               const key = `phase${index}`;
-              trapData.customData.extraKeys.push(key);
+              customData.popeKeys.push(key);
               Global.mapModel.parseExtraActions(key ,[
                 {
                   preDelay: 0,
@@ -28,20 +58,105 @@ const Handler = {
     })
   },
 
+  handleGameInit: () => {
+    const customData = Global.gameManager.customData;
+
+    if(customData.hiddenRect){
+      assetsManager.loadTexture([Unrealshapes_BG]).then(res => {
+        Global.gameView.setBgImage(res[0]);
+      })
+
+      customData.hiddenRect.forEach((rects, index) => {
+        const hiddenRectTiles: Tile[] = [];
+        rects.forEach(rect => {
+          const vecs = rect.replace(/[()\s]/g, "").split(",");
+          const x1 = parseInt(vecs[1]);
+          const x2 = parseInt(vecs[3]);
+          const y1 = parseInt(vecs[0]);
+          const y2 = parseInt(vecs[2]);
+
+          for(let x = x1; x <= x2; x++ ){
+            for(let y = y1; y <= y2; y++ ){
+              hiddenRectTiles.push(Global.tileManager.getTile(x, y));
+            }
+          }
+
+        })
+        customData.hiddenRect[index] = hiddenRectTiles;
+        
+        hiddenRectTiles.forEach(tile => {
+          tile.setVisible(false);
+        })
+
+      })
+    }
+  },
+
   handleTrapStart: (trap: Trap) => {
     switch (trap.key) {
       //寻根圣事 绑定事件
       case "trap_250_hlctrl":
-        //todo 继续工作
         //寻根圣事 开启下一boss波次
-        trap['ShownNextTile'] = () => {
-          Global.waveManager.startExtraAction(trap.customData.extraKeys[0]);
-          console.log(324243)
-        };
+        trap.bindEvent("ShownNextTile", () => {
+          const customData = Global.gameManager.customData;
+
+          //显示隐藏的tile
+          customData.hiddenRect[customData.popeIndex]?.forEach(tile => {
+            tile.setVisible(true);
+          })
+
+          const popeKey = customData.popeKeys[customData.popeIndex];
+          if(popeKey !== undefined){
+
+            Global.waveManager.startExtraAction(popeKey);
+            customData.popeIndex += 1; 
+          }
+
+        })
+
         break;
     }
   },
 
+  handleEnemyStart: (enemy: Enemy) => {
+    switch (enemy.key) {
+      case "enemy_1567_pope":
+        if(Global.gameManager.customData.popeIndex > 0){
+          if(enemy.route.motionMode === "WALK"){
+            enemy.motion = "WALK";
+            enemy.animationStateTransition({
+              idleAnimate: "B_Idle_1",
+              moveAnimate: "B_Move_1",
+              transAnimation: "B_Start_1",
+              isWaitTrans: true,
+            })
+
+          }else if(enemy.route.motionMode === "FLY"){
+            enemy.motion = "FLY";
+            enemy.animationStateTransition({
+              idleAnimate: "B_Idle_2",
+              moveAnimate: "B_Move_2",
+              transAnimation: "B_Start_2",
+              isWaitTrans: true,
+            })
+          }
+        }else{
+          //一阶段移速150%
+          enemy.addBuff({
+            id: "speedup",
+            key: "speedup",
+            overlay: false,
+            effect: [{
+              attrKey: "moveSpeed",
+              method: "mul",
+              value: 1.5
+            }]
+          })
+        }
+        
+        break;
+    }
+  },
 
   handleTalent: (enemy: Enemy, talent: any) => {
 

@@ -135,9 +135,9 @@ export const getSkelOffset = (enemy:SpineEnemy): Vec2 => {
   };
 
   switch (enemy.key) {
-    case "enemy_1321_wdarft":
-    case "enemy_1321_wdarft_2":
-      offset.y = - 20;
+    case "enemy_10057_cjstel":   //念旧
+    case "enemy_10057_cjstel_2":
+      offset.y = - 1;
       break;
   }
   return offset;

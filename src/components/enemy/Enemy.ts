@@ -10,6 +10,7 @@ import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
+import DataObject from "./DataObject";
 
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
@@ -57,7 +58,7 @@ interface ChangeTileEvent{
   callback: Function
 }
 
-class Enemy{
+class Enemy extends DataObject{
   static shadowMaterial = new THREE.MeshBasicMaterial( { 
     color: "#000000",
     transparent: true, // 启用透明度
@@ -77,6 +78,7 @@ class Enemy{
   key: string;
   levelType: string;
   motion: string;       
+  defaultMotion: string;
   name: string;
   description: string;  
   icon: string;            //敌人头像URL
@@ -176,7 +178,7 @@ class Enemy{
   public meshSize: Vec2 = {
     x: 0, y: 0
   };                //模型宽高
-  protected ZOffset: number = 0;             //模型Z轴位移
+  public ZOffset: number = 0;             //模型Z轴位移
   protected animationScale: number = 1.0;  //动画执行速率
   public isExtra: boolean = false;         //是否是额外出怪
   public simulateTrackTime: number = 0;      //动画执行time
@@ -184,10 +186,8 @@ class Enemy{
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   public mesh: THREE.Mesh;
-
-  public userData: {[key: string]: any} = {};    //数据存储
   constructor(action: ActionData){
-
+    super();
     this.enemyData = action.enemyData;
     this.startTime = action.startTime;
     this.fragmentTime = action.fragmentTime;
@@ -218,6 +218,8 @@ class Enemy{
     
     this.route = action.route;
     this.motion = checkEnemyMotion(this.key, motion);
+    this.defaultMotion = this.motion;
+
     this.position = new THREE.Vector2();
     this.acceleration = new THREE.Vector2(0, 0);
     this.inertialVector = new THREE.Vector2(0, 0);
@@ -1321,7 +1323,6 @@ class Enemy{
       changeTileEvents: [...this.changeTileEvents],
       watchers: [...this.watchers],
       buffs: [...this.buffs],
-      userData: {...this.userData},
     }
 
     return state;
@@ -1356,8 +1357,7 @@ class Enemy{
       die,
       changeTileEvents,
       watchers,
-      buffs,
-      // userData
+      buffs
     } = state;
 
     this.setPosition(position.x, position.y);
@@ -1389,7 +1389,6 @@ class Enemy{
     this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
     this.buffs = [...buffs];
-    // this.userData = {...userData};
 
     if(this.object){
       //恢复当前动画状态

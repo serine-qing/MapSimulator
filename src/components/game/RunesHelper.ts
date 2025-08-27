@@ -1,6 +1,7 @@
 import { accuracyNum, toCamelCase } from "@/components/utilities/utilities"
 import TileManager from "./TileManager";
 import Tile from "./Tile";
+import act42side from "../entityHandler/众生行记";
 
 class RunesHelper{
   private runes: any[];
@@ -19,6 +20,9 @@ class RunesHelper{
 
     const addOtherRuneBlackbord = [];
     this.runes.forEach(rune => {
+
+      act42side.parseRune(rune)
+
       const { blackboard } = rune;
 
       switch (rune.key) {

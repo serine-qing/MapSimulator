@@ -180,6 +180,7 @@ const newGame = async (map) => {
     matrixRunes
   });
 
+  gameManager = new GameManager();
   await mapModel.init();
 
   reset();
@@ -188,8 +189,8 @@ const newGame = async (map) => {
 
   gameSpeed.value = GameConfig.GAME_SPEED;
 
-  gameManager = new GameManager(mapModel);
-
+  gameManager.init(mapModel);
+  
   gameManagerRef.value = gameManager;
   maxEnemyCount.value = gameManager.waveManager.maxEnemyCount;
 

@@ -7,8 +7,9 @@ import { Countdown } from "./CountdownManager";
 import TrapHandler from "../entityHandler/TrapHandler";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
+import DataObject from "../enemy/DataObject";
 
-class Trap{
+class Trap extends DataObject{
   data: trapData;  //原始数据
   isTokenCard: boolean = false;  //是否是待部署区装置
   iconUrl: string; 
@@ -43,9 +44,8 @@ class Trap{
     CountDownVisible: true
   }
 
-  customData: {[key: string]: any} = {};                 //自定义数据
-
   constructor(data: trapData){
+    super();
     this.data = data;
     this.isTokenCard = data.isTokenCard;
     this.key = data.key;
@@ -54,10 +54,10 @@ class Trap{
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;
     this.visible = !data.hidden;
+    this.customData = data.customData;
 
     this.extraWaveKey = data.extraWaveKey;
 
-    this.customData = data.customData;
     this.countdown = Global.gameManager.countdownManager.getCountdownInst();
 
     this.initSkill();
@@ -215,7 +215,7 @@ class Trap{
   public set(state){
     const { visible } = state;
     visible? this.show() : this.hide();
-
+    this.skeletonMesh?.update( 0.001 );
   }
 
   public destroy() {

@@ -256,7 +256,13 @@ class WaveManager{
   private checkWaveFinished(){
     const currentActions = this.currentActions();
     if(!currentActions) return;
-    const isWaveFinished = !currentActions.find(action => {
+
+    const extraStartActs = [];
+    this.extraActions.forEach(extra => {
+      extra.isStart && extraStartActs.push(...extra.actions)
+    })
+
+    const isWaveFinished = ![...currentActions, ...extraStartActs].find(action => {
       //不阻挡波次和没有绑定敌人
       if((action.isStarted && action.dontBlockWave) || !action.enemy){
         return false;
@@ -351,7 +357,7 @@ class WaveManager{
             const match = action.key.match(regex);
             if(match){
               const eventName = match[1];
-              // action.trap[eventName] && action.trap[eventName]();
+              action.trap.applyEvent(eventName);
             }
             break;
         }

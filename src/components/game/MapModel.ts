@@ -70,10 +70,6 @@ class MapModel{
     await this.getTokenCards();
     //获取trap数据
     await this.getTrapDatas();
-    
-    //解析敌人路径
-    this.routes = this.parseEnemyRoutes(routes);
-    this.extraRoutes = this.parseEnemyRoutes(extraRoutes);
 
     //解析波次数据
     this.parseWaves(waves);
@@ -95,6 +91,10 @@ class MapModel{
     await this.getEnemyMeshs();
 
     this.parseExtraWave();
+
+    //解析敌人路径
+    this.routes = this.parseEnemyRoutes(routes);
+    this.extraRoutes = this.parseEnemyRoutes(extraRoutes);
 
     //绑定actions的 route和enemydata、trap
     this.actionDatas.flat().forEach( action => {
@@ -774,7 +774,7 @@ class MapModel{
       }
     })
 
-    act42side.parseExtraWave(this.trapDatas, branches);
+    act42side.parseExtraWave(this.trapDatas, branches, this.sourceData.extraRoutes);
   }
 
   public parseExtraActions(key: string, data){

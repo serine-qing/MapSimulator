@@ -25,9 +25,10 @@ import AnimationFrame from "../utilities/AnimationFrame";
 import Enemy from "../enemy/Enemy";
 import SpineEnemy from "../enemy/SpineEnemy";
 import FbxEnemy from "../enemy/FbxEnemy";
+import DataObject from "../enemy/DataObject";
 
 //游戏控制器
-class GameManager{
+class GameManager extends DataObject{
   public isSimulate: boolean = false;
   private clock: THREE.Clock = new THREE.Clock();
 
@@ -65,8 +66,13 @@ class GameManager{
 
   public gractrl: Gractrl;  //重力控制
 
-  constructor(mapModel: MapModel){
+  constructor(){
+    super();
     Global.gameManager = this;
+  }
+
+  public init(mapModel: MapModel){
+    
     AnimationFrame.setPause(false);
 
     this.countdownManager = new CountdownManager();
@@ -79,6 +85,7 @@ class GameManager{
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
 
+    
 
     this.tokenCards = mapModel.tokenCards.map(data =>{
       const tokenCard = new TokenCard(data);
@@ -91,14 +98,13 @@ class GameManager{
     
     if(this.trapManager.traps.find(trap => trap.key === "trap_121_gractrl")){
       this.gractrl = new Gractrl();
-    }
-    
+    } 
 
-    GameHandler.afterGameInit();
+    GameHandler.handleGameInit();
+
     const simData = this.startSimulate();
     this.setSimulateData(simData);
     this.start();
-    
   }
 
   public start(){
@@ -429,6 +435,8 @@ class GameManager{
   }
 
   public get(){
+    const superStates = super.get();
+
     let state: {[key: string]: any} = {
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
@@ -439,6 +447,7 @@ class GameManager{
       eManagerState: this.waveManager.get(),
       countdownState: this.countdownManager.get(),
       tokenCardState: this.tokenCards.map(tc => tc.get()),
+      ...superStates
     }
     if(this.gractrl){
       state.gractrlState = this.gractrl.get();
@@ -446,7 +455,9 @@ class GameManager{
     return state;
   }
 
-  public set(state){
+  public set(states){
+    super.set(states);
+    
     this.trapManager.resetSelected();
 
     const {
@@ -460,7 +471,7 @@ class GameManager{
       countdownState, 
       tokenCardState,
       gractrlState
-    } = state;
+    } = states;
     
     this.gameSecond = gameSecond;
     this.trapManager.set(trapState);
@@ -510,9 +521,9 @@ class GameManager{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    console.log = ()=>{
-      return;
-    }
+    // console.log = ()=>{
+    //   return;
+    // }
 
     this.isSimulate = true;
     const simData = {

@@ -386,7 +386,7 @@ const initTrapLabels = () => {
 const updateTrapSize = () => {
   const scale = canvasHeight / GameConfig.OBJECT_SCALE;
   traps.forEach(trap => {
-
+    if(!trap.object) return;
     const {x, y} = gameView.localToScreen(trap.object.position);
 
     const label = trap.labelVue;
