@@ -1,7 +1,7 @@
 import { GC_Add } from "../game/GC";
 import Enemy from "./Enemy";
 import spine from "@/assets/script/spine-threejs.js";
-import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } from "@/components/utilities/SpineHelper";
+import { getSpineScale } from "@/components/utilities/SpineHelper";
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
 import { gameCanvas } from "../game/GameCanvas";
@@ -37,7 +37,7 @@ class SpineEnemy extends Enemy{
     const coordinateOffset = getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
-    this.skeletonMesh.position.y = coordinateOffset.y + getSkelOffset(this).y;
+    this.skeletonMesh.position.y = coordinateOffset.y;
 
     const spineScale = getSpineScale(this);
     this.object.scale.set(spineScale,spineScale,1);
@@ -45,7 +45,7 @@ class SpineEnemy extends Enemy{
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    this.skeletonMesh.position.z = this.defaultMotion === "WALK"? 
+    this.skeletonMesh.position.z = this.motion === "WALK"? 
       getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
 
     this.getSkelSize();

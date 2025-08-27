@@ -437,7 +437,7 @@ class Tile extends DataObject{
     this.setVisible(visible);
     this.trap = trapStates;
 
-    this.dynamicTextures.forEach(dynamicTexture => {
+    !Global.gameManager.isSimulate && this.dynamicTextures.forEach(dynamicTexture => {
       const { name } = dynamicTexture;
       const find = textureStates.find(textureState => textureState.name === name);
       if(find){

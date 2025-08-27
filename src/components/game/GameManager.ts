@@ -102,8 +102,8 @@ class GameManager extends DataObject{
 
     GameHandler.handleGameInit();
 
-    const simData = this.startSimulate();
-    this.setSimulateData(simData);
+    this.startSimulate();
+    
     this.start();
   }
 
@@ -516,8 +516,7 @@ class GameManager extends DataObject{
 
   }
 
-  //获取模拟数据
-  private startSimulate(startTime?: number){
+  private simulation(startTime?: number){
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
@@ -557,19 +556,30 @@ class GameManager extends DataObject{
     eventBus.emit("update:maxSecond", this.maxSecond);
     eventBus.remove("action_index_change", fuc);
 
-    this.isSimulate = false;
-
     console.log = cacheFunc;
 
     return simData;
+  }
+
+  //获取模拟数据
+  private startSimulate(){
+    
+    const simData = this.simulation();
+    this.setSimulateData(simData);
+
+    //restart调用了2次，第一次恢复数据 第二次在各种initMesh后恢复图像
+    this.restart();
+
+    this.isSimulate = false;
   }
 
   //重新计算当前时间点之后的模拟数据
   public reStartSimulate(){
     const currentState = this.get();
     const startTime = Math.ceil(this.gameSecond);
-    const simData = this.startSimulate(startTime);
-    // console.log(this.simulateData)
+    const simData = this.simulation(startTime);
+    this.isSimulate = false;
+
     const prevStatesByTime =  this.simulateData.byTime.slice(0, startTime);
 
     this.simulateData.byTime = [...prevStatesByTime, ...simData.byTime];

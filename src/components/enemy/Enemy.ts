@@ -77,8 +77,7 @@ class Enemy extends DataObject{
   id: number;    //WaveManager中使用的id
   key: string;
   levelType: string;
-  motion: string;       
-  defaultMotion: string;
+  motion: string;
   name: string;
   description: string;  
   icon: string;            //敌人头像URL
@@ -218,7 +217,6 @@ class Enemy extends DataObject{
     
     this.route = action.route;
     this.motion = checkEnemyMotion(this.key, motion);
-    this.defaultMotion = this.motion;
 
     this.position = new THREE.Vector2();
     this.acceleration = new THREE.Vector2(0, 0);
