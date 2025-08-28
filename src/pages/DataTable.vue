@@ -213,14 +213,16 @@ const getAttrChange = (name, attrChange): string => {
   attrChange?.forEach(item => {
     const {value, calMethod} = item;
 
-    let updown = value >= 1 ? "提升" : "降低";
-    const color = value >= 1 ? "red" : "blue";
+    let updown = value >= 1 || calMethod === "addmul" ? "提升" : "降低";
+    const color = value >= 1 || calMethod === "addmul" ? "red" : "blue";
     let val;
 
     if( calMethod === "add"){
       val = value;
     }else if(calMethod === "mul"){
       updown += "至";
+      val = accuracyNum(value * 100) + "%";
+    }else if(calMethod === "addmul"){
       val = accuracyNum(value * 100) + "%";
     }
     

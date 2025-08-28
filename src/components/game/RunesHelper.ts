@@ -146,17 +146,26 @@ class RunesHelper{
       
     })
     
-    //让加算排前面，乘算排后面
+    //让加算排前面，加乘排中间,乘算排后面
     Object.values(this.attrChanges).forEach(attrChange => {
       attrChange.sort((a, b) => {
         if(a.calMethod !== b.calMethod){
-          return a.calMethod === "add"? -1 : 1;
+          if(a.calMethod === "add"){
+            return -1;
+          }else if(a.calMethod === "addmul"){
+            return -1;
+          }else{
+            return 1;
+          }
+
         }else{
           return 0;
         }
       })
     })
 
+    //各种计算类型
+    // console.log(this.attrChanges)
     //需要放在其他rune解析完后处理
     addOtherRuneBlackbord.forEach(rune => {
       this.addRuneBlackb(rune);
@@ -177,6 +186,9 @@ class RunesHelper{
       case "enemy_weight_add":
       case "ebuff_weight":
         attrChanges["calMethod"] = "add";
+        break;
+      case "enemy_attribute_additive_mul":
+        attrChanges["calMethod"] = "addmul";
         break;
       //乘法提升
       default:
@@ -212,14 +224,13 @@ class RunesHelper{
           val = valueStr.split("|");
           break;
         case "enemyLevelType":
-          val = valueStr;
+          val = valueStr.split("|");
           break;
         case "runeAlias":    
           val = valueStr;
           break;
         default:
           val = value;
-          if(rune.key === "enemy_attribute_additive_mul") val += 1;  //这个数值是增加的倍率，需要额外处理
           break;
       }
 
@@ -274,13 +285,12 @@ class RunesHelper{
         let apply = true;
         const {enemy, enemyExclude, enemyLevelType, calMethod} = item;
         if(enemy){
-          console.log(item)
-          apply = enemy.find(enemyKey => key === enemyKey);
+          apply = enemy.includes(key);
         }else if(enemyExclude){
 
-          apply = !enemyExclude.find(enemyKey => key === enemyKey);
+          apply = !enemyExclude.includes(key);
         }else if(enemyLevelType){
-          apply = enemyLevelType === levelType;
+          apply = enemyLevelType.includes(levelType);
         }
         
         if(apply){
@@ -319,6 +329,9 @@ class RunesHelper{
           //乘算
           }else if(current.calMethod === "mul"){
             return acc * current.value;
+
+          }else if(current.calMethod === "addmul"){
+            return acc + attrValue * current.value;
           }
         }, attrValue );
 

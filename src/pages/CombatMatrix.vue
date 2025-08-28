@@ -55,6 +55,10 @@
           >确定</div>
         </div>
       </div>
+
+      <span 
+        style="color: red; margin:5px;"
+      >部分Tag是乘算还是加算还需进一步进行确认，目前的数据仅供参考！</span>
       
     </div>
 
@@ -175,9 +179,9 @@ const parseRunesData = (runes: Tag[]): (Tag | TagSGroup)[] => {
     rune.active = false;
 
     if(rune.runeIcon){
-      rune.runeIcon = "../src/assets/images/tags/" + rune.runeIcon + ".png";
+      rune.runeIcon = "/recalruneTags/" + rune.runeIcon + ".png";
     }else{
-      rune.runeIcon = "../src/assets/images/tags/fixed_rune_icon.png";
+      rune.runeIcon = "/recalruneTags/fixed_rune_icon.png";
     }
     
     if(rune.exclusiveGroupId){
@@ -265,7 +269,6 @@ const handleSubmit = () => {
       })
     })
     currentActiveTags.value = activeTags.value.map(activeTag => activeTag.runeId);
-    console.log(runes)
     emit('changeCombatRunes', toRaw(runes)) 
   }
 }
