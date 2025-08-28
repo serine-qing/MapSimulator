@@ -21,8 +21,16 @@ const getEnemiesData = (enemyRefs: EnemyRef[]) => {
 }
 
 //获取全息作战矩阵runes
-const getMatrixRunes = (levelId: string) => {
-  return request.get(`/json/CombatMatrix/${levelId}.json`);
+const getRecalRunes = (levelId: string) => {
+  return request({
+    method: "post",
+    url: "/recalRune/getData",
+    data: {
+      levelId
+    }
+  })
 }
 
-export { getStorys, getStageInfo, getEnemiesData, getMatrixRunes };
+
+
+export { getStorys, getStageInfo, getEnemiesData, getRecalRunes };

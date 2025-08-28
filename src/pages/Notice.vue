@@ -8,14 +8,16 @@
       <template #reference> 
         <el-link type="danger">更新公告</el-link>
       </template>
+      <p style="color: red;">8.28更新：全息作战矩阵数据更新完成，目前部分tag还没搞清楚是乘算还是加算</p>
+      <p style="color: red;">需要等进一步的测试再更新</p>
       <p style="color: red;">8.25更新：太阳甩在身后机制完成</p>
       <p style="color: red;">8.21更新：众生行记敌人机制完善</p>
       <p style="color: red;">8.16更新：添加碰撞检测，添加雷遁忍者技能。添加当期合约地图（暂无tag）</p>
-      <p style="color: red;">8.14更新：“墟”S关地图更新</p>
+      <!-- <p style="color: red;">8.14更新：“墟”S关地图更新</p>
       <p style="color: red;">8.12更新：孤星机制优化</p>
       <p style="color: red;">8.9更新：完成路线显示功能</p>
       <p style="color: red;">8.6更新：完成惯性和避障力</p>
-      <p style="color: red;">8.5更新：新活动敌人、装置技能基本完成适配，雷遁忍者跳跃暂未实现。</p>
+      <p style="color: red;">8.5更新：新活动敌人、装置技能基本完成适配，雷遁忍者跳跃暂未实现。</p> -->
       <p></p>
       <p>目前项目还处于测试运行阶段，基础框架搭好了，但是方舟各个活动、主线机制复杂多样，每个活动都得独立做适配，我首先保证当期活动是没问题的。</p>
       <p>小水管服务器，承载能力可能不够，如果卡顿请见谅</p>

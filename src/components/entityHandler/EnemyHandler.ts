@@ -1,8 +1,10 @@
 import Enemy from "../enemy/Enemy";
+import * as THREE from "three";
 import Global from "../utilities/Global";
 import act35side from "./太阳甩在身后";
 import act42side from "./众生行记";
 import act44side from "./墟";
+import { gameCanvas } from "../game/GameCanvas";
 
 const EnemyHandler = {
 
@@ -36,6 +38,18 @@ const EnemyHandler = {
       case "enemy_1367_dseed":  //血泊
         enemy.unMoveable = true;
         enemy.notCountInTotal = true;
+    }
+
+    //判断是否是近地悬浮
+    const abilityList = enemy.enemyData.abilityList;
+    if(abilityList){
+      const find = abilityList.find(ability => {
+        return ability.text?.includes("近地悬浮")
+      });
+
+      if(find){
+        enemy.nearFly = true;
+      }
     }
   },
 

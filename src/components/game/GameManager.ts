@@ -221,12 +221,12 @@ class GameManager extends DataObject{
 
     // 2. 更新射线
     gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
-    const { trapObjects, tileObjects } = this.gameView;
+    const { trapObjects, tileObjects, enemyObjects } = this.gameView;
 
 
     //检测与enemy的交点
-    // if(enemyMeshs.length > 0){
-    //   const tokenIntersects = gameCanvas.raycaster.intersectObjects(enemyMeshs, true);
+    // if(enemyObjects.children.length > 0){
+    //   const tokenIntersects = gameCanvas.raycaster.intersectObjects(enemyObjects.children, true);
     //   if (tokenIntersects.length > 0) {
     //     const firstIntersect = tokenIntersects[0];  
     //     console.log(firstIntersect.object?.parent)

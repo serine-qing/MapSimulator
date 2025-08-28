@@ -150,7 +150,7 @@ class TileManager{
             x: tile.position.x,
             y: tile.position.y,
             callback: (enemy: Enemy) => {
-              if(enemy.motion === "WALK") enemy.hp = 0;
+              if(enemy.motion === "WALK" && !enemy.nearFly) enemy.hp = 0;
             }
           })
           break;

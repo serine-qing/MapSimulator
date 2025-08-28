@@ -46,7 +46,7 @@ const Handler = {
           duration: 0.1,
           every: false,
           callback: () => {
-            enemy.countdown.triggerCountdown("jump");
+            enemy.triggerSkill("jump");
           }
         })
       
@@ -91,6 +91,7 @@ const Handler = {
                   isWaitTrans: true
                 });
                 enemy.removeWatcher("takeoff");
+                enemy.motion = "FLY";
               }
             }
           });
@@ -106,12 +107,16 @@ const Handler = {
             transAnimation: "Jump",
             startLag: 0.33,
             endLag: 0.33,
-            isWaitTrans: false
+            isWaitTrans: false,
+            callback: () => {
+              enemy.motion = "WALK";
+            }
           },
           initCooldown,
           cooldown,
           trigger: "manual",
           callback: () => {
+            enemy.motion = "FLY";
             enemy.addBuff({
               id: "jumpspeedup",
               key: "jumpspeedup",

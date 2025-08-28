@@ -10,7 +10,7 @@ import { getCoordinate, getPixelSize } from "../utilities/utilities";
 
 class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据
-  public skeletonMesh: any;
+  public skeletonMesh;
 
   constructor(action: ActionData){
     super(action);

@@ -55,6 +55,7 @@ class RunesHelper{
         case "ebuff_attack_radius":     //全体攻击范围改变
         case "enemy_weight_add":
         case "ebuff_weight":   //全体重量改变
+        case "enemy_attribute_additive_mul":  //todo 这个不知道乘算还是加算
 
           this.getAttrChanges(rune);
 
@@ -210,11 +211,15 @@ class RunesHelper{
         case "enemy":
           val = valueStr.split("|");
           break;
+        case "enemyLevelType":
+          val = valueStr;
+          break;
         case "runeAlias":    
           val = valueStr;
           break;
         default:
           val = value;
+          if(rune.key === "enemy_attribute_additive_mul") val += 1;  //这个数值是增加的倍率，需要额外处理
           break;
       }
 
@@ -258,7 +263,8 @@ class RunesHelper{
   }
 
   public checkEnemyAttribute(data: EnemyData){
-    const { key , attributes } = data;
+    const { key , attributes, levelType } = data;
+    
     if(!data.attrChanges) data.attrChanges = {};
 
     Object.keys(this.attrChanges).forEach(type => {
@@ -266,13 +272,15 @@ class RunesHelper{
       
       changesArr.forEach(item => {
         let apply = true;
-        const {enemy, enemyExclude, calMethod} = item;
+        const {enemy, enemyExclude, enemyLevelType, calMethod} = item;
         if(enemy){
-        
+          console.log(item)
           apply = enemy.find(enemyKey => key === enemyKey);
         }else if(enemyExclude){
 
           apply = !enemyExclude.find(enemyKey => key === enemyKey);
+        }else if(enemyLevelType){
+          apply = enemyLevelType === levelType;
         }
         
         if(apply){

@@ -76,15 +76,14 @@ class MapModel{
 
     await this.initEnemyData(enemyDbRefs);
 
-    if(
-      !this.hiddenGroups &&
-      (
-        levelId.includes("obt/recalrune") ||
-        levelId.includes("obt/crisis")
-      )
-    ){
-      this.parseCombatMatrix();  
-    }
+    // if(
+    //   !this.hiddenGroups &&
+    //   (
+    //     levelId.includes("obt/recalrune")
+    //   )
+    // ){
+    //   this.parseCombatMatrix();  
+    // }
 
     //获取哪些敌人的spine是可用的
     //获取敌人spine
@@ -852,6 +851,9 @@ class MapModel{
                   group: null,
                   runes: [{
                     "key": "level_hidden_group_enable",
+                    "group": null,
+                    "type": null,
+                    "score": null,
                     "blackboard": [
                       {
                         "key": "key",
@@ -860,7 +862,7 @@ class MapModel{
                       }
                     ]
                   }],
-                  desc: "",
+                  desc: [""],
                   enemies: [ enemy ]
                 });
               }

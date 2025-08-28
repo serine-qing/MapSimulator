@@ -88,6 +88,7 @@ class Enemy extends DataObject{
   fragmentTime: number;  //分支开始时间
 
   applyWay: string;      //是否是远程 RANGED:远程 ALL:全部
+  nearFly: boolean = false;   //是否近地悬浮
 
   currentFrameSpeed: number;      //当前帧计算后的最终移速
 

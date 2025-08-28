@@ -181,21 +181,25 @@ const updateEnemyPosAndSize = () => {
 
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.object) return;
-    const {meshSize, meshOffset} = enemy;
+    let {meshSize, meshOffset} = enemy;
     
-    const height = meshSize.y * (enemy['fbxMesh']? 1 : 5.5);
-    const width = meshSize.x * (enemy['fbxMesh']? 1 : 5.5);
-
     let centerPos;
     if(enemy.isFly()){
       const box = new THREE.Box3().setFromObject(enemy.mesh);
       const center = new THREE.Vector3();
       box.getCenter(center);
-      centerPos = gameView.project(center);
 
+      const size = new THREE.Vector3();
+      box.getSize(size); 
+
+      meshSize = size;
+      centerPos = gameView.project(center);
     }else{
       centerPos = gameView.localToScreen(enemy.object.position);
     }
+
+    const height = meshSize.y * (enemy['fbxMesh']? 1 : 5.5);
+    const width = meshSize.x * (enemy['fbxMesh']? 1 : 5.5);
 
     const {x, y} = centerPos;
     const label = enemyLabels.value[enemy.id];
@@ -502,7 +506,7 @@ watch(() => gameManager, () => {
   user-select: none;
   font-size: 14px;
   position: absolute;
-  // background-color: aqua;
+  //background-color: aqua;
   color: white;
   cursor: pointer;
   transform-origin: center center;
