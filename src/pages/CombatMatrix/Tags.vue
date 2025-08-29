@@ -56,7 +56,7 @@
         <template v-for="(childTag, index) in tag.children">
           <div 
             class="tag"
-            v-if="childTag.active || tag.children.every(child => !child.active)"
+            v-show="childTag.active || tag.children.every(child => !child.active)"
             :class="{active: childTag.active}"
             @click="emit('handleMergeTagClick', tag, index)"
           >
@@ -74,7 +74,7 @@
           </div>
 
           <div 
-            v-else
+            v-show="!childTag.active && tag.children.find(child => child.active)"
             @click="emit('handleMergeTagClick', tag, index)"
             class="tag disable"
           >
@@ -100,6 +100,10 @@
         />
         <span v-else>{{ tag.runeId }}</span>
       </div>
+      <div 
+        v-if="tag.points"
+        class="tag-score"
+      >{{tag.points}}</div>
     </div>
   </div>
 </div>
@@ -191,7 +195,7 @@ $tag-height: 60px;
     justify-content: center;
     align-items: center;
     img{
-      height: 36px;
+      height: 40px;
     }
     .tag-icon{
       height: 40px;
@@ -222,7 +226,7 @@ $tag-height: 60px;
     .hexagon-inner{
       background-color: #ffffff;
       img{
-        background-color: #010101;
+        filter: invert(100%); //图片反色
       }
     }
   }
@@ -239,5 +243,4 @@ $tag-height: 60px;
     }
   }
 }
-
 </style>

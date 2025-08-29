@@ -10,8 +10,13 @@
       <div 
         class="icon"
       >
+        <span
+          v-if="activeTag.points > 0"
+        >
+          {{ activeTag.points }}
+        </span>
         <img 
-          v-if="activeTag.runeId === 'base'"
+          v-else-if="activeTag.runeId === 'base'"
           src="@/assets/images/recalrune/icon_rune_essential_fixed.png"
         >
         <img 
@@ -21,7 +26,7 @@
       </div>
 
       <div class="text">
-        <p v-for="text in activeTag.description">{{ text }}</p>
+        <p v-for="text in activeTag.description" v-html="text"></p>
       </div>
     </div>
   </template>
@@ -37,6 +42,7 @@ const { activeTags, essential } = defineProps(["activeTags", "essential"])
 .content{
   margin-top: 20px;
   display: flex;
+  scroll-margin-bottom: 10px;
   .icon{
     margin-top: 3px;
     height: 24px;
@@ -58,5 +64,34 @@ const { activeTags, essential } = defineProps(["activeTags", "essential"])
       margin: 0 6px;
     }
   }
+}
+@keyframes flashShadow {
+  0% {
+      box-shadow: 
+          0 -5px 10px -5px rgba(255, 255, 255, 0.1),
+          0 5px 10px -5px rgba(255, 255, 255, 0.1);
   }
+
+  50% {
+      box-shadow: 
+          0 -5px 10px -5px rgba(255, 255, 255, 1),
+          0 5px 10px -5px rgba(255, 255, 255, 1);
+  }
+
+  100% {
+      box-shadow: 
+          0 -5px 10px -5px rgba(255, 255, 255, 0.1),
+          0 5px 10px -5px rgba(255, 255, 255, 0.1);
+  }
+}
+.tagdesc-white-shadow {
+  box-shadow: 
+    0 -5px 10px -5px rgba(255, 255, 255, 0.8),
+    0 5px 10px -5px rgba(255, 255, 255, 0.8);
+    transition: transform 0.3s ease;
+    animation: flashShadow 1.6s ease;
+    animation-iteration-count: 2;
+}
+
+
 </style>

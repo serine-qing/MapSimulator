@@ -2,7 +2,6 @@ import * as THREE from "three"
 import GameConfig from "@/components/utilities/GameConfig"
 //编译静态的纹理材料数据
 
-//TODO 按照颜色分配变量名
 //静态数据
 const sea = new THREE.MeshBasicMaterial( {color: "#086e8d"} );
 const gray = new THREE.MeshBasicMaterial( {color: "#747474"} ); //淡灰

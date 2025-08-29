@@ -11,8 +11,8 @@
         
         <Tags
           :tagsData = "baseTagsData"
-          @handleTagClick = "handleTagClick"
-          @handleMergeTagClick = "handleMergeTagClick"
+          @handleTagClick = "handleBaseTagClick"
+          @handleMergeTagClick = "handleBaseMergeTagClick"
         />
       </div>
 
@@ -38,10 +38,6 @@
           <span class="num">{{ score }}</span>
         </div>
         <div class="btns">
-          <span 
-            class="hint"
-            v-show="!baseTagsChecked()"
-          >基础词条未点满！</span>
           <div 
             class="clear"
             @click="clear"
@@ -51,14 +47,10 @@
           <div 
             class="submit"
             @click="handleSubmit"
-            :class="{disabled: !canSubmit()}"
+            :class="{disabled: !hasChanged()}"
           >确定</div>
         </div>
       </div>
-
-      <span 
-        style="color: red; margin:5px;"
-      >部分Tag是乘算还是加算还需进一步进行确认，目前的数据仅供参考！</span>
       
     </div>
 
@@ -117,6 +109,7 @@ interface Tag{
   runeIcon: string,            //图片url
 }
 
+import { ElNotification } from 'element-plus';
 import Desc from './CombatMatrix/Desc.vue';
 import Tags from './CombatMatrix/Tags.vue';
 
@@ -147,23 +140,69 @@ const updateActiveTags = () => {
 
 }
 
+const showWarning = () => {
+  ElNotification({
+    title: '',
+    message: '基础指标无法取消选中',
+    type: 'info',
+    duration: 2000
+  })
+}
+
+//基础tag不能取消
+const handleBaseTagClick = (tag: Tag) => {
+  showWarning();
+}
+
+//至少要点一个
+const handleBaseMergeTagClick = (mergeTag, index) => {
+  const tag = mergeTag.children[index];
+  if(tag && !tag.active){
+    handleMergeTagClick(mergeTag, index);
+  }else{
+    showWarning();
+  }
+  
+}
+
+let activeDom;
+let clearShadow;
+//右侧详情跳转到当前选中tag
+const scrollGotoActiveTag = (tag: Tag) => {
+  if(tag.active){
+    requestAnimationFrame(() => {
+      activeDom = document.querySelector(`#${tag.runeId}`);
+      activeDom.scrollIntoView({
+        behavior: "smooth",
+        block: "end"
+      });
+      activeDom.classList.add("tagdesc-white-shadow");
+
+      clearShadow = setTimeout(() => {
+        activeDom.classList.remove("tagdesc-white-shadow");
+      }, 3000);
+    })
+  }
+}
+
 const handleTagClick = (tag: Tag) => {
+  if(clearTimeout){
+    clearTimeout(clearShadow);
+    activeDom?.classList?.remove("tagdesc-white-shadow");
+  }
+
   tag.active = !tag.active;
   updateActiveTags();
-  
-  // if(tag.active){
-  //   requestAnimationFrame(() => {
-  //     const activeDom = document.querySelector(`#${tag.runeId}`);
-  //     activeDom.scrollIntoView({
-  //       behavior: "smooth",
-  //       block: "end"
-  //     });
-  //   })
-  // }
+  scrollGotoActiveTag(tag);
   
 }
 
 const handleMergeTagClick = (mergeTag, index) => {
+  if(clearTimeout){
+    clearTimeout(clearShadow);
+    activeDom?.classList?.remove("tagdesc-white-shadow");
+  }
+  
   const children = mergeTag.children;
   const currentActive = !children[index].active;
 
@@ -171,6 +210,8 @@ const handleMergeTagClick = (mergeTag, index) => {
   children[index].active = currentActive;
 
   updateActiveTags();
+  scrollGotoActiveTag(children[index]);
+
 }
 
 const parseRunesData = (runes: Tag[]): (Tag | TagSGroup)[] => {
@@ -183,7 +224,7 @@ const parseRunesData = (runes: Tag[]): (Tag | TagSGroup)[] => {
     }else{
       rune.runeIcon = "/recalruneTags/fixed_rune_icon.png";
     }
-    
+
     if(rune.exclusiveGroupId){
       rune.type = "or";
 
@@ -209,7 +250,64 @@ const parseRunesData = (runes: Tag[]): (Tag | TagSGroup)[] => {
 
   });
 
+  data.forEach((rune, index) => {
+    if("children" in rune && rune.children.length === 1){
+      data[index] = rune.children[0];
+      data[index].type = null;
+    }
+  })
+
   return data;
+}
+
+//清空
+const clear = () => {
+  extraTagsData.value.forEach(tag => {
+    if("children" in tag){
+      tag.children.forEach(t => t.active = false);
+    }else{
+      tag.active = false;
+    }
+    
+  })
+
+  updateActiveTags();
+}
+
+//数据是否改变
+const hasChanged = ():boolean => {
+  return currentActiveTags.value.length !== activeTags.value.length ||
+    !!currentActiveTags.value.find(runeId => {
+      const find = activeTags.value.find(tag => tag.runeId === runeId);
+      return !find;
+    })
+}
+
+//提交更改
+const handleSubmit = () => {
+  if(hasChanged()){
+    const runes = [];
+    activeTags.value.forEach(tag => {
+      tag.runes.forEach(rune => {
+        runes.push(rune);
+      })
+    })
+    currentActiveTags.value = activeTags.value.map(activeTag => activeTag.runeId);
+    emit('changeCombatRunes', toRaw(runes)) 
+  }
+}
+
+const clickDefaultRunes = () => {
+  baseTagsData.value.forEach(tags => {
+    if("children" in tags){
+      tags.children[0].active = true;
+  
+    }else{
+      tags.active = true;
+    }
+  })
+
+  updateActiveTags();
 }
 
 const regex = /[^/]+$/;
@@ -222,55 +320,10 @@ const getData = () => {
     const extraTags = parsedRunes.filter(parsedRune => !parsedRune.essential);
     baseTagsData.value = parseRunesData(baseTags);
     extraTagsData.value = parseRunesData(extraTags);
+
+    clickDefaultRunes();
+    handleSubmit();
   })
-}
-
-//清空
-const clear = () => {
-  activeTags.value.forEach(tag => {
-    tag.active = false;
-  })
-  activeTags.value = [];
-}
-
-//数据是否改变
-const hasChanged = ():boolean => {
-  return currentActiveTags.value.length !== activeTags.value.length ||
-    !!currentActiveTags.value.find(runeId => {
-      const find = activeTags.value.find(tag => tag.runeId === runeId);
-      return !find;
-    })
-}
-
-//所有基础tag是否点了
-const baseTagsChecked = ():boolean => {
-  return baseTagsData.value.every((tag: Tag | TagSGroup) => {
-    if("children" in tag){
-      return !!tag.children.find(item => {
-        return item.active;
-      })
-    }else{
-      return tag.active;
-    }
-  })
-} 
-
-const canSubmit = (): boolean => {
-  return baseTagsChecked() && hasChanged();
-}
-
-//提交更改
-const handleSubmit = () => {
-  if(canSubmit()){
-    const runes = [];
-    activeTags.value.forEach(tag => {
-      tag.runes.forEach(rune => {
-        runes.push(rune);
-      })
-    })
-    currentActiveTags.value = activeTags.value.map(activeTag => activeTag.runeId);
-    emit('changeCombatRunes', toRaw(runes)) 
-  }
 }
 
 watch(() => levelId, () => {
@@ -316,6 +369,26 @@ const score = computed(() => {
     width: 350px;
     background-color: #000000;
     padding: 6px;
+
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+      
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #8b8b8b;
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #8b8b8b;
+    }
   }
 }
 

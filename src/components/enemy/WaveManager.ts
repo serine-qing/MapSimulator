@@ -28,6 +28,7 @@ class WaveManager{
   public maxEnemyCount: number = 0;
   public finishedEnemyCount: number = 0;
   private isFinished: boolean = false;
+  private needUpdateSPFA: boolean = false;
 
   public visualRoutes = [];
   constructor(){
@@ -37,7 +38,7 @@ class WaveManager{
 
     //通过actionData生成action对象 并且和enemy trap绑定
     Global.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
-    
+
     this.initActions();
     this.initExtraActions();
     this.generateVisualRoutes();  //生成模拟显示路线
@@ -345,6 +346,11 @@ class WaveManager{
             if(action.trap){
               action.trap.tile.bindTrap(action.trap);
               action.trap.show();
+              //todo 这里是临时处理，需要拓展方法 目前性能也有问题
+              if(action.trap.canBlockRoute()){
+                this.needUpdateSPFA = true;
+              }
+
               //模拟data set的时候会手动添加
               if(!Global.gameManager.isSimulate){
                 Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
@@ -371,6 +377,7 @@ class WaveManager{
 
   public update(delta: number){
     if(this.isFinished) return;
+
     this.gameSecond = Global.gameManager.gameSecond;
     this.waveSecond += delta;
 
@@ -393,7 +400,14 @@ class WaveManager{
           extra.isFinish = true;
         }
       }
+    }
 
+    //在action执行后，enemy更新前调用
+    //这样一帧哪怕部署了多个阻挡路线的装置，也只会计算一次寻路，提升性能
+    if(this.needUpdateSPFA){
+      Global.SPFA.regenerate(true);
+      this.generateVisualRoutes();
+      this.needUpdateSPFA = false;
     }
 
     if(this.isFinished) return;

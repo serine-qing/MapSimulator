@@ -162,19 +162,21 @@ const newGame = async (map) => {
   }
   mapData = map;
   levelId.value = mapData.levelId;
-  isStart.value = true;
-  isFinished.value = false;
-  loading.value = true;
 
   if(
-    mapData.levelId.includes("obt/recalrune") ||
-    mapData.levelId.includes("obt/crisis")
+    mapData.levelId.includes("obt/recalrune")
   ){
     isCombatMatrix.value = true;
   }else{
     isCombatMatrix.value = false;
   }
   
+  if(isCombatMatrix.value && matrixRunes.length === 0) return; //全息作战矩阵0tag不会开始游戏
+
+  isStart.value = true;
+  isFinished.value = false;
+  loading.value = true;
+
   mapModel = new MapModel(mapData, {
     runesData,
     matrixRunes

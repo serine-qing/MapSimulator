@@ -85,8 +85,6 @@ class GameManager extends DataObject{
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
 
-    
-
     this.tokenCards = mapModel.tokenCards.map(data =>{
       const tokenCard = new TokenCard(data);
       return tokenCard;

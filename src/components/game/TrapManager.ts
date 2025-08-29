@@ -19,13 +19,14 @@ class TrapManager{
         if(!trap.tile){
           const tile = Global.tileManager.getTile(trap.position);
           trap.bindTile(tile);
+
           if(!trapData.hidden){
             tile.bindTrap(trap);
           }
         }
       }
     });
-    
+
   }
 
   initMeshs(){
@@ -90,7 +91,6 @@ class TrapManager{
       const tState = data[i];
       const trap = this.traps[i];
 
-      //todo 难复现的bug
       if(!trap){
         console.log("state",state);
         console.log("traps",this.traps);

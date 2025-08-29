@@ -165,34 +165,8 @@ class SPFA{
         break;
     }
 
-    const trapKey = tile.trap?.key;
-
-    // console.log(trapKey)
-    switch (trapKey) {
-      case "trap_001_crate":
-      case "trap_002_emp":
-      case "trap_005_sensor":
-      case "trap_008_farm":
-      case "trap_020_roadblock":
-      case "trap_027_stone":
-      case "trap_032_mound":
-      case "trap_043_dupilr":
-      case "trap_044_duruin":
-      case "trap_075_bgarmn":
-      case "trap_076_bgarms":
-      case "trap_077_rmtarmn":
-      case "trap_078_rmtarms":
-      case "trap_080_garage":
-      case "trap_111_wdfarm":
-      case "trap_156_dsshell":
-      case "trap_163_foolcrate":
-      case "trap_405_xbroadblock":
-      case "trap_480_roadblockxb":
-        
-        distanceWeight = 1000;
-        break;
-    
-    }
+    const blockRoute = tile.trap?.canBlockRoute();
+    if(blockRoute) distanceWeight = 1000;
 
     return distanceWeight;
   }
@@ -284,6 +258,7 @@ class SPFA{
 
   //checkBlock:是否检查路线不通
   public regenerate(checkBlock: boolean): boolean{
+    console.log("regenerate")
     const old = this.pathMaps;
     this.pathMaps = [];
     this.generatepathMaps();
