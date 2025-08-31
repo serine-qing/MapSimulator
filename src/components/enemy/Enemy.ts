@@ -167,6 +167,7 @@ class Enemy extends DataObject{
     routesVisible: false         //是否可见路线
   }
 
+  public label: any;           //前端container所用label
 
   public object: THREE.Object3D;
 
@@ -186,6 +187,8 @@ class Enemy extends DataObject{
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   public mesh: THREE.Mesh;
+
+  public initialState;                      //初始状态数据
   constructor(action: ActionData){
     super();
     this.enemyData = action.enemyData;
@@ -217,6 +220,7 @@ class Enemy extends DataObject{
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
+    this.visualRoutes = this.route.visualRoutes;
     this.motion = checkEnemyMotion(this.key, motion);
 
     this.position = new THREE.Vector2();
@@ -243,12 +247,21 @@ class Enemy extends DataObject{
 
   public start(){
     this.reset();
+
+    //初始get和set都要在各种handle之前，否则会干扰
+    if(Global.gameManager.isSimulate){
+      this.initialState = this.get();
+    }else{
+      this.set(this.initialState)
+    }
     
     this.handleTalents();
     this.handleSkills();
     this.isStarted = true;
     this.show();
     this.handleStart();
+
+    
   }
 
   public reset(){
@@ -262,7 +275,8 @@ class Enemy extends DataObject{
     this.nextNode = null;
     this.animateState = 'idle';
     this.changeAnimation();
-    this.changeCheckPoint(0)
+    this.changeCheckPoint(0);
+
   }
 
   public getIntPosition(): THREE.Vector2{
@@ -330,6 +344,7 @@ class Enemy extends DataObject{
 
   public initMesh(){
     this.object = new THREE.Object3D();
+    this.object.userData.enemy = this;
     GC_Add(this.object);
 
     this.initShadow();
@@ -634,7 +649,6 @@ class Enemy extends DataObject{
           //没有路径，直接忽略它
           //可能是一些放在无路径地面的敌人，或者是bug
           this.unMoveable = true;
-          this.motion = "FLY";
           this.notCountInTotal = true;
           this.action.dontBlockWave = true;
             const tile = Global.tileManager.getTile(this.getIntPosition());
@@ -916,8 +930,9 @@ class Enemy extends DataObject{
       },
       set: (value) => {
         const change = this.options.routesVisible !== value;
-
+        
         if(change){
+
           this.options.routesVisible = value;
 
           //更改阴影颜色
@@ -1126,7 +1141,14 @@ class Enemy extends DataObject{
 
   public hide(){  
     this.visible = false;
-    if(!Global.gameManager.isSimulate && this.object) this.object.visible = false;
+    if(!Global.gameManager.isSimulate && this.object) {
+      if(!this.isStarted || this.isFinished){
+        
+        //如果拖动模拟时间条到未开始或结束，就隐藏路线显示
+        this.options.RoutesVisible = false;
+      }
+      this.object.visible = false;
+    };
   }
 
   //渐变退出，用exitCountDown时间控制（不同的子类有不同的实现方法）
@@ -1300,8 +1322,8 @@ class Enemy extends DataObject{
       faceToward: this.faceToward,
       nextNode: this.nextNode,
       isStarted: this.isStarted,
-      currentSecond: this.currentSecond,
       isFinished: this.isFinished,
+      currentSecond: this.currentSecond,
       unMoveable: this.unMoveable,
       idleAnimate: this.idleAnimate,
       moveAnimate: this.moveAnimate,
@@ -1335,7 +1357,7 @@ class Enemy extends DataObject{
       faceToward,
       nextNode,
       isStarted, 
-      isFinished, 
+      isFinished,
       animateState,
       unMoveable,
       idleAnimate,
@@ -1366,10 +1388,10 @@ class Enemy extends DataObject{
     this.faceToward = faceToward;
     this.nextNode = nextNode;
     this.isStarted = isStarted;
+    this.isFinished = isFinished;
     this.visible = visible;
     this.exitCountDown = exitCountDown;
     this.currentSecond = currentSecond;
-    this.isFinished = isFinished;
     this.transAnimationPlaying = transAnimationPlaying;
     this.shadowHeight = shadowHeight;
     this.unMoveable = unMoveable;
@@ -1405,11 +1427,6 @@ class Enemy extends DataObject{
       if(this.tilePosition){
         this.updateFaceToward();
         this.updateShadowHeight();
-      }
-
-      if(!isStarted || isFinished){
-        //如果拖动模拟时间条到未开始或结束，就隐藏路线显示
-        this.options.RoutesVisible = false;
       }
 
     }

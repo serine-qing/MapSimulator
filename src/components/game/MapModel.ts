@@ -15,6 +15,7 @@ import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
 import { immuneTable } from "../utilities/Interface";
+import act41side from "../entityHandler/挽歌燃烧殆尽";
 import act42side from "../entityHandler/众生行记";
 import Global from "../utilities/Global";
 
@@ -773,7 +774,16 @@ class MapModel{
       }
     })
 
+    act41side.parseExtraWave(branches, this.sourceData.enemyDbRefs);
     act42side.parseExtraWave(this.trapDatas, branches, this.sourceData.extraRoutes);
+
+    if(this.extraActionDatas.length === 0){
+      Object.keys(branches).forEach(key => {
+        const branche = branches[key]?.phases;
+        this.parseExtraActions(key, branche)
+      })
+    }
+
   }
 
   public parseExtraActions(key: string, data){

@@ -156,22 +156,35 @@ let canvasWidth: number;
 //#region  敌人label数据绑定                         
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
-    enemyLabels.value.push({
-      id: enemy.id,
-      key: enemy.key,
-      name: enemy.name,
-      checkPointLength: enemy.route.checkpoints.length,
-      options: enemy.options,
-      style: {}
-    });
-    
+    initLabel(enemy)
   })
+}
+
+const initLabel = (enemy: Enemy) => {
+  
+  enemyLabels.value.push({
+    id: enemy.id,
+    key: enemy.key,
+    name: enemy.name,
+    checkPointLength: enemy.route.checkpoints.length,
+    options: enemy.options,
+    style: {}
+  });
+  
+  enemy.label = enemyLabels.value[enemyLabels.value.length - 1];
+}
+
+const getEnemyLabel = (enemy: Enemy) => {
+  if(!enemy.label){
+    initLabel(enemy);
+  }
+  return enemy.label;
 }
 
 
 const updateEnemyVisible = () => {
   enemies.forEach(enemy => {
-    const label = enemyLabels.value[enemy.id];
+    const label = getEnemyLabel(enemy);
     label.visible = enemy.visible;
   });
 }
@@ -202,7 +215,7 @@ const updateEnemyPosAndSize = () => {
     const width = meshSize.x * (enemy['fbxMesh']? 1 : 5.5);
 
     const {x, y} = centerPos;
-    const label = enemyLabels.value[enemy.id];
+    const label = getEnemyLabel(enemy);
     const offsetY = meshOffset ? scale * meshOffset.y : 0;
     
     label.style = {
@@ -219,7 +232,7 @@ const updateEnemyPosAndSize = () => {
 const updateEnemyDatas = () => {
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.object) return;
-    const label = enemyLabels.value[enemy.id];
+    const label = getEnemyLabel(enemy);
     label.currentCheckPoint = enemy.checkPointIndex;
 
     const unMoveable = enemy.unMoveable;

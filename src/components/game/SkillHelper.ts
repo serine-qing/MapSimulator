@@ -5,7 +5,9 @@ const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
   const talents: { [key: string]: any } = {};
   talentBlackboard?.forEach(item  => {
 
-    const { key, value } = item;
+    const { key, value, valueStr } = item;
+    const val = valueStr? valueStr : value;
+
     const keyArr = key.toLowerCase().split(".");
 
     //key1 天赋种类 key2 天赋细分
@@ -14,7 +16,7 @@ const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
     if( !talents[ key1 ]){
       talents[ key1 ] = {};
     }
-    talents[ key1 ][ key2 ] = value;
+    talents[ key1 ][ key2 ] = val;
     
   })
 

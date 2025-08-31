@@ -35,10 +35,10 @@
               />
             </div>
             <div class="content">
-              <el-image class="head-image" :src="action.enemy?.icon" fit="fill" />
+              <el-image class="head-image" :src="action.enemyData?.icon" fit="fill" />
               <div class="name">
                 <span class="index">#{{action.id + 1}}</span>
-                {{action.enemy?action.enemy.name : "装置出现"}}
+                {{action.enemyData?action.enemyData.name : "装置出现"}}
               </div>
             </div>
           </div>

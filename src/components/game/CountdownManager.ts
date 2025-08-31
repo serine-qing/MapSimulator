@@ -134,8 +134,15 @@ class CountdownManager{
   }
 
   public set(state){
-    for(let i = 0; i < state.countdownStates.length; i++){
-      this.countdowns[i].set(state.countdownStates[i]);
+
+    for(let i = 0; i < this.countdowns.length; i++){
+      const timerState = state.countdownStates[i];
+      if(timerState){
+        this.countdowns[i].set(timerState);
+      }else{
+        this.countdowns[i].set([]);
+      }
+
     }
   }
 }

@@ -2,9 +2,9 @@ import Enemy from "../enemy/Enemy";
 import * as THREE from "three";
 import Global from "../utilities/Global";
 import act35side from "./太阳甩在身后";
+import act41side from "./挽歌燃烧殆尽";
 import act42side from "./众生行记";
 import act44side from "./墟";
-import { gameCanvas } from "../game/GameCanvas";
 
 const EnemyHandler = {
 
@@ -55,6 +55,7 @@ const EnemyHandler = {
 
   handleTalent: (enemy: Enemy, talent: any) => {
     act35side.handleTalent(enemy, talent);
+    act41side.handleTalent(enemy, talent);
     act42side.handleTalent(enemy, talent);
     act44side.handleTalent(enemy, talent);
     const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;
@@ -153,7 +154,6 @@ const EnemyHandler = {
           })
         }
         break;
-
       case "bleed":       //随时间掉血
         const { damage } = talent.value;
         enemy.countdown.addCountdown({

@@ -92,7 +92,7 @@ gameSpeed.value = GameConfig.GAME_SPEED;
 
 eventBus.on("second_change", (second: number) => {
   currentSecond.value = Math.floor(second);
-  sliderValue.value = Math.floor( Math.min(second, maxSecond.value) / gameManager.simStep);
+  sliderValue.value = Math.floor( Math.min(second, maxSecond.value * gameManager.simStep) / gameManager.simStep);
 })
 
 eventBus.on("gameStart", () => {

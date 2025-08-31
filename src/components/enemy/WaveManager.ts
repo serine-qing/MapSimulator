@@ -51,12 +51,7 @@ class WaveManager{
   private generateVisualRoutes(){
     const routes = [...this.mapModel.routes, ...this.mapModel.extraRoutes]; 
     routes.forEach(route => {
-      const pathNodes = this.getPathNodes(route);
-      this.enemies.forEach(enemy => {
-        if(enemy.route === route){
-          enemy.visualRoutes = pathNodes;
-        }
-      });
+      route.visualRoutes = this.getPathNodes(route);
     })
 
   }
@@ -146,14 +141,14 @@ class WaveManager{
     this.mapModel.actionDatas.forEach(datas => {
       this.actions.push(this.createActions(datas));
     })
-    this.maxEnemyCount = this.enemyId;
+    this.maxEnemyCount = this.actions.flat().length;
   }
 
 
   public initExtraActions(){
     this.mapModel.extraActionDatas.forEach(extraActionData => {
       const actions = this.createActions(extraActionData.actionDatas);
-      actions.forEach(action => action.enemy.isExtra = true);
+      actions.forEach(action => action.isExtra = true);
       
       this.extraActions.push({
         key: extraActionData.key,
@@ -176,36 +171,7 @@ class WaveManager{
       action.id = this.actionId++;
       actions.push(action);
       
-      switch (action.actionType) {
-        
-        case "SPAWN":
-          let enemy;
-          if(actionData.enemyData.fbxMesh){
-            enemy = new FbxEnemy(actionData);
-          }else if(actionData.enemyData.skeletonData){
-            enemy = new SpineEnemy(actionData);
-          }else{
-            enemy = new Enemy(actionData);
-          }
-          
-          enemy.id = this.enemyId++;
-          //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
-          action.enemy = enemy;
-          action.waveManager = this;
-
-          enemy.action = action;
-          this.enemies.push(enemy);
-          break;
-        
-        case "ACTIVATE_PREDEFINED":
-        case "TRIGGER_PREDEFINED":
-          const trapData = actionData.trapData;
-          if(trapData){
-            action.trap = Global.trapManager.traps.find(trap => trap.alias === trapData.alias);
-          }
-          break;
-
-      }
+      
     })
   
     return actions;
@@ -232,20 +198,13 @@ class WaveManager{
   }
 
 
-  public getEnemysByWaveIndex(waveIndex: number): Enemy[]{
-    const enemys = [];
+  public getActionsByWaveIndex(waveIndex: number): Action[]{
     const actions = this.actions[waveIndex];
-    actions?.forEach(action => {
-      if(action.enemy){
-        enemys.push(action.enemy);
-      }
-    })
-
-    return enemys.length > 0 ? enemys : null;
+    return actions;
   }
 
-  private currentWaveEnemys(): Enemy[]{
-    return this.getEnemysByWaveIndex(this.waveIndex);
+  private currentWaveActtons(): Action[]{
+    return this.getActionsByWaveIndex(this.waveIndex);
   }
 
   private changeNextWave(){
@@ -265,10 +224,10 @@ class WaveManager{
 
     const isWaveFinished = ![...currentActions, ...extraStartActs].find(action => {
       //不阻挡波次和没有绑定敌人
-      if((action.isStarted && action.dontBlockWave) || !action.enemy){
+      if((action.isStarted && action.dontBlockWave) || action.actionType !== "SPAWN"){
         return false;
       }else{
-        return !action.enemy.isFinished;
+        return !(action.isStarted && action.enemys[0]?.isFinished);
       }
     })
 
@@ -282,7 +241,6 @@ class WaveManager{
   private checkFinished(){
     
     if(this.isSpawnFinished()){
-      
       if(this.enemiesInMap.length === 0){
         //波次结束，并且场上无敌人
         this.isFinished = true;
@@ -303,12 +261,13 @@ class WaveManager{
 
   //是否主要波次出怪全部完毕
   private isSpawnFinished(){
-    const currentEnemys = this.currentWaveEnemys();
+    const currentActions = this.currentWaveActtons();
     let spawnFinished = false;
-    if(currentEnemys){
-      const nextEnemys = this.getEnemysByWaveIndex(this.waveIndex + 1);
+    if(currentActions){
+      
+      const nextActions = this.getActionsByWaveIndex(this.waveIndex + 1);
       //最后一个波次全部出怪完毕
-      spawnFinished = nextEnemys === null && currentEnemys.every(enemy => enemy.isStarted);
+      spawnFinished = !nextActions && currentActions.every(action => action.isStarted);
     }else{
       spawnFinished = true;
     }
@@ -319,6 +278,7 @@ class WaveManager{
   public startExtraAction(key: string){
     const extraAction = this.getExtraAction(key);
     if(extraAction){
+      extraAction.actions.forEach(action => action.isStarted = false);
       extraAction.isStart = true;
       extraAction.isFinish = false;
       extraAction.waveSecond = 0;
@@ -331,41 +291,80 @@ class WaveManager{
   }
 
   public handleAction(actions: Action[], waveSecond: number, callback?){
-    
+
     for (let i=0; i<actions.length; i++){ 
 
       const action: Action = actions[i];
-      
+      const actionData = action.actionData;
+
       if(!action.isStarted && action.startTime <= waveSecond){
+        
         switch (action.actionType) {
           case "SPAWN":
-            action.enemy.start();
-            this.enemiesInMap.push(action.enemy);
+            let enemy;
+            if(Global.gameManager.isSimulate){
+              if(actionData.enemyData.fbxMesh){
+                enemy = new FbxEnemy(actionData);
+              }else if(actionData.enemyData.skeletonData){
+                enemy = new SpineEnemy(actionData);
+              }else{
+                enemy = new Enemy(actionData);
+              }
+
+              //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
+              enemy.id = this.enemyId++;
+              
+              action.enemys.push(enemy);
+              action.waveManager = this;
+
+              enemy.action = action;
+              enemy.isExtra = action.isExtra;
+              this.enemies.push(enemy);
+            }else{
+              enemy = action.enemys[action.applyId];
+              
+            }
+
+            action.applyId++;
+
+            enemy.start();
+            this.enemiesInMap.push(enemy);
             break;
           case "ACTIVATE_PREDEFINED":
-            if(action.trap){
-              action.trap.tile.bindTrap(action.trap);
-              action.trap.show();
-              //todo 这里是临时处理，需要拓展方法 目前性能也有问题
-              if(action.trap.canBlockRoute()){
-                this.needUpdateSPFA = true;
-              }
-
-              //模拟data set的时候会手动添加
-              if(!Global.gameManager.isSimulate){
-                Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
-              }
-            }
-
-            break;
           case "TRIGGER_PREDEFINED":
-            const regex = /:([^:]+)$/;
-            const match = action.key.match(regex);
-            if(match){
-              const eventName = match[1];
-              action.trap.applyEvent(eventName);
+            if(Global.gameManager.isSimulate){
+              const trapData = actionData.trapData;
+              if(trapData){
+                action.trap = Global.trapManager.traps.find(trap => trap.alias === trapData.alias);
+              }
             }
-            break;
+            switch (action.actionType) {
+              case "ACTIVATE_PREDEFINED":
+              if(action.trap){
+                action.trap.tile.bindTrap(action.trap);
+                action.trap.show();
+
+                if(action.trap.canBlockRoute()){
+                  this.needUpdateSPFA = true;
+                }
+
+                //模拟data set的时候会手动添加
+                if(!Global.gameManager.isSimulate){
+                  Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
+                }
+              }
+
+              break;
+            case "TRIGGER_PREDEFINED":
+              const regex = /:([^:]+)$/;
+              const match = action.key.match(regex);
+              if(match){
+                const eventName = match[1];
+                action.trap.applyEvent(eventName);
+              }
+              break;
+            }
+          break;
         }
         action.start();
         
@@ -491,11 +490,20 @@ class WaveManager{
       action.set(aState);
     }
 
-    for(let i = 0; i< enemyStates.length; i++){
+    //todo 更节省内存的写法
+    for(let i = 0; i< this.enemies.length; i++){
+      
       const eState = enemyStates[i];
       const enemy = this.enemies[i];
+      if(eState){
+        enemy.set(eState);
+      }else{
+        //没有eState的都是还未开始的敌人
+        enemy.isStarted = false;
+        enemy.isFinished = false;
+        enemy.hide();
+      }
 
-      enemy.set(eState);
     }
 
     for(let i = 0; i < extraActionStates.length; i++){

@@ -219,16 +219,18 @@ class GameManager extends DataObject{
 
     // 2. 更新射线
     gameCanvas.raycaster.setFromCamera(gameCanvas.mouse, gameCanvas.camera);
-    const { trapObjects, tileObjects, enemyObjects } = this.gameView;
+    const { trapObjects, tileObjects } = this.gameView;
 
-
-    //检测与enemy的交点
-    // if(enemyObjects.children.length > 0){
-    //   const tokenIntersects = gameCanvas.raycaster.intersectObjects(enemyObjects.children, true);
+    // const enemyShadows = this.waveManager.enemiesInMap.map(enemy => enemy.shadow);
+    // const enemyMeshs = this.waveManager.enemiesInMap.map(enemy => enemy.mesh);
+    // //检测与enemy的交点
+    // if(enemyMeshs.length > 0){
+    //   const tokenIntersects = gameCanvas.raycaster.intersectObjects([...enemyShadows, ...enemyMeshs], true);
     //   if (tokenIntersects.length > 0) {
     //     const firstIntersect = tokenIntersects[0];  
-    //     console.log(firstIntersect.object?.parent)
-    //     const enemy: Enemy = firstIntersect.object?.parent?.userData?.enemy;
+    //     console.log(firstIntersect.object)
+    //     const enemy: Enemy = firstIntersect.object?.parent?.userData?.enemy ||
+    //       firstIntersect.object?.parent?.parent?.userData?.enemy
         
     //     if(enemy) return enemy;
     //   }
@@ -518,9 +520,9 @@ class GameManager extends DataObject{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    // console.log = ()=>{
-    //   return;
-    // }
+    console.log = ()=>{
+      return;
+    }
 
     this.isSimulate = true;
     const simData = {
@@ -549,7 +551,7 @@ class GameManager extends DataObject{
     }
 
     this.pause = cachePause;
-    this.maxSecond = simData.byTime.length - 1 + (startTime? startTime : 0);
+    this.maxSecond = (simData.byTime.length - 1) + (startTime? startTime : 0);
 
     eventBus.emit("update:maxSecond", this.maxSecond);
     eventBus.remove("action_index_change", fuc);

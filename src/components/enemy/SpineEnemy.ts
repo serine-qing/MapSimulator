@@ -33,7 +33,9 @@ class SpineEnemy extends Enemy{
     this.mesh = this.skeletonMesh;
     this.object.add(this.skeletonMesh);
     
-    const offsetY = this.motion === "WALK"? -1/4 : 0;
+    const motion = this.initialState.motion;
+
+    const offsetY = motion === "WALK"? -1/4 : 0;
     const coordinateOffset = getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
@@ -45,7 +47,7 @@ class SpineEnemy extends Enemy{
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    this.skeletonMesh.position.z = this.motion === "WALK"? 
+    this.skeletonMesh.position.z = motion === "WALK"? 
       getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
 
     this.getSkelSize();

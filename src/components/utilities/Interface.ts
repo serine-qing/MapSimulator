@@ -83,6 +83,7 @@ declare global {
     motionMode: string,
     spawnOffset: any,
     spawnRandomRange: any,
+    visualRoutes?: any,          //前端可视化使用
   }
 
   interface ActionData{

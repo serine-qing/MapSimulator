@@ -5,11 +5,15 @@ import Trap from "./Trap"
 class Action{
   id: number
   key: string
+  actionData: ActionData 
   actionType: string      //敌人生成模式
   startTime: number        //该波次开始时间
   dontBlockWave: boolean   //是否不影响下一波次刷新
   blockFragment: boolean   
-  enemy: Enemy            //绑定的敌人
+  isExtra: boolean = false;       //是否是额外波次
+  enemys: Enemy[] = []            //绑定的敌人。额外出怪可能会多次调用，数组length就会大于1
+  applyId: number = 0;            //调用id
+
   trap: Trap              //绑定的装置
   waveManager: WaveManager;
 
@@ -18,6 +22,7 @@ class Action{
   constructor(data: ActionData){
     const { key, actionType, startTime, dontBlockWave, blockFragment } = data;
 
+    this.actionData = data;
     this.key = key;
     this.actionType = actionType;
     this.startTime = startTime;
@@ -34,15 +39,17 @@ class Action{
 
   public get(){
     const state = {
-      isStarted: this.isStarted
+      isStarted: this.isStarted,
+      applyId: this.applyId
     }
 
     return state;
   }
 
   public set(state){
-    const { isStarted } = state;
+    const { isStarted, applyId } = state;
     this.isStarted = isStarted;
+    this.applyId = applyId;
   }
 }
 
