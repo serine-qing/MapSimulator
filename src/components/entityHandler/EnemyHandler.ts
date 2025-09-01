@@ -9,6 +9,7 @@ import act44side from "./墟";
 const EnemyHandler = {
 
   handleStart: (enemy: Enemy) => {
+    act41side.handleEnemyStart(enemy);
     act42side.handleEnemyStart(enemy);
 
     if(enemy.isExtra){
@@ -55,7 +56,6 @@ const EnemyHandler = {
 
   handleTalent: (enemy: Enemy, talent: any) => {
     act35side.handleTalent(enemy, talent);
-    act41side.handleTalent(enemy, talent);
     act42side.handleTalent(enemy, talent);
     act44side.handleTalent(enemy, talent);
     const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;

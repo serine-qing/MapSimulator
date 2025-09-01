@@ -12,8 +12,8 @@ class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据
   public skeletonMesh;
 
-  constructor(action: ActionData){
-    super(action);
+  constructor(action: ActionData, enemyData: EnemyData){
+    super(action, enemyData);
   }
   //初始化spine小人
   public initMesh(){

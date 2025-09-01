@@ -17,7 +17,9 @@ const start = (trap: Trap) => {
         initCountdown: duration,
         callback: () => {
           const waveManager =  Global.gameManager.waveManager;
-          waveManager.startExtraAction(trap.extraWaveKey);
+          waveManager.startExtraAction({
+            key: trap.extraWaveKey,
+          });
           trap.hide();
         }
       })

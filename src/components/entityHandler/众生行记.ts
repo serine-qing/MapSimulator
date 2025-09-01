@@ -108,7 +108,9 @@ const Handler = {
           const popeKey = customData.popeKeys[customData.popeIndex];
           if(popeKey !== undefined){
 
-            Global.waveManager.startExtraAction(popeKey);
+            Global.waveManager.startExtraAction({
+              key: popeKey
+            });
             customData.popeIndex += 1; 
           }
 

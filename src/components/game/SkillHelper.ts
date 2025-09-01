@@ -1,7 +1,7 @@
 const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
   const talentBlackboard = enemyData.talentBlackboard;
   if(!talentBlackboard) return null;
-  
+
   const talents: { [key: string]: any } = {};
   talentBlackboard?.forEach(item  => {
 
@@ -27,6 +27,7 @@ const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
     }
   });
   
+  
   res.forEach(talent => {
     switch (talent.key) {
       case "rush":
@@ -47,6 +48,7 @@ const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
         break;
     }
   })
+
   return res;
 }
 

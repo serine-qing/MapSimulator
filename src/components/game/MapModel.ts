@@ -77,15 +77,6 @@ class MapModel{
 
     await this.initEnemyData(enemyDbRefs);
 
-    // if(
-    //   !this.hiddenGroups &&
-    //   (
-    //     levelId.includes("obt/recalrune")
-    //   )
-    // ){
-    //   this.parseCombatMatrix();  
-    // }
-
     //获取哪些敌人的spine是可用的
     //获取敌人spine
     await this.getEnemyMeshs();
@@ -518,16 +509,15 @@ class MapModel{
       }
     })
 
-    
     //覆盖天赋
     overwrittenData.talentBlackboard?.forEach(talent => {
       const {key , value, valueStr} = talent;
       const find = rawData.talentBlackboard?.find(t => t.key === key);
       if(find){
-        if(value === null){
-          find.valueStr = valueStr;
-        }else{
+        if(valueStr === null){
           find.value = value;
+        }else{
+          find.valueStr = valueStr;
         }
       }else{
         if(!rawData.talentBlackboard) rawData.talentBlackboard = [];
@@ -737,7 +727,8 @@ class MapModel{
   private parseExtraWave(){
 
     const branches = this.sourceData.branches;
-
+    if(!branches) return;
+    
     this.trapDatas.forEach(trapData => {
       const actionIndex = trapData.customData.skillBlackboard?.find(item => item.key === "action_index")?.value;
       let branchId = trapData.customData.skillBlackboard?.find(item => item.key === "branch_id")?.value;
@@ -774,7 +765,7 @@ class MapModel{
       }
     })
 
-    act41side.parseExtraWave(branches, this.sourceData.enemyDbRefs);
+    act41side.parseExtraWave(branches);
     act42side.parseExtraWave(this.trapDatas, branches, this.sourceData.extraRoutes);
 
     if(this.extraActionDatas.length === 0){

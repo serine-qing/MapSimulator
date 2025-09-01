@@ -8,8 +8,8 @@
       <template #reference> 
         <el-link type="danger">更新公告</el-link>
       </template>
-      <p style="color: red;">8.28更新：全息作战矩阵数据更新完成，目前部分tag还没搞清楚是乘算还是加算</p>
-      <p style="color: red;">需要等进一步的测试再更新</p>
+      <p style="color: red;">9.1更新：重写和拓展底层出怪机制，修复一些bug</p>
+      <p style="color: red;">8.28更新：全息作战矩阵数据更新完成</p>
       <p style="color: red;">8.25更新：太阳甩在身后机制完成</p>
       <p style="color: red;">8.21更新：众生行记敌人机制完善</p>
       <p style="color: red;">8.16更新：添加碰撞检测，添加雷遁忍者技能。添加当期合约地图（暂无tag）</p>

@@ -1,61 +1,72 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
 
-//todo 还有spawn_2 spawn_3等等等等 
+const ftprgSpawnEnemy = (enemy, talent) => {
+  const {enemy_key, action_index, branch_id, summon_cnt, summon_interval, summon_start} = talent.value;
+
+  enemy.countdown.addCountdown({
+    name: branch_id,
+    initCountdown: summon_start,
+    countdown: summon_interval,
+    maxCount: summon_cnt,
+    callback: () => {
+      Global.waveManager.startExtraAction({
+        key: branch_id,
+        enemyKey: enemy_key,
+        actionIndex: action_index
+      });
+    }
+  })
+}
+
 const Handler = {
 
-  parseExtraWave: (branches: any, enemyDbRefs: any[]) => {
+  parseExtraWave: (branches: any) => {
     Object.keys(branches).forEach(key => {
-      let changeEnemyKey;
-
-      //修改出怪的id
-      enemyDbRefs.forEach(enemyDbRef => {
-        const blackboard = enemyDbRef.overwrittenData?.talentBlackboard;
-        if(blackboard){
-          const find = blackboard.find(item => {
-            return item.key === "spawn_1.branch_id" && item.valueStr === key;
-          });
-          if(find){
-            changeEnemyKey = blackboard.find(item => item.key === "spawn_1.enemy_key")?.valueStr;
-          }
-        }
-      })
-      
       const branche = branches[key]?.phases;
-      if(changeEnemyKey){
-        branche.forEach(item => {
-          item.actions.forEach(action => {
-            action.key = changeEnemyKey;
-          })
-        });
+      if(key.includes("prg_branch")){
+        Global.mapModel.parseExtraActions(key, branche)
       }
-
-      Global.mapModel.parseExtraActions(key, branche)
     })
+
   },
 
+  handleEnemyStart: (enemy: Enemy) => {
+    switch (enemy.key) {
+      case "enemy_10071_ftprg":    //“终点”
+      case "enemy_10071_ftprg_2":
+        let waitTime = 0;
+        enemy.talents.forEach(talent => {
+          
+          if (talent.key.includes("spawn_")) {
+            const {summon_cnt, summon_interval, summon_start} = talent.value;
+            waitTime = Math.max(waitTime, summon_start + summon_interval * (summon_cnt - 1) + 5.5);
 
-  handleTalent: (enemy: Enemy, talent: any) => {
-    switch (talent.key) {
-      case "spawn_1":      //“终点”
-        const {branch_id, summon_cnt, summon_interval, summon_start} = talent.value;
-        const waitTime = summon_start + summon_interval * (summon_cnt - 1) + 6;
-        enemy.countdown.addCountdown({
-          name: "checkPoint",
-          initCountdown: waitTime
-        })
-        enemy.countdown.addCountdown({
-          name: "spawnEnemy",
-          initCountdown: summon_start,
-          countdown: summon_interval,
-          maxCount: summon_cnt,
-          callback: () => {
-            Global.waveManager.startExtraAction(branch_id);
+            ftprgSpawnEnemy(enemy, talent);
           }
+        })
+
+        enemy.idleAnimate = "Invisible";
+        enemy.changeAnimation();
+
+        enemy.addSkill({
+          name: "checkPoint",
+          animateTransition: {
+            idleAnimate: "Idle",
+            moveAnimate: "Move",
+            transAnimation: "Start",
+            isWaitTrans: true
+          },
+          initCooldown: waitTime
         })
 
         break;
+
     }
+  },
+
+  handleTalent: (enemy: Enemy, talent: any) => {
+    
   },
 
 };

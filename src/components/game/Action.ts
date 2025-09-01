@@ -17,7 +17,6 @@ class Action{
   trap: Trap              //绑定的装置
   waveManager: WaveManager;
 
-  isStarted: boolean = false    //是否开始
   actionTime: number;           //实际执行时间
   constructor(data: ActionData){
     const { key, actionType, startTime, dontBlockWave, blockFragment } = data;
@@ -30,16 +29,8 @@ class Action{
     this.blockFragment = blockFragment;
   }
 
-
-  public start(){
-
-    this.isStarted = true;
-    
-  } 
-
   public get(){
     const state = {
-      isStarted: this.isStarted,
       applyId: this.applyId
     }
 
@@ -47,8 +38,7 @@ class Action{
   }
 
   public set(state){
-    const { isStarted, applyId } = state;
-    this.isStarted = isStarted;
+    const { applyId } = state;
     this.applyId = applyId;
   }
 }

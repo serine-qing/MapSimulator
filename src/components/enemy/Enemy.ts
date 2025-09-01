@@ -81,7 +81,8 @@ class Enemy extends DataObject{
   name: string;
   description: string;  
   icon: string;            //敌人头像URL
-  notCountInTotal: boolean; //是否是非首要目标
+  dontBlockWave: boolean = false;  //是否不拦截波次
+  notCountInTotal: boolean;        //是否是非首要目标
   cantFinished: boolean = false;   //敌人是否可进点
 
   startTime: number;     //该敌人开始时间
@@ -189,11 +190,12 @@ class Enemy extends DataObject{
   public mesh: THREE.Mesh;
 
   public initialState;                      //初始状态数据
-  constructor(action: ActionData){
+  constructor(action: ActionData, enemyData: EnemyData){
     super();
-    this.enemyData = action.enemyData;
+    this.enemyData = enemyData;
     this.startTime = action.startTime;
     this.fragmentTime = action.fragmentTime;
+    this.dontBlockWave = action.dontBlockWave;
 
     const {
       key, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
@@ -388,7 +390,7 @@ class Enemy extends DataObject{
 
   initAttackRangeCircle(){
     if(this.isRanged()){
-      const radius = getPixelSize(this.attributes.rangeRadius);
+      const radius = getPixelSize(this.attributes.rangeRadius + 0.25);
       const curve = new THREE.EllipseCurve(
         0,  0,            // ax, aY
         radius, radius,           // xRadius, yRadius
@@ -1103,7 +1105,8 @@ class Enemy extends DataObject{
     let objs, keyName;
     if(enemyKeys){
       keyName = enemyKeys[0];
-      objs = Global.waveManager.enemies.filter(enemy => enemyKeys.includes(enemy.key));
+      //todo 这种有问题 能不能想个办法做缓存
+      objs = Global.waveManager.enemiesInMap.filter(enemy => enemyKeys.includes(enemy.key));
     }else if(tileKeys){
       keyName = tileKeys[0];
       objs = Global.tileManager.flatTiles.filter(tile => tileKeys.includes(tile.tileKey));
@@ -1115,6 +1118,9 @@ class Enemy extends DataObject{
         initCountdown: 0,
         countdown: duration,
         callback: () => {
+          if(enemyKeys){
+            objs = Global.waveManager.enemiesInMap.filter(enemy => enemyKeys.includes(enemy.key));
+          }
           for(let i = 0; i < objs.length; i++){
             const obj = objs[i];
             if(obj.isEnemy && (!obj.isStarted || obj.isFinished)) continue;
@@ -1123,6 +1129,7 @@ class Enemy extends DataObject{
             const distance = this.position.distanceTo(detectPos);
             
             if(distance <= detectionRadius){
+              
               callback(obj);
               if(!every) break;
             }
@@ -1315,6 +1322,7 @@ class Enemy extends DataObject{
     }
 
     const state = {
+      id: this.id,
       position,
       acceleration: this.acceleration,
       inertialVector: this.inertialVector,
