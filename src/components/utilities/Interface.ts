@@ -1,5 +1,6 @@
 import Enemy from "@/components/enemy/Enemy"
 import Trap from "../game/Trap"
+import Tile from "../game/Tile"
 
 declare global {
   interface Stage{
@@ -167,8 +168,16 @@ declare global {
     remove(T);
     equal(T);
   }
+
+  interface Math{
+    clamp(x: number, min: number, max: number);
+  }
+
 }
 
+Math.clamp = function(x: number, min: number, max: number){
+  return Math.max(Math.min(x, max), min);
+}
 
 Array.prototype.remove = function(item){
   const index = this.findIndex(i => i === item);

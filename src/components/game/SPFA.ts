@@ -1,16 +1,99 @@
-import {bresenhamLine} from "@/components/utilities/utilities"
-import * as THREE from "three"
+import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
 import Global from "../utilities/Global";
+import { Vector2 } from "three";
+
+//设定该地块上下左右是否可以通行
+interface BlockEdge{
+  position: Vec2,
+  blockMask: string,  //WALK_ONLY FLY_ONLY
+  left: boolean,
+  right: boolean,
+  up: boolean,
+  down: boolean,
+}
 
 class SPFA{
   public pathMaps: PathMap[] = []; //寻路地图
   public enemyRoutes: EnemyRoute[] = [];
-  public extraBlocks: THREE.Vector2[] = [];
-  constructor(enemyRoutes: EnemyRoute[], extraBlocks: THREE.Vector2[]){
+  private blockEdges: BlockEdge[] = [];
+  public extraBlocks: Vector2[] = [];
+  constructor(enemyRoutes: EnemyRoute[], extraBlocks: Vector2[], blockEdges: any[]){
     Global.SPFA = this;
 
+    //阻挡tile的某个方向，一般登临意用
+    this.initBlockEdges(blockEdges);
     this.enemyRoutes = enemyRoutes; 
     this.extraBlocks = extraBlocks;
+  }
+
+  private initBlockEdges(data: any[]){
+    if(!data) return;
+    const parseBlockEdge = (position: Vec2, blockMask: string, direction: string) => {
+      let find = this.blockEdges.find(blockEdge => {
+        return blockEdge.blockMask === blockMask &&
+          blockEdge.position.x === position.x &&
+          blockEdge.position.y === position.y
+      })
+
+      if(!find){
+        find = {
+          position,
+          blockMask,
+          left: false,
+          right: false,
+          up: false,
+          down: false
+        };
+        this.blockEdges.push(find)
+      }
+
+      find[direction] = true;
+    }
+
+    data.forEach(item => {
+      let { pos, direction, blockMask } = item;
+      blockMask = blockMask.replace("_ONLY", "");
+
+      const position1 = RowColToVec2(pos);
+      const direction1 = direction.toLowerCase();
+      let position2;
+      let direction2;
+      switch (direction1) {
+        case "left":
+          position2 = {
+            x: position1.x - 1,
+            y: position1.y
+          }
+          direction2 = "right";
+          break;
+        case "right":
+          position2 = {
+            x: position1.x + 1,
+            y: position1.y
+          }
+          direction2 = "left";
+          break;
+        case "up":
+          position2 = {
+            x: position1.x,
+            y: position1.y + 1
+          }
+          direction2 = "down";
+          break;
+        case "down":
+          position2 = {
+            x: position1.x,
+            y: position1.y - 1
+          }
+          direction2 = "up";
+          break;
+      
+      }
+
+      parseBlockEdge(position1, blockMask, direction1);
+      parseBlockEdge(position2, blockMask, direction2);
+    })
+
   }
 
   //生成寻路地图需要用到的拷贝对象
@@ -74,6 +157,36 @@ class SPFA{
     return pathMap;
   }
 
+  private checkBlockEdge(position: Vec2, blockMask: string, directionNum: number): boolean {
+    const find = this.blockEdges.find(blockEdge => {
+      return blockEdge.blockMask === blockMask &&
+        blockEdge.position.x === position.x &&
+        blockEdge.position.y === position.y
+    })
+
+    if(find){
+      let direction;
+      switch (directionNum) {
+        case 0:
+          direction = "up";
+          break;
+        case 1:
+          direction = "right";
+          break;
+        case 2:
+          direction = "down";
+          break;
+        case 3:
+          direction = "left";
+          break;
+      }
+
+      return find[direction];
+    }else{
+      return false;
+    }
+  }
+
   //给定目标地块生成寻路地图
   /**
    *
@@ -115,8 +228,11 @@ class SPFA{
 
         //扫描地板是可通行地板
         if(
-          motionMode === "WALK" && Global.tileManager.isTilePassable(_x,_y) || 
-          motionMode === "FLY" && Global.tileManager.isTileFlyable(_x,_y)
+          !this.checkBlockEdge(nowPostion, motionMode, i) && 
+          (
+            motionMode === "WALK" && Global.tileManager.isTilePassable(_x,_y) || 
+            motionMode === "FLY" && Global.tileManager.isTileFlyable(_x,_y)
+          )
         ){
 
           if(mapping[_y][_x] === null){
@@ -217,6 +333,9 @@ class SPFA{
           return !Global.tileManager.isTileFlyable(x, y);
         }
         else if(motionMode === "WALK"){
+          const tile = Global.tileManager.getTile(x, y);
+          if(tile.tileKey === "tile_passable_wall") return true;
+
           const isBlockedOrHole = this.getDistanceWeight(x, y) >= 1000;
           return !Global.tileManager.isTilePassable(x, y) || isBlockedOrHole;
         }
@@ -244,7 +363,7 @@ class SPFA{
   }
 
   //motionMode：飞行还是地面 targetPoint：检查点目标点 position：当前光标位置
-  public getPathNode(targetPoint: Vec2, motionMode: string, currentPosition: THREE.Vector2 | Vec2): PathNode{
+  public getPathNode(targetPoint: Vec2, motionMode: string, currentPosition: Vector2 | Vec2): PathNode{
     const x = currentPosition.x;
     const y = currentPosition.y;
 

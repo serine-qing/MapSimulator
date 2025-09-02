@@ -84,7 +84,7 @@ const tileTextures = {
     yang: pureWhite
   },
 }
-
+tileTextures["tile_passable_wall"] = tileTextures["tile_wall"];
 tileTextures["tile_fence_bound"] = tileTextures["tile_fence"];
 
 const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
@@ -105,6 +105,12 @@ const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
 }
 
 const textureMats = {};
+
+textureMats["moonlight_shadow"] = new THREE.MeshBasicMaterial({
+  color: "#000000",
+  transparent: true
+});
+
 const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   const {texture1} = textures;
   texture1.encoding = THREE.sRGBEncoding;
@@ -112,8 +118,8 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
     "gem", "gemdark","juntan",null, "tile_banned", "tile_banned2", "tile_bigforce", "tile_bigforce2",
     "tile_bnspck_road", "tile_corrosion", "tile_defup", "tile_end" ,"tile_floor", "tile_flystart",
     "tile_gazebo", "tile_grass", "tile_grvtybtn_down", "tile_grvtybtn_up",  "tile_healing", "tile_infection", 
-    "tile_ristar_road","tile_ristar_road_forbidden", "tile_sleep_wall", "tile_smog","tile_start", 
-    "tile_telin", "tile_telout", "tile_volcano"
+    "tile_ristar_road","tile_ristar_road_forbidden", "tile_sleep_wall", "tile_smog","tile_stairs","tile_stairs_2",
+    "tile_start", "tile_telin", "tile_telout", "tile_volcano"
   ]
 
   keyArr.forEach( (key, index) => {

@@ -5,6 +5,8 @@ import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
 
 import act35side from "../entityHandler/太阳甩在身后";
+import { getPixelSize } from "../utilities/utilities";
+import GameConfig from "../utilities/GameConfig";
 
 interface TileEvent{
   key: string,
@@ -92,7 +94,7 @@ class TileManager{
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）
-  public getTile(x: number | Vec2, y?: number): Tile | null{
+  public getTile(x: number | Vec2 | Vector2, y?: number): Tile | null{
     const _x = typeof x === "number"? x : x.x; 
     const _y = typeof x === "number"? y : x.y; 
 
@@ -103,6 +105,25 @@ class TileManager{
     else{
       return null;
     }  
+  }
+
+  //获取一个矩形范围内的tile
+  public getRect(x1, x2, y1, y2): Tile[]{
+    const minX = Math.clamp( Math.min(x1, x2), 0, this.width - 1 );
+    const maxX = Math.clamp( Math.max(x1, x2), 0, this.width - 1 );
+    const minY = Math.clamp( Math.min(y1, y2), 0, this.height - 1 );
+    const maxY = Math.clamp( Math.max(y1, y2), 0, this.height - 1 );
+
+    console.log(minX, maxX, minY, maxY)
+    const rect = [];
+    for(let x = minX; x <= maxX; x++){
+      for(let y = minY; y <= maxY; y++){
+      
+        rect.push(this.getTile(x, y));
+      }
+    }
+
+    return rect;
   }
 
   //获取某个地板是否可地面通行
@@ -153,6 +174,32 @@ class TileManager{
               if(enemy.motion === "WALK" && !enemy.nearFly) enemy.hp = 0;
             }
           })
+          break;
+        case "tile_passable_wall":    //云梯
+          this.addEvent({
+            key: "stairs",
+            type: "in",
+            isMerge: true,
+            x: tile.position.x,
+            y: tile.position.y,
+            callback: (enemy: Enemy) => {
+              if(enemy.motion === "WALK" && !enemy.nearFly){
+                enemy.setZOffset( getPixelSize(GameConfig.TILE_HEIGHT) );
+              }
+            }
+          });
+
+          this.addEvent({
+            key: "stairs",
+            type: "out",
+            x: tile.position.x,
+            y: tile.position.y,
+            callback: (enemy: Enemy) => {
+              if(enemy.motion === "WALK" && !enemy.nearFly){
+                enemy.setZOffset( 0 );
+              }
+            }
+          });
           break;
       
       }

@@ -8,7 +8,12 @@ import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "../enemy/DataObject";
 
-
+interface DynamicTexture{
+  key: string,
+  textureName: string,
+  visible: boolean,
+  texture?: Mesh
+}
 
 class Tile extends DataObject{
   static boxGeos = [];
@@ -38,7 +43,7 @@ class Tile extends DataObject{
   border: BoxHelper;
 
   textures = new THREE.Group();
-  dynamicTextures = [];
+  dynamicTextures: DynamicTexture[] = [];
 
   sideMaterial: Material;
   topMaterial: Material;
@@ -224,12 +229,30 @@ class Tile extends DataObject{
 
   public addDynamicTexture(textureName: string, dynamicName: string){
 
-    if(!this.getDynamicTexture(dynamicName)){
+    const findTexture = this.getDynamicTexture(dynamicName);
+
+    if(findTexture){
+      findTexture.visible = true;
+      if(findTexture.texture) findTexture.texture.visible = true;
+      
+    }else{
       this.dynamicTextures.push({
-        name: dynamicName,
+        key: dynamicName,
         textureName,
+        visible: true,
         texture: null
       })
+    }
+    
+  }
+
+  public removeDynamicTexture(dynamicName: string){
+    const findTexture = this.getDynamicTexture(dynamicName);
+
+    if(findTexture){
+      findTexture.visible = false;
+
+      if(findTexture.texture) findTexture.texture.visible = false;
     }
   }
 
@@ -252,7 +275,10 @@ class Tile extends DataObject{
         opacity = 0.7;
         textureScale = 1;
         break;
-
+      case "moonlight_shadow":
+        opacity = 0.5;
+        textureScale = 1;
+        break;
       default:
         opacity = 1;
         textureScale = 0.9;
@@ -275,8 +301,8 @@ class Tile extends DataObject{
   }
 
   //获取已添加的动态textrue
-  public getDynamicTexture(name){
-    const find = this.dynamicTextures.find(dynamicTexture => dynamicTexture.name === name);
+  public getDynamicTexture(key: string){
+    const find = this.dynamicTextures.find(dynamicTexture => dynamicTexture.key === key);
     return find;
   }
 
@@ -424,7 +450,8 @@ class Tile extends DataObject{
       trapStates: this.trap,
       textureStates: this.dynamicTextures.map(dynamicTexture => {
         return {
-          name: dynamicTexture.name,
+          key: dynamicTexture.key,
+          visible: dynamicTexture.visible
         }
       })
     };
@@ -438,9 +465,9 @@ class Tile extends DataObject{
     this.trap = trapStates;
 
     !Global.gameManager.isSimulate && this.dynamicTextures.forEach(dynamicTexture => {
-      const { name } = dynamicTexture;
-      const find = textureStates.find(textureState => textureState.name === name);
-      if(find){
+      const { key } = dynamicTexture;
+      const find = textureStates.find(textureState => textureState.key === key);
+      if(find && find.visible){
         dynamicTexture.texture.visible = true;
       }else{
         dynamicTexture.texture.visible = false;

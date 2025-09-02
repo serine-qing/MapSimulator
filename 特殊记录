@@ -53,7 +53,7 @@ gems_type: 1 浅色结晶 2 深色结晶
 装置额外出怪：
 MapModel.parseExtraWave：初始化波次Data数据
 
-
+parseRune
 parseExtraWave
 initTileEvents
 handleGameInit

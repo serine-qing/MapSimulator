@@ -55,7 +55,7 @@ class RunesHelper{
         case "ebuff_attack_radius":     //全体攻击范围改变
         case "enemy_weight_add":
         case "ebuff_weight":   //全体重量改变
-        case "enemy_attribute_additive_mul":  //todo 这个不知道乘算还是加算
+        case "enemy_attribute_additive_mul":
 
           this.getAttrChanges(rune);
 

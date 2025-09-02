@@ -34,8 +34,10 @@ class SpineEnemy extends Enemy{
     this.object.add(this.skeletonMesh);
     
     const motion = this.initialState.motion;
+    let isGroundUnit = motion === "WALK"; //是否是地面单位
+    if(this.key.includes("enemy_3005_lpeopl")) isGroundUnit = true;  //修道院居民在boss关是空中单位
 
-    const offsetY = motion === "WALK"? -1/4 : 0;
+    const offsetY = isGroundUnit? -1/4 : 0;
     const coordinateOffset = getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
@@ -47,7 +49,9 @@ class SpineEnemy extends Enemy{
     this.idle();
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    this.skeletonMesh.position.z = motion === "WALK"? 
+    
+
+    this.skeletonMesh.position.z = isGroundUnit? 
       getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
 
     this.getSkelSize();

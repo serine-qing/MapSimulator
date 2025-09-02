@@ -562,15 +562,14 @@ class MapModel{
       
     })
 
-    const enemyRefReq = Array.from(enemies).filter((enemyRef: EnemyRef) => enemyRef.useDb);
+    const enemyRefReq = Array.from(enemies);
     const res: any = await getEnemiesData( enemyRefReq );
     const enemyDatas = res.data.EnemyDatas;
 
     enemies.forEach((enemyDbRef: EnemyRef) => {
-
       let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
 
-      if(!enemyData) return;
+      if(!enemyData ) return;     
 
       const overwrittenData = enemyDbRef.overwrittenData;
       
@@ -599,10 +598,9 @@ class MapModel{
       const extraKey = overwrittenData.prefabKey.m_value;
 
       const baseEnemy: EnemyData = enemyDatas.find(e => e.key === extraKey);
-
       const extraEnemy = { ...baseEnemy };
       const { attributes, talentBlackboard } = baseEnemy;
-
+      
       //深拷贝
       extraEnemy.attributes = {...attributes};
 
@@ -830,7 +828,11 @@ class MapModel{
         extraBlocks.push(action.route.startPosition);
       }
     });
-    this.SPFA = new SPFA([...this.routes, ...this.extraRoutes], extraBlocks);
+    this.SPFA = new SPFA(
+      [...this.routes, ...this.extraRoutes], 
+      extraBlocks, 
+      this.sourceData.mapData.blockEdges
+    );
   }
 
   //解析全息作战矩阵数据

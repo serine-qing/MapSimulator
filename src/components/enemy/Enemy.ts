@@ -353,7 +353,7 @@ class Enemy extends DataObject{
     this.initAttackRangeCircle();
   }
 
-  initShadow(){
+  public initShadow(){
     const majorAxis = getPixelSize(0.35); //椭圆长轴
     const minorAxis = getPixelSize(0.08); //椭圆短轴
 
@@ -386,6 +386,11 @@ class Enemy extends DataObject{
     activeShadow.position.y = shadowOffset.y;
     this.object.add(shadow)
     this.object.add(activeShadow)
+  }
+
+  public setZOffset(ZOffset: number){
+    this.ZOffset = ZOffset;
+    if(this.object) this.object.position.z = ZOffset;
   }
 
   initAttackRangeCircle(){
@@ -653,12 +658,9 @@ class Enemy extends DataObject{
           this.unMoveable = true;
           this.notCountInTotal = true;
           this.action.dontBlockWave = true;
-            const tile = Global.tileManager.getTile(this.getIntPosition());
-            this.ZOffset = tile.height;
+          const tile = Global.tileManager.getTile(this.getIntPosition());
+          this.setZOffset( getPixelSize(tile.height) );
 
-          if(this.object){
-            this.object.position.z = getPixelSize(this.ZOffset);
-          }
           return;
         }
 
@@ -1105,14 +1107,12 @@ class Enemy extends DataObject{
     let objs, keyName;
     if(enemyKeys){
       keyName = enemyKeys[0];
-      //todo 这种有问题 能不能想个办法做缓存
-      objs = Global.waveManager.enemiesInMap.filter(enemy => enemyKeys.includes(enemy.key));
     }else if(tileKeys){
       keyName = tileKeys[0];
       objs = Global.tileManager.flatTiles.filter(tile => tileKeys.includes(tile.tileKey));
     }
 
-    if(objs){
+    if(keyName){
       this.countdown.addCountdown({
         name: `Detection$${keyName}`,
         initCountdown: 0,
@@ -1347,6 +1347,7 @@ class Enemy extends DataObject{
       motion: this.motion,
       route: this.route,
       tilePosition: this.tilePosition,
+      ZOffset: this.ZOffset,
       hp: this.hp,
       die: this.die,
       changeTileEvents: [...this.changeTileEvents],
@@ -1382,6 +1383,7 @@ class Enemy extends DataObject{
       motion,
       route,
       tilePosition,
+      ZOffset,
       hp,
       die,
       changeTileEvents,
@@ -1429,6 +1431,8 @@ class Enemy extends DataObject{
       if(simulateTrackTime){
         this.handleTrackTime(simulateTrackTime);
       }
+
+      this.setZOffset(ZOffset);
 
       this.shadow.position.z = this.shadowHeight;
       this.visible? this.show() : this.hide();

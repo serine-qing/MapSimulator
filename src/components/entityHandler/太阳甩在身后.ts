@@ -74,14 +74,11 @@ const canSpawnGem = (tile: Tile): boolean => {
 }
 
 const handleSpawnGem = (tile: Tile) => {
-  const gemTexture = tile.getDynamicTexture("gem");
+
   //获取已经模拟环境添加过的texture mesh
   addGemEvent(tile.position);
-  if(!Global.gameManager.isSimulate){
-    gemTexture.texture.visible = true;
-  }else{
-    addGemTexture(tile, 2);
-  }
+  addGemTexture(tile, 2);
+  
 }
 
 //添加太阳甩在身后的结晶图像
