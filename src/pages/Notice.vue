@@ -8,6 +8,7 @@
       <template #reference> 
         <el-link type="danger">更新公告</el-link>
       </template>
+      <p style="color: red;">9.4更新：无忧梦呓资源加载</p>
       <p style="color: red;">9.1更新：重写和拓展底层出怪机制，修复一些bug</p>
       <p style="color: red;">8.28更新：全息作战矩阵数据更新完成</p>
       <p style="color: red;">8.25更新：太阳甩在身后机制完成</p>

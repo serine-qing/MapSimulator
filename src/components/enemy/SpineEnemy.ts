@@ -31,7 +31,10 @@ class SpineEnemy extends Enemy{
       parameters.depthWrite = false;
     }); 
     this.mesh = this.skeletonMesh;
-    this.object.add(this.skeletonMesh);
+    this.meshContainer = new THREE.Object3D();
+    this.meshContainer.add(this.skeletonMesh);
+
+    this.object.add(this.meshContainer);
     
     const motion = this.initialState.motion;
     let isGroundUnit = motion === "WALK"; //是否是地面单位
@@ -44,7 +47,7 @@ class SpineEnemy extends Enemy{
     this.skeletonMesh.position.y = coordinateOffset.y;
 
     const spineScale = getSpineScale(this);
-    this.object.scale.set(spineScale,spineScale,1);
+    this.meshContainer.scale.set(spineScale.x, spineScale.y ,1);
 
     this.idle();
 
@@ -99,7 +102,7 @@ class SpineEnemy extends Enemy{
       const offsetY = -(meshOffset.y + meshSize.y / 2);
       this.meshOffset.y += offsetY * 6;
 
-      this.meshSize = meshSize.multiplyScalar(getSpineScale(this));
+      this.meshSize = meshSize.multiplyScalar( getSpineScale(this).y );
     }
     
     //恢复track的动画帧

@@ -9,7 +9,7 @@ abstract class Handler{
 
   abstract initTileEvents(tile: Tile);
 
-  abstract handleGameInit();
+  abstract afterGameInit();
 
   abstract handleEnemyStart(enemy: Enemy);
 

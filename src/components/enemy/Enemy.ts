@@ -42,6 +42,8 @@ interface DetectionParam{
   callback: Function,  
 }
 
+
+
 interface SkillParam{
   name: string,
   animateTransition: AnimateTransition,
@@ -94,6 +96,7 @@ class Enemy extends DataObject{
   currentFrameSpeed: number;      //当前帧计算后的最终移速
 
   attributes: {[key: string]: number} = {};    //属性
+  
   hp: number;
   die: boolean = false;
   //属性乘区 每帧计算
@@ -108,7 +111,7 @@ class Enemy extends DataObject{
     maxHp: 1,
     moveSpeed: 1,
     rangeRadius: 1,
-  };    
+  };
 
   //属性乘区 每帧从gamebuff里面获取
   buffs: Buff[] = [];
@@ -142,7 +145,7 @@ class Enemy extends DataObject{
   
   currentSecond: number = 0;      //敌人的当前时间
 
-  public countdown: Countdown;  //倒计时
+  
   public watchers: Watcher[] = [];
   private changeTileEvents: ChangeTileEvent[] = []; 
 
@@ -188,6 +191,7 @@ class Enemy extends DataObject{
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   public mesh: THREE.Mesh;
+  public meshContainer: THREE.Object3D;
 
   public initialState;                      //初始状态数据
   constructor(action: ActionData, enemyData: EnemyData){
@@ -217,7 +221,7 @@ class Enemy extends DataObject{
     // console.log(talents)
     this.attrChanges = attrChanges;
     
-    this.attributes = attributes;
+    this.attributes = {...attributes};
     this.hp = attributes.maxHp;
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
@@ -238,9 +242,6 @@ class Enemy extends DataObject{
     };
 
     this.initOptions();
-
-    const countdownManager = Global.countdownManager;
-    this.countdown = countdownManager.getCountdownInst();
 
     this.animations = animations;
     this.moveAnimate = moveAnimate;
@@ -657,9 +658,9 @@ class Enemy extends DataObject{
           //可能是一些放在无路径地面的敌人，或者是bug
           this.unMoveable = true;
           this.notCountInTotal = true;
-          this.action.dontBlockWave = true;
+          this.dontBlockWave = true;
           const tile = Global.tileManager.getTile(this.getIntPosition());
-          this.setZOffset( getPixelSize(tile.height) );
+          this.setZOffset( tile.height );
 
           return;
         }
@@ -1060,6 +1061,11 @@ class Enemy extends DataObject{
     return find? find.value : null;
   }
 
+  public getSkill(key: string){
+    const find = this.skills.find(skill => skill.prefabKey === key);
+    return find? find : null;
+  }
+
   public addSkill(skillParam: SkillParam){
     const { name, animateTransition, initCooldown, cooldown, trigger, callback, maxCount } = skillParam;
 
@@ -1084,6 +1090,8 @@ class Enemy extends DataObject{
       }
     });
   }
+
+
   
   public triggerSkill(name: string){
     this.countdown.triggerCountdown(name);
@@ -1316,6 +1324,8 @@ class Enemy extends DataObject{
   }
 
   public get(){
+    const superStates = super.get();
+
     const position = {
       x: this.position.x,
       y: this.position.y
@@ -1350,15 +1360,21 @@ class Enemy extends DataObject{
       ZOffset: this.ZOffset,
       hp: this.hp,
       die: this.die,
+      attributes: {
+        moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
+      },
       changeTileEvents: [...this.changeTileEvents],
       watchers: [...this.watchers],
       buffs: [...this.buffs],
+      ...superStates
     }
 
     return state;
   }
   
   public set(state){
+    super.set(state);
+
     const {position, 
       acceleration,
       inertialVector,
@@ -1386,6 +1402,7 @@ class Enemy extends DataObject{
       ZOffset,
       hp,
       die,
+      attributes,
       changeTileEvents,
       watchers,
       buffs
@@ -1417,9 +1434,11 @@ class Enemy extends DataObject{
     this.tilePosition = tilePosition;
     this.hp = hp;
     this.die = die;
+    this.attributes.moveSpeed = attributes.moveSpeed;
     this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
     this.buffs = [...buffs];
+
 
     if(this.object){
       //恢复当前动画状态

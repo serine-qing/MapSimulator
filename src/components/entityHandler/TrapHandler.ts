@@ -2,9 +2,11 @@ import { GC_Add } from "../game/GC";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
 import act42side from "./众生行记";
+import act45side from "./无忧梦呓";
 
 const start = (trap: Trap) => {
   act42side.handleTrapStart(trap);
+  act45side.handleTrapStart(trap);
   
   switch (trap.key) {
     //压力舒缓帮手

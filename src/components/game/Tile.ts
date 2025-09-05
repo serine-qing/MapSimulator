@@ -230,7 +230,7 @@ class Tile extends DataObject{
   public addDynamicTexture(textureName: string, dynamicName: string){
 
     const findTexture = this.getDynamicTexture(dynamicName);
-
+    
     if(findTexture){
       findTexture.visible = true;
       if(findTexture.texture) findTexture.texture.visible = true;

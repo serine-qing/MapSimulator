@@ -44,7 +44,7 @@ nohup npm run dev &  重新启动
 gems_type: 1 浅色结晶 2 深色结晶
 
 解包：敌人的spine在 arknights\refs\arts
-部分装置spine pkgrps
+部分装置spine在 模拟器游戏文件的pkgrps中
 部分装置建模 arts\maps\common
 技能图标（部分装置图标） spritepack\skill_icons_0.ab
 地图tile贴图在arts里面 可能是map开头的资源 大海捞针
@@ -53,12 +53,6 @@ gems_type: 1 浅色结晶 2 深色结晶
 装置额外出怪：
 MapModel.parseExtraWave：初始化波次Data数据
 
-parseRune
-parseExtraWave
-initTileEvents
-handleGameInit
-handleEnemyStart
-handleTrapStart
-handleTalent
-handleSkill
-handleDie
+enemy_database.json
+stage_table.json
+enemy_handbook_table.json

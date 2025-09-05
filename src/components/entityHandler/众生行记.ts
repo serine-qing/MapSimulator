@@ -58,7 +58,7 @@ const Handler = {
     })
   },
 
-  handleGameInit: () => {
+  afterGameInit: () => {
     const customData = Global.gameManager.customData;
 
     if(customData.hiddenRect){

@@ -33,8 +33,22 @@
           </div>
 
           <div  
+            class="countdown wakeup-countdown"
+            v-if="label.wakeupCountDown > -1"
+            v-show="label.options.CountDownVisible"
+            :class="{
+              'big': label.wakeupCountDown >= 1000,
+              'middle': label.wakeupCountDown >= 100 && label.wakeupCountDown < 1000,
+              'small': label.wakeupCountDown < 100,
+            }"
+            
+          >{{ label.wakeupCountDown > -1 ? label.wakeupCountDown : "" }}
+          </div>
+
+          <div  
             class="countdown end-countdown"
-            v-show="label.options.CountDownVisible && label.endCountDown > -1"
+            v-if="label.endCountDown > -1"
+            v-show="label.options.CountDownVisible"
             :class="{
               'big': label.endCountDown >= 1000,
               'middle': label.endCountDown >= 100 && label.endCountDown < 1000,
@@ -237,6 +251,15 @@ const updateEnemyDatas = () => {
 
     const unMoveable = enemy.unMoveable;
     const countDown = enemy.countdown.getCountdownTime("checkPoint");
+
+    const wakeup = enemy.spSkillData.find(data => data.name === "wakeup");
+
+    if(wakeup){
+      label.wakeupCountDown = wakeup.spCost - wakeup.sp;
+    }else{
+      label.wakeupCountDown = -1;
+    }
+    
     const endCountDown = enemy.countdown.getCountdownTime("end");
 
     label.unMoveable = unMoveable;
@@ -325,8 +348,7 @@ const handleCountDownCheck = () => {
 
 const showDetail = (enemyId: number) => {
   const find = enemies.find(enemy => enemy.id === enemyId);
-  eventBus.emit("showDetail", find.enemyData);
-  console.log(find)
+  eventBus.emit("showDetail", find);
 }
 
 //全选显示等待时间
@@ -434,9 +456,16 @@ const updateTrapDatas = () => {
     if(!trap.visible) return;
 
     const label = trap.labelVue;
+    
+    let countDown = trap.countdown.getCountdownTime("waiting");
 
-    const countDown = trap.countdown.getCountdownTime("waiting");
-
+    if(countDown === -1){
+      const spawn = trap.spSkillData.find(data => data.name === "spawn");
+      if(spawn){
+        countDown = spawn.spCost -spawn.sp;
+      }
+    }
+    
     if(countDown > 0){
       label.countDown = Math.floor(countDown);
     }else{
@@ -543,6 +572,10 @@ watch(() => gameManager, () => {
   }
   .end-countdown{
     background-color: red;
+    color: white;
+  }
+  .wakeup-countdown{
+    background-color: #1f4c9f;
     color: white;
   }
   .big{

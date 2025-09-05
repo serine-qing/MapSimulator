@@ -28,6 +28,13 @@ class Countdown{
     })
   }
 
+  public removeCountdown(name: string){
+    const findIndex = this.timers.findIndex(timer => timer.name === name);
+    if(findIndex > -1){
+      this.timers.splice(findIndex, 1);
+    }
+  }
+
   public getCountdownTime(name: string): number{
     const find = this.timers.find(timer => timer.name === name);
     return find? find.time : -1;

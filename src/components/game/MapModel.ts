@@ -17,6 +17,7 @@ import SPFA from "./SPFA";
 import { immuneTable } from "../utilities/Interface";
 import act41side from "../entityHandler/挽歌燃烧殆尽";
 import act42side from "../entityHandler/众生行记";
+import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
 
 interface extraActionData{
@@ -765,6 +766,7 @@ class MapModel{
 
     act41side.parseExtraWave(branches);
     act42side.parseExtraWave(this.trapDatas, branches, this.sourceData.extraRoutes);
+    act45side.parseExtraWave(branches);
 
     if(this.extraActionDatas.length === 0){
       Object.keys(branches).forEach(key => {

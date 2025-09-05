@@ -5,6 +5,7 @@ import act35side from "./太阳甩在身后";
 import act41side from "./挽歌燃烧殆尽";
 import act42side from "./众生行记";
 import act44side from "./墟";
+import act45side from "./无忧梦呓";
 
 const EnemyHandler = {
 
@@ -45,7 +46,7 @@ const EnemyHandler = {
     const abilityList = enemy.enemyData.abilityList;
     if(abilityList){
       const find = abilityList.find(ability => {
-        return ability.text?.includes("近地悬浮")
+        return ability.text?.replace(/[^\u4e00-\u9fa5]/g, "") === "近地悬浮";
       });
 
       if(find){
@@ -58,6 +59,7 @@ const EnemyHandler = {
     act35side.handleTalent(enemy, talent);
     act42side.handleTalent(enemy, talent);
     act44side.handleTalent(enemy, talent);
+    act45side.handleTalent(enemy, talent);
     const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;
     let waitTime;
 
@@ -141,6 +143,7 @@ const EnemyHandler = {
           enemy.key === "enemy_1080_sotidp_2" ||
           enemy.key === "enemy_1506_patrt"
         ){
+          //todo 无法覆盖到敌人 需要修改
           Global.gameBuff.addBuff({
             id: "strength" + enemy.id,
             key: "strength",
@@ -172,6 +175,7 @@ const EnemyHandler = {
     act35side.handleSkill(enemy, skill);
     act42side.handleSkill(enemy, skill);
     act44side.handleSkill(enemy, skill);
+    act45side.handleSkill(enemy, skill);
 
     const { initCooldown, cooldown } =  skill;
 

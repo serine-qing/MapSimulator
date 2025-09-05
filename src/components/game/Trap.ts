@@ -36,7 +36,6 @@ class Trap extends DataObject{
   isSelected: boolean = false;       //是否被鼠标选中
 
   extraWaveKey: string;
-  countdown: Countdown;
 
   labelVue: any;   //前台显示数据
   //vue中可供更改的数据
@@ -57,8 +56,6 @@ class Trap extends DataObject{
     this.customData = data.customData;
 
     this.extraWaveKey = data.extraWaveKey;
-
-    this.countdown = Global.gameManager.countdownManager.getCountdownInst();
 
     this.initSkill();
   }
@@ -179,6 +176,11 @@ class Trap extends DataObject{
     TrapHandler.initSkill(this);
   }
 
+  //获取skillBlackboard
+  getSkillBoard(key: string){
+    return this.customData?.skillBlackboard?.find(item => item.key === key)?.value;
+  }
+
   bindTile(tile: Tile){
     this.tile = tile;
     this.position = tile.position;
@@ -234,14 +236,19 @@ class Trap extends DataObject{
   }
 
   public get(){
+    const superStates = super.get();
+
     const state = {
-      visible: this.visible
+      visible: this.visible,
+      ...superStates
     }
 
     return state;
   }
 
   public set(state){
+    super.set(state);
+    
     const { visible } = state;
     visible? this.show() : this.hide();
     this.skeletonMesh?.update( 0.001 );

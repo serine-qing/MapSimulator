@@ -179,6 +179,9 @@
       <div v-else>无</div>
     </el-descriptions-item>
   </el-descriptions>
+
+  <h3>内部参数</h3>
+  <JsonViewer :value="jsonShow" copyable expanded boxed theme="light" :expandDepth="4"/>
 </el-dialog>
 </template>
 
@@ -186,7 +189,8 @@
 import eventBus from '@/components/utilities/EventBus';
 import { immuneTable } from '@/components/utilities/Interface';
 import { accuracyNum } from '@/components/utilities/utilities';
-import { ref } from 'vue';
+import { ref, shallowRef } from 'vue';
+import {JsonViewer} from "vue3-json-viewer"
 
 const levelType = {
   NORMAL: "普通",
@@ -250,8 +254,23 @@ const showDetail = (data) => {
   dialogData.value = data;
 }
 
+const jsonShow = shallowRef({
+  talents: null,
+  skills: null,
+  animations: null,
+  buffs: null,
+  countdown: null,
+});
+
 eventBus.on("showDetail", (data) => {
-  showDetail(data);
+  jsonShow.value.talents = data.talents;
+  jsonShow.value.skills = data.skills;
+  jsonShow.value.animations = data.animations;
+  jsonShow.value.buffs = data.buffs;
+  jsonShow.value.countdown = data.countdown.timers;
+
+  console.log(data)
+  showDetail(data.enemyData);
 })
 </script>
 

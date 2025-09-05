@@ -76,7 +76,7 @@ const currentStage:any = ref();   //当前关卡
 
 getStorys().then((res) => {
   res.data.storys.forEach(story => {
-    if(story.type !== "全息作战矩阵"){
+    if(story.stage !== true){
       story.childNodes.reverse();
     }
   })

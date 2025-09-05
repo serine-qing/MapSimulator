@@ -11,9 +11,11 @@ import App from './App.vue'
 
 import router from './router'
 
+import JsonViewer from "vue3-json-viewer";
+import "vue3-json-viewer/dist/vue3-json-viewer.css";
 
 const app = createApp(App);
-
+app.use(JsonViewer);
 //导入ElementUI的icon图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)

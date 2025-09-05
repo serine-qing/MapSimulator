@@ -3,9 +3,13 @@ import act45side from "../entityHandler/无忧梦呓";
 
 const GameHandler = {
   //初始化全部Actions后执行
-  handleGameInit: () => {
-    act42side.handleGameInit();
-    act45side.handleGameInit();
+  afterGameInit: () => {
+    act42side.afterGameInit();
+    act45side.afterGameInit();
+  },
+
+  beforeGameInit: () => {
+    
   }
 }
 

@@ -16,7 +16,7 @@ import Trap from "./Trap";
 import SPFA from "./SPFA";
 import TrapManager from "./TrapManager";
 import { ElMessage } from 'element-plus'
-import { CountdownManager } from "./CountdownManager";
+import { Countdown, CountdownManager } from "./CountdownManager";
 import GameBuff from "./GameBuff";
 import Global from "../utilities/Global";
 import GameHandler from "../entityHandler/GameHandler";
@@ -27,6 +27,7 @@ import SpineEnemy from "../enemy/SpineEnemy";
 import FbxEnemy from "../enemy/FbxEnemy";
 import DataObject from "../enemy/DataObject";
 
+import act45side from "../entityHandler/无忧梦呓";
 //游戏控制器
 class GameManager extends DataObject{
   public isSimulate: boolean = false;
@@ -48,7 +49,6 @@ class GameManager extends DataObject{
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
-
 
   private gameSpeedOneCanUpdate: boolean = false;
   private updateInterval = 1 / 30;    //游戏内一帧时间（固定三十分之一秒）
@@ -76,12 +76,14 @@ class GameManager extends DataObject{
     AnimationFrame.setPause(false);
 
     this.countdownManager = new CountdownManager();
+    this.countdown = this.countdownManager.getCountdownInst();
     //初始化敌人控制类
     this.mapModel = mapModel;
     this.isCampaign = this.mapModel.sourceData.levelId.includes("campaign");
     this.simStep = this.isCampaign? 5 : GameConfig.SIMULATE_STEP;
     this.gameBuff = new GameBuff();
 
+    GameHandler.beforeGameInit();
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
 
@@ -98,7 +100,7 @@ class GameManager extends DataObject{
       this.gractrl = new Gractrl();
     } 
 
-    GameHandler.handleGameInit();
+    GameHandler.afterGameInit();
 
     this.startSimulate();
     
@@ -530,10 +532,15 @@ class GameManager extends DataObject{
       byTime: [],
       byFrame: []
     };
+    
+
+    let needUpdateAction = false;
     const fuc = () => {
-      simData.byAction.push(this.get());
+      needUpdateAction = true;
     };
+    
     eventBus.on("action_index_change", fuc);
+    
     let time = startTime? startTime : 0;
     const cachePause = this.pause;
     this.pause = false;
@@ -546,6 +553,10 @@ class GameManager extends DataObject{
       if(this.gameSecond >= time){
         simData.byTime.push(this.get());
         time += this.simStep;
+      }
+      if(needUpdateAction){
+        simData.byAction.push(this.get());
+        needUpdateAction = false;
       }
       this.update();
     }
@@ -608,6 +619,9 @@ class GameManager extends DataObject{
   }
 
   public destroy(){
+    //todo handler写成个类吧
+    act45side.handleDestroy();
+
     AnimationFrame.removeAnimationFrame("Gameloop");
     AnimationFrame.setPause(true);
 

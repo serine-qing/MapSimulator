@@ -14,6 +14,7 @@ interface TileEvent{
   x: number,
   y: number,
   enemy: string[],
+  trap: string[],
   isMerge: boolean,   //是否是合并地块事件，默认false。靠近的合并地块会视为一个事件，同一片合并地块上进出不会触发事件
   callback: Function
 }
@@ -24,6 +25,7 @@ interface TileEventOption{
   x: number,
   y: number,
   enemy?: string[],
+  trap?: string[],
   isMerge?: boolean,
   callback: Function
 }
@@ -114,7 +116,6 @@ class TileManager{
     const minY = Math.clamp( Math.min(y1, y2), 0, this.height - 1 );
     const maxY = Math.clamp( Math.max(y1, y2), 0, this.height - 1 );
 
-    console.log(minX, maxX, minY, maxY)
     const rect = [];
     for(let x = minX; x <= maxX; x++){
       for(let y = minY; y <= maxY; y++){
@@ -221,32 +222,89 @@ class TileManager{
       x: option.x,
       y: option.y,
       enemy: option.enemy,
+      trap: option.trap,
       isMerge: option.isMerge? true : false,
       callback: option.callback
     })
 
     //事件添加时就在地块上的敌人，需要进行一次判断
-    option.type === "in" && Global.waveManager?.enemiesInMap?.forEach(enemy => {
-      if(
-        option.x === enemy.tilePosition.x &&
-        option.y === enemy.tilePosition.y &&
-        (!option.enemy || option.enemy.includes(enemy.key))
-      ){
+    if(option.type === "in"){
+      Global.waveManager?.enemiesInMap?.forEach(enemy => {
+        if(
+          option.x === enemy.tilePosition.x &&
+          option.y === enemy.tilePosition.y &&
+          (!option.enemy || option.enemy.includes(enemy.key))
+        ){
 
-        option.callback(enemy);
+          option.callback(enemy);
+        }
+      })
+
+      //事件添加时就在地块上的装置，需要进行一次判断
+      //因为装置通常都很少，所以绑定的事件必须指定trap key
+      const trap = this.getTile(option.x, option.y)?.trap;
+      if(
+        trap && trap.visible &&
+        (option.trap && option.trap.includes(trap.key))
+      ){
+        option.callback(trap);
       }
-    })
+
+    }
+    
+  }
+
+  removeEvent(option){
+    const findIndex = this.events.findIndex(event => {
+      return event.key === option.key && 
+        event.type === option.type && 
+        event.x === option.x &&
+        event.y === option.y
+    });
+
+    if(findIndex > -1){
+      const eventToRemove = this.events[findIndex];
+
+      //事件移除时还在地块上的敌人，需要进行一次判断
+      if(eventToRemove.type === "out"){
+        Global.waveManager?.enemiesInMap?.forEach(enemy => {
+          if(
+            eventToRemove.x === enemy.tilePosition.x &&
+            eventToRemove.y === enemy.tilePosition.y &&
+            (!eventToRemove.enemy || eventToRemove.enemy.includes(enemy.key))
+          ){
+
+            eventToRemove.callback(enemy);
+          }
+        })
+
+        //事件添加时就在地块上的装置，需要进行一次判断
+        //因为装置通常都很少，所以绑定的事件必须指定trap key
+        const trap = this.getTile(eventToRemove.x, eventToRemove.y)?.trap;
+        if(
+          trap && trap.visible &&
+          (eventToRemove.trap && eventToRemove.trap.includes(trap.key))
+        ){
+          eventToRemove.callback(trap);
+        }
+
+      }
+      
+      this.events.splice(findIndex, 1);
+    }
   }
 
   changeTile(outPos: Vector2, inPos: Vector2, enemy: Enemy){
     const newEvents = this.getEvents(inPos, "in", enemy);
     const oldEvents = outPos ? this.getEvents(outPos, "in", enemy) : null;
     const outEvents = this.getEvents(outPos, "out", enemy);
-
+    
     for(let newIndex = 0; newIndex < newEvents.length; newIndex++){
+      
       const newEvent = newEvents[newIndex];
-      const oldIndex = oldEvents.findIndex(oldEvent => oldEvent?.key === newEvent.key);
-      if(newEvent?.isMerge && oldIndex > -1 ){
+      const oldIndex = oldEvents?.findIndex(oldEvent => oldEvent?.key === newEvent.key);
+      
+      if(newEvent?.isMerge && oldIndex!== null && oldIndex > -1 ){
         //合并事件，不重复触发
         const key = newEvent.key;
 

@@ -31,18 +31,32 @@ export const getAnimation = (key: string, animations: any, state: string) => {
 
 //修复一些spine错误
 export const checkAnimation = (key: string, animations: any) => {
-  if(key === "enemy_10118_ymgprc"){
-    animations.forEach(animation => {
-      switch (animation.name) {
-        case "Move":
-          animation.duration = 1.4;
-          break;
-        case "Idle":
-          animation.duration = 1.4;
-          break;
-      }
-    })
+  switch (key) {
+    case "enemy_10118_ymgprc":
+      animations.forEach(animation => {
+        switch (animation.name) {
+          case "Move":
+            animation.duration = 1.4;
+            break;
+          case "Idle":
+            animation.duration = 1.4;
+            break;
+        }
+      })
+      break;
+    case "enemy_1569_ldevil":
+      animations.forEach(animation => {
+        switch (animation.name) {
+          case "A_Idle":
+            animation.duration = 1.36;
+            break;
+        }
+      })
+      break;
   }
+
+    
+  
 }
 
 const getMoveAnimation = (key:string, animations: any) => {
@@ -137,37 +151,48 @@ export const getSkelOffset = (enemy:SpineEnemy): Vec2 => {
   return offset;
 }
 
-export const getSpineScale = (inst: any): number => {
+export const getSpineScale = (inst: any): Vec2 => {
   // console.log(enemy.name +" : "+ enemy.key)
-  const size = spineMap[inst.key]?.size
-  return size? size : 0.9;
+  const size = spineMap[inst.key]
+  return size ? size : {
+    x: 0.9,
+    y: 0.9
+  };
 }
 
 const spineMap = {
+  "enemy_10110_mjcsdw":{    //“破茧之梦”
+    x: -0.9,
+    y: 0.9
+  },
+  "enemy_10110_mjcsdw_2":{
+    x: -0.9,
+    y: 0.9
+  },
   "enemy_1005_yokai":{
-    offset: null,
-    size: 0.8
+    x: 0.8,
+    y: 0.8
   },
   //威龙
   "enemy_1005_yokai_3":{
-    offset: null,
-    size: 0.65
+    x: 0.65,
+    y: 0.65
   },
   "enemy_1112_emppnt":{
-    offset: null,
-    size: 0.8
+    x: 0.8,
+    y: 0.8
   },
   "enemy_1112_emppnt_2":{
-    offset: null,
-    size: 0.8
+    x: 0.8,
+    y: 0.8
   },
   "enemy_1321_wdarft":{
-    offset: null,
-    size: 1.1
+    x: 1.1,
+    y: 1.1
   },
   "enemy_1321_wdarft_2":{
-    offset: null,
-    size: 1.1
+    x: 1.1,
+    y: 1.1
   },
 }
 

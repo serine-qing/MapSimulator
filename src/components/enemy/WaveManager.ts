@@ -9,7 +9,8 @@ import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
 
 interface activeExtraAction{
-  waveSecond: number,
+  time: number,
+  startTime: number,            //该波次开始时间
   enemyKey: string,
   actions: Action[],            //需要执行的actions
   currentActionIndex: number    //当前执行到哪个action
@@ -300,9 +301,10 @@ class WaveManager{
       if(actionIndex){
         actions = [ actions[actionIndex] ]
       }
-      
+
       this.activeExtraActions.push({
-        waveSecond: 0,
+        time: 0,
+        startTime: this.waveSecond,
         enemyKey: enemyKey? enemyKey : null,
         actions,
         currentActionIndex: 0,
@@ -320,6 +322,7 @@ class WaveManager{
     const actions: Action[] = options.actions;
     const enemyKey: string = options.enemyKey;
     const waveSecond: number = options.waveSecond;
+    const startTime: number = options.startTime;
     const currentObj: any = options.currentObj;
 
     for (let i=0; i<actions.length; i++){ 
@@ -357,6 +360,10 @@ class WaveManager{
 
               enemy.action = action;
               enemy.isExtra = action.isExtra;
+              if(action.isExtra){
+                //调整波次开始时间
+                enemy.fragmentTime = startTime;
+              }
               this.enemies.push(enemy);
             }else{
               enemy = action.enemys[action.applyId];
@@ -364,7 +371,6 @@ class WaveManager{
             }
 
             action.applyId++;
-
             enemy.start();
             this.enemiesInMap.push(enemy);
             break;
@@ -431,12 +437,13 @@ class WaveManager{
     for(let i = 0; i < this.activeExtraActions.length; i++){
       const activeExtra = this.activeExtraActions[i];
       const { enemyKey, actions } = activeExtra;
-      activeExtra.waveSecond += delta;
+      activeExtra.time += delta;
 
       this.handleAction({
         isExtra: true,
         actions,
-        waveSecond:  activeExtra.waveSecond,
+        startTime: activeExtra.startTime,
+        waveSecond:  activeExtra.time,
         currentObj: activeExtra,
         enemyKey
       });
