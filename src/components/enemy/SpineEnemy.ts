@@ -205,6 +205,7 @@ class SpineEnemy extends Enemy{
         animate, 
         isLoop
       );
+
     }else{
       console.error(`${this.key}动画名获取失败！`)
     }

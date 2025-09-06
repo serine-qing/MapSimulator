@@ -12,6 +12,7 @@ const EnemyHandler = {
   handleStart: (enemy: Enemy) => {
     act41side.handleEnemyStart(enemy);
     act42side.handleEnemyStart(enemy);
+    act45side.handleEnemyStart(enemy);
 
     if(enemy.isExtra){
       switch (enemy.key) {
@@ -199,6 +200,10 @@ const EnemyHandler = {
         break;
 
     }
+  },
+
+  handleAttack:(enemy: Enemy) => {
+    act45side.handleAttack(enemy);
   },
 
   finishedMap: (enemy: Enemy) => {

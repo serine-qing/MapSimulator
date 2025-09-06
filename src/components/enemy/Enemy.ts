@@ -102,8 +102,9 @@ class Enemy extends DataObject{
   //属性乘区 每帧计算
   finalAttributes = {
     atk: 1,
-    attackSpeed: 1,
-    baseAttackTime: 1,
+    attackSpeed: 1,                 //攻击速度
+    attackTime: 1,                   //实际攻击间隔
+    baseAttackTime: 1,              //基础攻击间隔
     def: 1,
     hpRecoveryPerSec: 1,
     magicResistance: 1,
@@ -144,7 +145,6 @@ class Enemy extends DataObject{
   nextNode: PathNode;  //寻路目标点
   
   currentSecond: number = 0;      //敌人的当前时间
-
   
   public watchers: Watcher[] = [];
   private changeTileEvents: ChangeTileEvent[] = []; 
@@ -159,6 +159,7 @@ class Enemy extends DataObject{
   public activeShadow: THREE.Mesh;
   public shadowHeight: number = 0.2;
   public attackRangeCircle: THREE.Line;         //攻击范围的圈
+  private currentAttackRange: number;       //攻击范围的圈的半径
   
   //视图层面会修改到的选项
   public options = {
@@ -192,6 +193,9 @@ class Enemy extends DataObject{
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   public mesh: THREE.Mesh;
   public meshContainer: THREE.Object3D;
+
+  public canAttack: boolean = false;
+  public attackCountdown: number = 0;           //攻击间隔倒计时
 
   public initialState;                      //初始状态数据
   constructor(action: ActionData, enemyData: EnemyData){
@@ -351,12 +355,12 @@ class Enemy extends DataObject{
     GC_Add(this.object);
 
     this.initShadow();
-    this.initAttackRangeCircle();
+    this.updateAttackRangeCircle(this.attributes.rangeRadius);
   }
 
   public initShadow(){
-    const majorAxis = getPixelSize(0.35); //椭圆长轴
-    const minorAxis = getPixelSize(0.08); //椭圆短轴
+    const majorAxis = getPixelSize(0.28); //椭圆长轴
+    const minorAxis = getPixelSize(0.06); //椭圆短轴
 
     const path = new THREE.Shape();
     path.absellipse(
@@ -394,9 +398,13 @@ class Enemy extends DataObject{
     if(this.object) this.object.position.z = ZOffset;
   }
 
-  initAttackRangeCircle(){
-    if(this.isRanged()){
-      const radius = getPixelSize(this.attributes.rangeRadius + 0.25);
+  updateAttackRangeCircle(rangeRadius: number){
+    if(this.isRanged() && this.currentAttackRange !== rangeRadius){
+      
+      this.currentAttackRange = rangeRadius;
+      if(!this.object) return;
+      //0.25为地块半径0.5减去干员碰撞半径0.25得出的
+      const radius = getPixelSize(rangeRadius - 0.25);
       const curve = new THREE.EllipseCurve(
         0,  0,            // ax, aY
         radius, radius,           // xRadius, yRadius
@@ -419,12 +427,19 @@ class Enemy extends DataObject{
         transparent: true
       } );
 
+      if(this.attackRangeCircle){
+        //移除旧的
+        this.object.remove(this.attackRangeCircle);
+        this.attackRangeCircle.geometry.dispose();
+        "type" in this.attackRangeCircle.material && this.attackRangeCircle.material.dispose();
+      }
+
       this.attackRangeCircle = new THREE.Line( geometry, material );
 
       //显示优先级最高
       this.attackRangeCircle.renderOrder = 100;
       this.attackRangeCircle.position.z = 0;
-      this.attackRangeCircle.visible = false;
+      this.attackRangeCircle.visible = this.options.AttackRangeVisible;
       this.object.add(this.attackRangeCircle)
     }
 
@@ -576,6 +591,8 @@ class Enemy extends DataObject{
 
     this.updatePositions();
     this.updateAttrs();
+    this.updateAttackRange();
+    this.updateAttack(delta);
     this.updateAction(delta);
     this.updateFaceToward();
     this.updateHP();
@@ -652,7 +669,7 @@ class Enemy extends DataObject{
         );
 
         this.updateNextNode(currentNode);
-
+        
         if(!this.nextNode){
           //没有路径，直接忽略它
           //可能是一些放在无路径地面的敌人，或者是bug
@@ -664,7 +681,7 @@ class Enemy extends DataObject{
 
           return;
         }
-
+        
         let {position, nextNode} = this.nextNode;
         let targetPos = new THREE.Vector2(position.x,position.y);
 
@@ -754,7 +771,6 @@ class Enemy extends DataObject{
         
         this.inertialVector = moveSpeedVec;
 
-
           
         //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
         const velocity = moveSpeedVec
@@ -763,22 +779,20 @@ class Enemy extends DataObject{
 
 
         // const velocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
-
+          
         this.setVelocity(velocity);
         this.move();
           
         const distanceToTarget = currentPosition.distanceTo(targetPos);
         //到达检查点终点
         if( distanceToTarget <= 0.05 &&
-          (this.nextNode === null || this.nextNode === undefined)
+          (!this.nextNode.nextNode)
         ){
           this.nextCheckPoint();
         }
 
         this.changeTowardBySpeed();
         this.updateShadowHeight();
-
-
 
         // console.log(actionEnemy.position)
         break;
@@ -960,6 +974,7 @@ class Enemy extends DataObject{
     this.finalAttributes.atk = this.attributes.atk;
     this.finalAttributes.attackSpeed = this.attributes.attackSpeed;
     this.finalAttributes.baseAttackTime = this.attributes.baseAttackTime;
+    this.finalAttributes.attackTime = this.attributes.baseAttackTime;
     this.finalAttributes.def = this.attributes.def;
     this.finalAttributes.hpRecoveryPerSec = this.attributes.hpRecoveryPerSec;
     this.finalAttributes.magicResistance = this.attributes.magicResistance;
@@ -1003,6 +1018,13 @@ class Enemy extends DataObject{
     for (let attrKey in adds){
       this.finalAttributes[attrKey] += adds[attrKey];
     }
+
+    this.finalAttributes.attackTime = this.finalAttributes.baseAttackTime * 100 / this.finalAttributes.attackSpeed;
+  }
+
+  private updateAttackRange(){
+    this.updateAttackRangeCircle(this.getAttr("rangeRadius"));
+    
   }
 
   public getAttr(attrName: string){
@@ -1010,6 +1032,19 @@ class Enemy extends DataObject{
       return this.finalAttributes[attrName] * this.gractrlSpeed; 
     }
     return this.finalAttributes[attrName];
+  }
+
+  public updateAttack(delta){
+    if(this.attackCountdown > 0){
+      this.attackCountdown = Math.max(this.attackCountdown - delta, 0);
+    }
+    if(!this.canAttack || this.attackCountdown > 0) return;
+    this.attack();
+    this.attackCountdown = this.getAttr("attackTime");
+  }
+
+  public attack(){
+    EnemyHandler.handleAttack(this);
   }
 
   public addBuff(buff: Buff){
@@ -1360,6 +1395,9 @@ class Enemy extends DataObject{
       ZOffset: this.ZOffset,
       hp: this.hp,
       die: this.die,
+      canAttack: this.canAttack,
+      attackCountdown: this.attackCountdown,
+      currentAttackRange: this.currentAttackRange,
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
@@ -1402,6 +1440,9 @@ class Enemy extends DataObject{
       ZOffset,
       hp,
       die,
+      canAttack,
+      attackCountdown,
+      currentAttackRange,
       attributes,
       changeTileEvents,
       watchers,
@@ -1434,6 +1475,8 @@ class Enemy extends DataObject{
     this.tilePosition = tilePosition;
     this.hp = hp;
     this.die = die;
+    this.canAttack = canAttack;
+    this.attackCountdown = attackCountdown;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
@@ -1459,6 +1502,8 @@ class Enemy extends DataObject{
         this.updateFaceToward();
         this.updateShadowHeight();
       }
+
+      this.updateAttackRangeCircle(currentAttackRange);
 
     }
     

@@ -15,6 +15,7 @@ const addMoonlight = (obj: DataObject) => {
   const enemy = obj as Enemy;
   if(enemy.isEnemy){
     enemy.addBuff(moonlight_gbuff);
+    enemy.customData.moonlight = true;
     const spMoon = enemy.staticData.sp_moon;
     if(spMoon){
       const wakeSkill = enemy.spSkillData.find(data => data.name === "wakeup");
@@ -39,6 +40,7 @@ const removeMoonlight = (obj: DataObject) => {
   const enemy = obj as Enemy;
   if(enemy.isEnemy){
     enemy.removeBuff("moonlight_gbuff");
+    enemy.customData.moonlight = false;
     const sp = enemy.staticData.sp;
     if(sp){
       const wakeSkill = enemy.spSkillData.find(data => data.name === "wakeup");
@@ -181,7 +183,12 @@ const Handler = {
               attrKey: "moveSpeed",
               method: "mul",
               value: rune.blackboard.find(item => item.key === "move_speed")?.value + 1
-            }
+            },
+            {
+              attrKey: "attackSpeed",
+              method: "add",
+              value: rune.blackboard.find(item => item.key === "attack_speed")?.value
+            },
           ]
         }
 
@@ -274,14 +281,58 @@ const Handler = {
   },
 
   handleEnemyStart: (enemy: Enemy) => {
-
+    switch (enemy.key) {
+      case "enemy_10104_mjcbln":
+      case "enemy_10104_mjcbln_2":
+        enemy.canAttack = true;
+        break;
+    
+    }
   },
 
   handleTalent: (enemy: Enemy, talent: any) => {
-    if(talent.key === "sleep2wake"){
-      enemy.staticData.sp = talent.value.sp;
-      enemy.staticData.sp_moon = talent.value.sp_moon;
+    switch (talent.key) {
+      case "sleep2wake":
+        enemy.staticData.sp = talent.value.sp;
+        enemy.staticData.sp_moon = talent.value.sp_moon;
+        break;
+    
+      case "bigger":
+        enemy.customData.size = 0;
+        enemy.staticData.bigger = talent.value.value;
+        break;
+
+      case "sword":
+        if(enemy.key.includes("enemy_10108_mjclun")){
+          enemy.applyWay = "RANGED";
+          enemy.customData.stack_cnt = 0;
+          const {ability_range_forward_extend, atk, interval, max_stack_cnt} = talent.value;
+
+          enemy.countdown.addCountdown({
+            name: "mjclunAttackRange",
+            initCountdown: interval,
+            countdown: interval,
+            callback: () => {
+              if(enemy.customData.moonlight && enemy.customData.stack_cnt < 30){
+                enemy.customData.stack_cnt += 1;
+                enemy.addBuff({
+                  id: "mjclunAttackRange",
+                  key: "mjclunAttackRange",
+                  overlay: false,
+                  effect: [{
+                    attrKey: "rangeRadius",
+                    method: "add",
+                    value: ability_range_forward_extend * enemy.customData.stack_cnt
+                  }]
+                })
+              }
+              
+            }
+          })
+        }
+        break;
     }
+
   },
 
   handleSkill: (enemy: Enemy, skill: any) => {
@@ -373,6 +424,33 @@ const Handler = {
     }
 
 
+  },
+
+  handleAttack: (enemy: Enemy) => {
+    switch (enemy.key) {
+      case "enemy_10104_mjcbln":
+      case "enemy_10104_mjcbln_2":
+        enemy.animationStateTransition({
+          transAnimation: "Attack",
+          isWaitTrans: true,
+          animationScale: 0.95,
+          callback: () => {
+            enemy.customData.size += enemy.staticData.bigger;
+            if(enemy.customData.size >= 1){
+              enemy.canAttack = false;
+              enemy.animationStateTransition({
+                idleAnimate: "Idle_2",
+                moveAnimate: "Move_2",
+                transAnimation: "Takeoff",
+                isWaitTrans: true,
+              })
+              enemy.motion = "FLY";
+            }
+          }
+        })
+        break;
+    
+    }
   },
 
   handleDestroy: () => {

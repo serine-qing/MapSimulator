@@ -258,6 +258,7 @@ const jsonShow = shallowRef({
   talents: null,
   skills: null,
   animations: null,
+  finalAttributes: null,
   buffs: null,
   countdown: null,
 });
@@ -266,6 +267,7 @@ eventBus.on("showDetail", (data) => {
   jsonShow.value.talents = data.talents;
   jsonShow.value.skills = data.skills;
   jsonShow.value.animations = data.animations;
+  jsonShow.value.finalAttributes = data.finalAttributes;
   jsonShow.value.buffs = data.buffs;
   jsonShow.value.countdown = data.countdown.timers;
 
