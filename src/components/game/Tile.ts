@@ -380,7 +380,6 @@ class Tile extends DataObject{
 
     if(borderColor){
       this.border = new BoxHelper( this.cube, borderColor);
-      (this.border.material as THREE.MeshBasicMaterial).color.convertSRGBToLinear();
       this.object.add(this.border);
     }
 

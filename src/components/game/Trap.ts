@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
-import spine from "@/assets/script/spine-threejs.js";
+import * as spine  from "@/spine";
 import { GC_Add } from "./GC";
 import Tile from "./Tile";
 import { Countdown } from "./CountdownManager";
@@ -149,7 +149,7 @@ class Trap extends DataObject{
   initSpine(){
     this.idleAnimate = this.data.idleAnimate;
     //从数据创建SkeletonMesh并将其附着到场景
-    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData);
+    this.skeletonMesh = new spine.SkeletonMesh(this.skeletonData);
     this.object.add(this.skeletonMesh);
     this.skeletonMesh.position.y = getPixelSize(-1/4);
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;

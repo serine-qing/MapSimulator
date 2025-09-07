@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
-import Stats from 'three/examples/js/libs/stats.min.js'; //引入帧率检测
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import eventBus from "../utilities/EventBus";
 
 class GameCanvas{
@@ -9,7 +8,6 @@ class GameCanvas{
   public camera: THREE.PerspectiveCamera;
   public scene: THREE.Scene;
   public renderer: THREE.WebGLRenderer;
-  public stats: Stats;
   private width: number;
   private height: number;
   private debounce: NodeJS.Timeout; //防抖
@@ -24,9 +22,6 @@ class GameCanvas{
     this.initCamera();
     this.initRenderer();
     this.animate();
-
-    // this.stats = new Stats() //定义帧率检测
-    // this.wrapper.appendChild(this.stats.dom);
     // const controls = new OrbitControls(this.camera, this.renderer.domElement);
   }
 
@@ -58,10 +53,6 @@ class GameCanvas{
     this.renderer = new THREE.WebGLRenderer({antialias: true, canvas: this.canvas});
     //设置设备像素比。避免HiDPI设备上绘图模糊
     this.renderer.setPixelRatio( window.devicePixelRatio );
-
-    //防止fbx文件出现色差
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
-
     //地图比例是否正确，关键看相机和渲染器的宽高比是否一致
     this.width = this.wrapper.offsetWidth;
     this.height = this.wrapper.offsetHeight;

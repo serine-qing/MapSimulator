@@ -16,17 +16,6 @@ const pureBlack = new THREE.MeshBasicMaterial( {color: "#000000"} );
 
 const darkYellow = new THREE.MeshBasicMaterial( {color: "#B8860B"} );
 
-//https://discourse.threejs.org/t/fbxloader-loaded-models-with-attached-textures-have-become-darker/9300/4
-sea.color.convertSRGBToLinear();
-gray.color.convertSRGBToLinear();
-deepGray.color.convertSRGBToLinear();
-darkGray.color.convertSRGBToLinear();
-white.color.convertSRGBToLinear();
-dark.color.convertSRGBToLinear();
-pureWhite.color.convertSRGBToLinear();
-pureBlack.color.convertSRGBToLinear();
-darkYellow.color.convertSRGBToLinear();
-
 const tileTextures = {
 
   //wall、road、floor、forbidden是高台地面默认的材质，很多tile都会用到
@@ -113,7 +102,7 @@ textureMats["moonlight_shadow"] = new THREE.MeshBasicMaterial({
 
 const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   const {texture1} = textures;
-  texture1.encoding = THREE.sRGBEncoding;
+  texture1.colorSpace = THREE.SRGBColorSpace;
   const keyArr = [
     "gem", "gemdark","juntan",null, "tile_banned", "tile_banned2", "tile_bigforce", "tile_bigforce2",
     "tile_bnspck_road", "tile_corrosion", "tile_defup", "tile_end" ,"tile_floor", "tile_flystart",

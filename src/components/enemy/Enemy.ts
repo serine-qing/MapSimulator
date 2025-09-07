@@ -1,5 +1,4 @@
 import * as THREE from "three";
-
 import GameConfig from "@/components/utilities/GameConfig"
 import { checkEnemyMotion, getAnimationSpeed } from "@/components/utilities/SpineHelper";
 import { GC_Add } from "../game/GC";
@@ -371,7 +370,8 @@ class Enemy extends DataObject{
     GC_Add(this.object);
 
     this.initShadow();
-    this.updateAttackRangeCircle(this.attributes.rangeRadius);
+
+    this.drawAttackRangeCircle(this.attributes.rangeRadius);
   }
 
   public initShadow(){
@@ -387,8 +387,7 @@ class Enemy extends DataObject{
       0
     );
 
-    const geometry = new THREE.ShapeBufferGeometry( path );
-
+    const geometry = new THREE.ShapeGeometry( path );
 
     const shadow = new THREE.Mesh( geometry, Enemy.shadowMaterial );
     this.shadow = shadow;
@@ -414,51 +413,53 @@ class Enemy extends DataObject{
     if(this.object) this.object.position.z = ZOffset;
   }
 
-  updateAttackRangeCircle(rangeRadius: number){
+  private updateAttackRangeCircle(rangeRadius: number){
     if(this.isRanged() && this.currentAttackRange !== rangeRadius){
-      
       this.currentAttackRange = rangeRadius;
-      if(!this.object) return;
-      //0.25为地块半径0.5减去干员碰撞半径0.25得出的
-      const radius = getPixelSize(rangeRadius - 0.25);
-      const curve = new THREE.EllipseCurve(
-        0,  0,            // ax, aY
-        radius, radius,           // xRadius, yRadius
-        0,  2 * Math.PI,  // aStartAngle, aEndAngle
-        false,            // aClockwise
-        0                 // aRotation
-      );
-
-      const points = curve.getPoints( 50 );
-      const geometry = new THREE.BufferGeometry().setFromPoints( points );
-
-      // 具有较高`renderOrder`的物体会在较低之后渲染（即后渲染，覆盖先渲染的）。
-      // 但是，如果两个物体都在同一个场景中，并且使用同一个渲染调用，那么`renderOrder`是有效的。
-      // 然而，如果平面Mesh的材质是透明的（即使是一点点透明），那么它会被归类到透明物体队列中，
-      // 而线条即使设置了`renderOrder`也可能因为不透明和透明物体的分开渲染顺序而出现问题。
-      // 所以这里需要设置transparent，不然会被具有透明度的tile texture给挡住
-      const material = new THREE.LineBasicMaterial( { 
-        color: 0xff0000,
-        depthTest: false,
-        transparent: true
-      } );
-
-      if(this.attackRangeCircle){
-        //移除旧的
-        this.object.remove(this.attackRangeCircle);
-        this.attackRangeCircle.geometry.dispose();
-        "type" in this.attackRangeCircle.material && this.attackRangeCircle.material.dispose();
-      }
-
-      this.attackRangeCircle = new THREE.Line( geometry, material );
-
-      //显示优先级最高
-      this.attackRangeCircle.renderOrder = 100;
-      this.attackRangeCircle.position.z = 0;
-      this.attackRangeCircle.visible = this.options.AttackRangeVisible;
-      this.object.add(this.attackRangeCircle)
+      this.object && this.drawAttackRangeCircle(rangeRadius);
     }
 
+  }
+
+  private drawAttackRangeCircle(rangeRadius: number){
+    //0.25为地块半径0.5减去干员碰撞半径0.25得出的
+    const radius = getPixelSize(rangeRadius - 0.25);
+    const curve = new THREE.EllipseCurve(
+      0,  0,            // ax, aY
+      radius, radius,           // xRadius, yRadius
+      0,  2 * Math.PI,  // aStartAngle, aEndAngle
+      false,            // aClockwise
+      0                 // aRotation
+    );
+
+    const points = curve.getPoints( 50 );
+    const geometry = new THREE.BufferGeometry().setFromPoints( points );
+
+    // 具有较高`renderOrder`的物体会在较低之后渲染（即后渲染，覆盖先渲染的）。
+    // 但是，如果两个物体都在同一个场景中，并且使用同一个渲染调用，那么`renderOrder`是有效的。
+    // 然而，如果平面Mesh的材质是透明的（即使是一点点透明），那么它会被归类到透明物体队列中，
+    // 而线条即使设置了`renderOrder`也可能因为不透明和透明物体的分开渲染顺序而出现问题。
+    // 所以这里需要设置transparent，不然会被具有透明度的tile texture给挡住
+    const material = new THREE.LineBasicMaterial( { 
+      color: 0xff0000,
+      depthTest: false,
+      transparent: true
+    } );
+
+    if(this.attackRangeCircle){
+      //移除旧的
+      this.object.remove(this.attackRangeCircle);
+      this.attackRangeCircle.geometry.dispose();
+      "type" in this.attackRangeCircle.material && this.attackRangeCircle.material.dispose();
+    }
+
+    this.attackRangeCircle = new THREE.Line( geometry, material );
+
+    //显示优先级最高
+    this.attackRangeCircle.renderOrder = 100;
+    this.attackRangeCircle.position.z = 0;
+    this.attackRangeCircle.visible = this.options.AttackRangeVisible;
+    this.object.add(this.attackRangeCircle)
   }
 
   public isRanged(): boolean{

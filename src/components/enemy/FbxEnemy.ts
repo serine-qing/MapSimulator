@@ -1,6 +1,6 @@
 import { GC_Add } from "../game/GC";
 import Enemy from "./Enemy";
-import spine from "@/assets/script/spine-threejs.js";
+import * as spine  from "@/spine";
 import { getSpineScale, checkEnemyMotion, getAnimationSpeed, getSkelOffset } from "@/components/utilities/SpineHelper";
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";

@@ -3,8 +3,8 @@ import RunesHelper from "./RunesHelper";
 import TileManager from "./TileManager"
 import {getEnemiesData} from "@/api/stages"
 import AliasHelper from "./AliasHelper";
-import spine from "@/assets/script/spine-threejs.js";
-import { checkAnimation, getAnimation } from "@/components/utilities/SpineHelper"
+import * as spine from "@/spine";
+import { getAnimation } from "@/components/utilities/SpineHelper"
 import GameConfig from "../utilities/GameConfig";
 //资源一开始就加载完毕，所以放到这里处理
 import assetsManager from "@/components/assetManager/assetsManager"
@@ -704,7 +704,6 @@ class MapModel{
           spineManager.get(skelUrl)
         );
 
-        checkAnimation(key, skeletonData.animations);
         const moveAnimate = getAnimation(key, skeletonData.animations, "Move");
         const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
 

@@ -1,6 +1,6 @@
 import { GC_Add } from "../game/GC";
 import Enemy from "./Enemy";
-import spine from "@/assets/script/spine-threejs.js";
+import * as spine  from "@/spine";
 import { getSpineScale } from "@/components/utilities/SpineHelper";
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
@@ -25,7 +25,7 @@ class SpineEnemy extends Enemy{
     this.skeletonData = skeletonData;
 
     //从数据创建SkeletonMesh并将其附着到场景
-    this.skeletonMesh = new spine.threejs.SkeletonMesh(this.skeletonData, function(parameters) {
+    this.skeletonMesh = new spine.SkeletonMesh(this.skeletonData, function(parameters) {
       //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
       //重叠时显示哪个用mesh的renderOrder属性控制
       parameters.depthWrite = false;
@@ -62,6 +62,7 @@ class SpineEnemy extends Enemy{
     this.changeAnimation();
     //初始不可见的
     this.hide();
+
   }
 
   public setObjectPosition(x: number, y: number){
@@ -200,12 +201,11 @@ class SpineEnemy extends Enemy{
       this.countdown.getCountdownTime("animationTrans") === -1;
     
     if(animate && this.skeletonMesh){
-      this.skeletonMesh.state.setAnimation(
+      const track = this.skeletonMesh.state.setAnimation(
         0, 
         animate, 
         isLoop
       );
-
     }else{
       console.error(`${this.key}动画名获取失败！`)
     }

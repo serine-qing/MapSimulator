@@ -1,9 +1,9 @@
 //spine资产管理类
 //单例模式
-import spine from "@/assets/script/spine-threejs.js";
+import * as spine  from "@/spine";
 import GameConfig from '@/components/utilities/GameConfig';
 import * as THREE from "three"
-import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader'
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 
 import { parseTexture } from "@/components/game/TextureHelper";
 //@ts-ignore
@@ -21,7 +21,7 @@ class AssetsManager{
   public fbxLoader: FBXLoader;
 
   constructor(){
-    this.spineManager = new spine.threejs.AssetManager( GameConfig.BASE_URL );
+    this.spineManager = new spine.AssetManager( GameConfig.BASE_URL );
 
     this.loadManager = new THREE.LoadingManager();
     this.textureLoader = new THREE.TextureLoader(this.loadManager);

@@ -411,7 +411,7 @@ const Handler = {
             animateTransition: {
               idleAnimate: "A_Idle",
               moveAnimate: "A_Move",
-              transAnimation: "A_Skill_3",
+              transAnimation: "A_Skill_1",
               isWaitTrans: true,
             },
             callback: () => {

@@ -250,14 +250,15 @@ class GameManager extends DataObject{
       }
     }
 
+    //todo 更新后出bug
     // 检测与tile的交点
-    const tileIntersects = gameCanvas.raycaster.intersectObjects(tileObjects.children, true);
-    if (tileIntersects.length > 0) {
-      const firstIntersect = tileIntersects[0];
-      const tile: Tile = firstIntersect.object?.parent?.userData?.tile;
+    // const tileIntersects = gameCanvas.raycaster.intersectObjects(tileObjects.children);
+    // if (tileIntersects.length > 0) {
+    //   const firstIntersect = tileIntersects[0];
+    //   const tile: Tile = firstIntersect.object?.parent?.userData?.tile;
       
-      if(tile) return tile;
-    }
+    //   if(tile) return tile;
+    // }
 
     return null;
   } 
