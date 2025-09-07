@@ -9,8 +9,20 @@ interface CountdownOpitons{
   trigger?: string,                  //auto：自动触发， manual：手动触发，默认自动
 }
 
+interface Timer{
+  name: string,
+  callback: Function,
+  initCountdown: number,
+  countdown: number,
+  trigger: string,
+  maxCount: number,
+  time: number,
+  count: number,
+  pause: boolean,
+}
+
 class Countdown{
-  timers: any[] = [];
+  timers: Timer[] = [];
 
   public addCountdown(options: CountdownOpitons){
     const { name, callback, countdown, trigger, maxCount } = options;
@@ -24,7 +36,8 @@ class Countdown{
       trigger: trigger ? trigger : "auto",
       maxCount,
       time: initCountdown,
-      count: 0
+      count: 0,
+      pause: false,
     })
   }
 
@@ -35,16 +48,21 @@ class Countdown{
     }
   }
 
+  public getTimer(name: string): Timer{
+    const find = this.timers.find(timer => timer.name === name);
+    return find? find : null;
+  }
+
   public getCountdownTime(name: string): number{
     const find = this.timers.find(timer => timer.name === name);
     return find? find.time : -1;
   }
 
-  public triggerCountdown(name: string){
+  public triggerCountdown(name: string): boolean{
     const timerIndex = this.timers.findIndex(timer => timer.name === name);
     const timer = this.timers[timerIndex];
 
-    if(timer && timer.time <= 0){
+    if(timer && !timer.pause && timer.time <= 0){
       const { countdown, callback, maxCount } = timer;
       timer.count ++;
       if(countdown && (!maxCount || timer.count < maxCount)){
@@ -55,8 +73,11 @@ class Countdown{
 
       if(callback){
         callback(timer);
+        return true;
       }
     }
+
+    return false;
   }
 
   public clearCountdown(){
@@ -66,6 +87,8 @@ class Countdown{
   public update(delta: number){
     for(let i = 0; i < this.timers.length; i++){
       const timer = this.timers[i];
+      if( timer.pause ) continue;
+
       const { countdown, callback, trigger, maxCount } = timer;
 
       if( trigger === "manual"){
@@ -92,21 +115,34 @@ class Countdown{
     }
   }
 
+  public setTimerPause(name: string, isPause: boolean){
+    const timer = this.getTimer(name);
+    if(timer) timer.pause = isPause;
+  }
+
   public get(){
-    const states = this.timers.map( timer => { 
+    const timerStates = this.timers.map( timer => { 
       return { 
         timer,
         time: timer.time,
-        count: timer.count
+        count: timer.count,
+        pause: timer.pause,
       } 
     });
+    const states = {
+      timerStates
+    }
     return states;
   }
 
   public set(states){
-    this.timers = states.map( state => {
+    if(!states) return;
+    const { timerStates } = states;
+
+    this.timers = timerStates.map( state => {
       state.timer.time = state.time;
       state.timer.count = state.count;  
+      state.timer.pause = state.pause;
       return state.timer;
     });
   }
@@ -143,11 +179,11 @@ class CountdownManager{
   public set(state){
 
     for(let i = 0; i < this.countdowns.length; i++){
-      const timerState = state.countdownStates[i];
-      if(timerState){
-        this.countdowns[i].set(timerState);
+      const countdownState = state.countdownStates[i];
+      if(countdownState){
+        this.countdowns[i].set(countdownState);
       }else{
-        this.countdowns[i].set([]);
+        this.countdowns[i].set(null);
       }
 
     }

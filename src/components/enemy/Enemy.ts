@@ -42,7 +42,21 @@ interface DetectionParam{
   callback: Function,  
 }
 
+interface SkillSetParam{
+  name: string,
+  animateTransition: AnimateTransition,
+  priority: number,             //技能cd同时转好时的触发优先级
+  initCooldown: number,
+  cooldown?: number,
+  callback?: Function,
+  maxCount?: number,           //最大触发次数
+  cooldownStop?: boolean,       //是否有技能阻回条，默认是
+}
 
+interface SkillSet{
+  name: string,
+  priority: number,
+}
 
 interface SkillParam{
   name: string,
@@ -122,6 +136,9 @@ class Enemy extends DataObject{
 
   talents: any[];          //天赋
   skills: any[];           //技能
+  skillSet: SkillSet[] = [];         //复杂技能组，一般复杂的boss才会有
+  isUsingSkill: boolean = false;   //当前是否处于技能释放中
+
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
@@ -267,7 +284,6 @@ class Enemy extends DataObject{
     this.isStarted = true;
     this.show();
     this.handleStart();
-
     
   }
 
@@ -593,6 +609,7 @@ class Enemy extends DataObject{
     this.updateAttrs();
     this.updateAttackRange();
     this.updateAttack(delta);
+    this.updateSkillSet();
     this.updateAction(delta);
     this.updateFaceToward();
     this.updateHP();
@@ -1034,13 +1051,26 @@ class Enemy extends DataObject{
     return this.finalAttributes[attrName];
   }
 
-  public updateAttack(delta){
+  public updateAttack(delta: number){
     if(this.attackCountdown > 0){
       this.attackCountdown = Math.max(this.attackCountdown - delta, 0);
     }
     if(!this.canAttack || this.attackCountdown > 0) return;
     this.attack();
     this.attackCountdown = this.getAttr("attackTime");
+  }
+
+  public updateSkillSet(){
+
+    if( this.skillSet.length > 0 && !this.isUsingSkill){
+      for(let i = 0; i < this.skillSet.length; i++){
+        const skill = this.skillSet[i];
+        if( this.triggerSkill(skill.name) ) {
+          return;
+        };
+      }
+      
+    }
   }
 
   public attack(){
@@ -1126,10 +1156,54 @@ class Enemy extends DataObject{
     });
   }
 
+  public addSkillSet(skillSetParam: SkillSetParam){
+    const { name, animateTransition, priority, initCooldown, 
+      cooldown, callback, maxCount, cooldownStop } = skillSetParam;
+    
+    let animTrans;
+    if(animateTransition){
 
+      animTrans = {
+        moveAnimate: animateTransition.moveAnimate,
+        idleAnimate: animateTransition.idleAnimate,
+        transAnimation: animateTransition.transAnimation,
+        startLag: animateTransition.startLag,
+        endLag: animateTransition.endLag,
+        animationScale: animateTransition.animationScale,
+        isWaitTrans: animateTransition.isWaitTrans,
+        callback: (timer) => {
+          animateTransition.callback && animateTransition.callback(timer);
+          this.isUsingSkill = false;
+        }
+      }
+
+    }
+    
+    this.addSkill({
+      name,
+      animateTransition: animTrans,
+      initCooldown,
+      cooldown,
+      maxCount,
+      cooldownStop,
+      trigger: "manual",
+      callback: () => {
+        if(animateTransition) this.isUsingSkill = true;  //正在释放技能动画中
+        callback && callback();
+      }
+    });
+
+    this.skillSet.push({
+      name,
+      priority
+    })
+    
+    this.skillSet.sort((a, b) => a.priority - b.priority);
+
+  }
   
-  public triggerSkill(name: string){
-    this.countdown.triggerCountdown(name);
+  public triggerSkill(name: string): boolean{
+    return this.countdown.triggerCountdown(name);
   }
 
   public addWatcher(watcher: Watcher){
@@ -1395,6 +1469,7 @@ class Enemy extends DataObject{
       ZOffset: this.ZOffset,
       hp: this.hp,
       die: this.die,
+      isUsingSkill: this.isUsingSkill,
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
       currentAttackRange: this.currentAttackRange,
@@ -1440,6 +1515,7 @@ class Enemy extends DataObject{
       ZOffset,
       hp,
       die,
+      isUsingSkill,
       canAttack,
       attackCountdown,
       currentAttackRange,
@@ -1475,6 +1551,7 @@ class Enemy extends DataObject{
     this.tilePosition = tilePosition;
     this.hp = hp;
     this.die = die;
+    this.isUsingSkill = isUsingSkill;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
     this.attributes.moveSpeed = attributes.moveSpeed;
