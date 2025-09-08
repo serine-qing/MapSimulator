@@ -20,6 +20,8 @@ abstract class Handler{
   abstract handleSkill(enemy: Enemy, skill: any);
 
   abstract handleAttack(enemy: Enemy);
+  
+  abstract handleReborn(enemy: Enemy);
 
   abstract handleDie(enemy: Enemy);
 }

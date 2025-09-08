@@ -11,6 +11,33 @@ import EnemyHandler from "../entityHandler/EnemyHandler";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import DataObject from "./DataObject";
 
+const healthBarWidth = getPixelSize(5/7);
+const HealThBarGeometry = new THREE.PlaneGeometry(healthBarWidth, 0.4);
+const HealThBarShadowMaterial = new THREE.MeshBasicMaterial({
+  color: "#000000",
+  transparent: true,
+  opacity: 0.4,
+  depthTest: false,
+  depthWrite: false,
+})
+
+const HealThBarMaterial = new THREE.MeshBasicMaterial({
+  color: "#d86c42",
+  transparent: true,
+  opacity: 1,
+  depthTest: false,
+  depthWrite: false,
+})
+
+const BossHealThBarMaterial = new THREE.MeshBasicMaterial({
+  color: "#cb2b34",
+  transparent: true,
+  opacity: 1,
+  depthTest: false,
+  depthWrite: false,
+})
+
+
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
   //animationScale: 过渡动画执行速率
@@ -112,6 +139,13 @@ class Enemy extends DataObject{
   
   hp: number;
   die: boolean = false;
+  canReborn: boolean = false;              //hp归零后是否可复活
+  reborned: boolean = false;               //是否复活过
+  canDie: boolean = true;
+
+  healthBarShadow: THREE.Mesh;
+  healthBar: THREE.Mesh;
+
   //属性乘区 每帧计算
   finalAttributes = {
     atk: 1,
@@ -157,6 +191,7 @@ class Enemy extends DataObject{
   route: EnemyRoute;
   checkPointIndex: number = 0;   //目前处于哪个检查点
   visualRoutes: any;             //可视化路线
+  pickUpCount: number = 0;
 
   nextNode: PathNode;  //寻路目标点
   
@@ -351,7 +386,7 @@ class Enemy extends DataObject{
   public finishedMap(){
     if( this.cantFinished ) return;
     this.isFinished = true;
-    this,this.countdown.clearCountdown();
+    this.countdown.clearCountdown();
     EnemyHandler.finishedMap(this);
     
     if(!Global.gameManager.isSimulate){
@@ -370,11 +405,10 @@ class Enemy extends DataObject{
     GC_Add(this.object);
 
     this.initShadow();
-
     this.drawAttackRangeCircle(this.attributes.rangeRadius);
   }
 
-  public initShadow(){
+  private initShadow(){
     const majorAxis = getPixelSize(0.28); //椭圆长轴
     const minorAxis = getPixelSize(0.06); //椭圆短轴
 
@@ -406,6 +440,27 @@ class Enemy extends DataObject{
     activeShadow.position.y = shadowOffset.y;
     this.object.add(shadow)
     this.object.add(activeShadow)
+  }
+
+  private initHealthBar(){
+    if(!this.object) return;
+    const healthBarShadow = new THREE.Mesh(HealThBarGeometry, HealThBarShadowMaterial);
+    const healthBar = new THREE.Mesh(
+      HealThBarGeometry, 
+      this.levelType === "BOSS"? BossHealThBarMaterial : HealThBarMaterial
+    );
+
+    healthBarShadow.position.y = getPixelSize(-0.4);
+    healthBar.position.y = getPixelSize(-0.4);
+    
+    healthBarShadow.renderOrder = 99;
+    healthBar.renderOrder = 100;
+
+    this.healthBarShadow = healthBarShadow;
+    this.healthBar = healthBar;
+
+    this.object.add(healthBarShadow);
+    this.object.add(healthBar);
   }
 
   public setZOffset(ZOffset: number){
@@ -889,16 +944,53 @@ class Enemy extends DataObject{
   }
 
   private updateHP(){
-    if(this.hp <= 0){
-      if(!Global.gameManager.isSimulate){
+    this.hp = Math.clamp(this.hp, 0, this.attributes.maxHp);
+
+    this.updateHPBar();
+    if(this.hp <= 0 ){
+      if(this.canReborn){
+        this.canDie = false;
+        this.reborn();
+      }else if(this.canDie){
         this.animationStateTransition({
           transAnimation: "Die",
           isWaitTrans: true
         })
+        this.die = true;
+        this.handleDie();
+        this.finishedMap();
       }
-      this.die = true;
-      this.handleDie();
-      this.finishedMap();
+      
+    }
+  }
+
+  //重生动画结束
+  public overRebornDuration(){
+    this.canDie = true;
+  }
+
+  //复活处理，一般是boss
+  private reborn(){
+    this.reborned = true;
+    EnemyHandler.handleReborn(this);
+  }
+
+  private updateHPBar(){
+    if(this.hp < this.attributes.maxHp){
+      !this.healthBar && this.initHealthBar();
+      if(this.healthBar){
+        const hpRate = this.hp / this.attributes.maxHp;
+        
+        this.healthBar.visible = true;
+        this.healthBarShadow.visible = true;
+        this.healthBar.scale.x = hpRate;
+        this.healthBar.position.x = - healthBarWidth * (1 - hpRate) / 2;
+      }
+    }else{
+      if(this.healthBar){
+        this.healthBar.visible = false;
+        this.healthBarShadow.visible = false;
+      }
     }
   }
 
@@ -1157,6 +1249,10 @@ class Enemy extends DataObject{
     });
   }
 
+  public removeSkill(name: string){
+    this.countdown.removeCountdown(name);
+  }
+
   public addSkillSet(skillSetParam: SkillSetParam){
     const { name, animateTransition, priority, initCooldown, 
       cooldown, callback, maxCount, cooldownStop } = skillSetParam;
@@ -1201,6 +1297,16 @@ class Enemy extends DataObject{
     
     this.skillSet.sort((a, b) => a.priority - b.priority);
 
+  }
+
+  public removeSkillSet(name: string){
+    this.removeSkill(name);
+    const findIndex = this.skillSet.findIndex(set => set.name === name);
+    if(findIndex > -1){
+      this.skillSet.splice(findIndex, 1);
+    }else{
+      console.error(`${name} 技能set删除失败`);
+    }
   }
   
   public triggerSkill(name: string): boolean{
@@ -1257,6 +1363,16 @@ class Enemy extends DataObject{
     }else{
       console.error("detection设置失败!")
     }
+  }
+
+  //装载
+  public pickUp(){
+    this.pickUpCount++;
+  }
+
+  //卸载
+  public dropOff(){
+    this.pickUpCount--;
   }
 
   public show(){
@@ -1349,7 +1465,6 @@ class Enemy extends DataObject{
 
   //动画状态机发生转换
   public animationStateTransition(transition: AnimateTransition){
-
     //transAnimation: 是否有过渡动画
     //isWaitTrans: 进行过渡动画时是否停止移动
     //callback：结束过渡动画后的回调函数
@@ -1410,9 +1525,10 @@ class Enemy extends DataObject{
           initCountdown: duration, 
           callback: apply
         });
-          
-        this.changeAnimation();
+
         this.transAnimationPlaying = true;
+        this.changeAnimation();
+        
       }else{
         apply();
       }
@@ -1424,9 +1540,7 @@ class Enemy extends DataObject{
 
   //更改动画
   public changeAnimation(){
-    if(!this.transAnimationPlaying){
-      this.simulateTrackTime = 0;
-    }
+    this.simulateTrackTime = 0;
   }
 
   //直接设置动画
@@ -1468,8 +1582,12 @@ class Enemy extends DataObject{
       route: this.route,
       tilePosition: this.tilePosition,
       ZOffset: this.ZOffset,
+      pickUpCount: this.pickUpCount,
       hp: this.hp,
       die: this.die,
+      canReborn: this.canReborn,
+      canDie: this.canDie,
+      reborned: this.reborned,
       isUsingSkill: this.isUsingSkill,
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
@@ -1477,6 +1595,7 @@ class Enemy extends DataObject{
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
+      skillSet: [...this.skillSet],
       changeTileEvents: [...this.changeTileEvents],
       watchers: [...this.watchers],
       buffs: [...this.buffs],
@@ -1514,13 +1633,18 @@ class Enemy extends DataObject{
       route,
       tilePosition,
       ZOffset,
+      pickUpCount,
       hp,
       die,
+      canReborn,
+      canDie,
+      reborned,
       isUsingSkill,
       canAttack,
       attackCountdown,
       currentAttackRange,
       attributes,
+      skillSet,
       changeTileEvents,
       watchers,
       buffs
@@ -1550,12 +1674,17 @@ class Enemy extends DataObject{
     this.motion = motion;
     this.route = route;
     this.tilePosition = tilePosition;
+    this.pickUpCount = pickUpCount;
     this.hp = hp;
     this.die = die;
+    this.canReborn = canReborn;
+    this.canDie = canDie;
+    this.reborned = reborned;
     this.isUsingSkill = isUsingSkill;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
     this.attributes.moveSpeed = attributes.moveSpeed;
+    this.skillSet = [...skillSet];
     this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
     this.buffs = [...buffs];
@@ -1582,7 +1711,7 @@ class Enemy extends DataObject{
       }
 
       this.updateAttackRangeCircle(currentAttackRange);
-
+      this.updateHPBar();
     }
     
   }

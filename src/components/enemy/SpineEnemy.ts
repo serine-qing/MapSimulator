@@ -191,21 +191,21 @@ class SpineEnemy extends Enemy{
   public changeAnimation(){
     super.changeAnimation();
     if(Global.gameManager.isSimulate) return;
-    if(this.transAnimationPlaying) return;
     this.setAnimation();
   }
 
   protected setAnimation(){
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
-    const isLoop = this.countdown.getCountdownTime("waitAnimationTrans") === -1 &&
-      this.countdown.getCountdownTime("animationTrans") === -1;
+    const isLoop = !this.transAnimationPlaying;
     
     if(animate && this.skeletonMesh){
-      const track = this.skeletonMesh.state.setAnimation(
+
+      this.skeletonMesh.state.setAnimation(
         0, 
         animate, 
         isLoop
       );
+
     }else{
       console.error(`${this.key}动画名获取失败！`)
     }

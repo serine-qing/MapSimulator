@@ -222,6 +222,10 @@ const EnemyHandler = {
     })
   },
 
+  handleReborn: (enemy: Enemy) => {
+    act45side.handleReborn(enemy);
+  },
+
   handleDie: (enemy: Enemy) => {
     act35side.handleDie(enemy);
   }

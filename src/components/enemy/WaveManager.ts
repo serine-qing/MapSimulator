@@ -235,18 +235,17 @@ class WaveManager{
     const currentActions = this.currentActions();
     if(!currentActions) return;
 
-    //todo 波次判断机制待检查
-
     //波次出怪结束
     const waveFinished = this.currentActionIndex >= currentActions.length;
     if(waveFinished){
-      let empty = true;
-      this.enemiesInMap.forEach(enemy => {
-        if(enemy && !enemy.dontBlockWave) empty = false;
+      const find = this.enemiesInMap.find(enemy => {
+        return enemy && 
+        !enemy.dontBlockWave && 
+        !enemy.isExtra && //额外波次不会阻挡正常波次
+        !enemy.reborned   //模拟boss复活释放波次
       })
-
       //波次出怪结束，并且场上无敌人 就切换到下一波次
-      if(empty){
+      if(!find){
         this.changeNextWave();
       }
     }

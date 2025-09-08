@@ -159,6 +159,141 @@ const removeShadows = (position: Vector2 | Vec2, direction: string) => {
   })
 }
 
+//#region boss技能  
+const addBossSkillEnemyLine = (enemy: Enemy, skill) => {
+  let transAnimation;
+  switch (skill.prefabKey) {
+    case "enemyline":
+      transAnimation = "A_Skill_3";
+      break;
+    case "enemylineadvance":
+      transAnimation = "B_Skill_3";
+      break;
+  }
+  enemy.addSkillSet({
+    name: "enemyline",
+    cooldown: skill.cooldown,
+    initCooldown: skill.initCooldown,
+    priority: skill.priority,
+    animateTransition: {
+      transAnimation,
+      isWaitTrans: true,
+      animationScale: 1.8,
+    }
+  })
+}
+
+const addBossSkillSummon = (enemy: Enemy, skill) => {
+  const summon = skill;
+  let transAnimation;
+  switch (skill.prefabKey) {
+    case "summon":
+      transAnimation = "A_Skill_1";
+      break;
+    case "summonadvance":
+      transAnimation = "B_Skill_1";
+      break;
+  }
+  enemy.addSkillSet({
+    name: "summon",
+    cooldown: summon.cooldown,
+    initCooldown: summon.initCooldown,
+    priority: summon.priority,
+    animateTransition: {
+      transAnimation,
+      isWaitTrans: true,
+    },
+    callback: () => {
+      Global.waveManager.startExtraAction({
+        key: summon.blackboard.branch_id
+      });
+    },
+    
+  })
+}
+
+const addBossSkillRide = (enemy: Enemy, skill) => {
+  let idleAnimate, moveAnimate, transAnimation, rideTalentKey, endIdleAnimate, endMoveAnimate, endTransAnimation;
+  switch (skill.prefabKey) {
+    case "ride":
+      rideTalentKey = "shield";
+      idleAnimate = "A_Skill_4_Loop";
+      moveAnimate = "A_Skill_4_Loop";
+      transAnimation = "A_Skill_4_Begin";
+
+      endIdleAnimate = "A_Idle";
+      endMoveAnimate = "A_Move";
+      endTransAnimation = "A_Skill_4_End";
+      break;
+    case "rideadvance":
+      rideTalentKey = "shieldadvance";
+      idleAnimate = "B_Skill_4_Loop";
+      moveAnimate = "B_Skill_4_Loop";
+      transAnimation = "B_Skill_4_Begin";
+
+      endIdleAnimate = "B_Idle";
+      endMoveAnimate = "B_Move";
+      endTransAnimation = "B_Skill_4_End";
+      break;
+  }
+
+  const ride = enemy.getTalent(rideTalentKey);
+
+  const moveBuff = {
+    id: "ride",
+    key: "ride",
+    overlay: false,
+    duration:  ride ? ride.interval : 8,
+    effect: [{
+      attrKey: "moveSpeed",
+      method: "add",
+      value: ride.move_speed
+    }]
+  };
+
+  enemy.addSkillSet({
+    name: "ride",
+    cooldown: skill.cooldown,
+    initCooldown: skill.initCooldown,
+    priority: skill.priority,
+    animateTransition: {
+      idleAnimate,
+      moveAnimate,
+      transAnimation,
+      isWaitTrans: true,
+    },
+    callback: () => {
+      enemy.countdown.setTimerPause("summon", true);
+      enemy.countdown.setTimerPause("enemyline", true);
+      enemy.countdown.setTimerPause("ride", true);
+      enemy.addBuff(moveBuff)
+
+      enemy.countdown.addCountdown({
+        name: "endRide",
+        initCountdown: ride ? ride.interval : 8,
+        callback: () => {
+          enemy.animationStateTransition({
+            idleAnimate: endIdleAnimate,
+            moveAnimate: endMoveAnimate,
+            transAnimation: endTransAnimation,
+            isWaitTrans: true,
+            callback: () => {
+              enemy.countdown.setTimerPause("summon", false);
+              enemy.countdown.setTimerPause("enemyline", false);
+              enemy.countdown.setTimerPause("ride", false);
+            }
+          })
+
+        }
+      })
+    },
+    
+  })
+}
+
+
+//#endregion       
+
 const Handler = {
   parseRune: (rune) => {
     if(rune.key === "env_system_new"){
@@ -286,7 +421,18 @@ const Handler = {
       case "enemy_10104_mjcbln_2":
         enemy.canAttack = true;
         break;
-    
+      case "enemy_1569_ldevil":       //给莫菲丝加个自伤，方便看二阶段出怪
+        enemy.canReborn = true;
+        const damage = enemy.attributes.maxHp * 0.005;
+        enemy.countdown.addCountdown({
+          name: "damageSelf",
+          initCountdown: 1,
+          countdown: 1,
+          callback: () => {
+            enemy.hp -= damage;
+          }
+        });
+        break;
     }
   },
 
@@ -399,100 +545,68 @@ const Handler = {
 
         }
         break;
-      case "summon":
-        if(enemy.key === "enemy_1569_ldevil"){ //莫菲丝
-          const summon = skill;
-
-          enemy.addSkillSet({
-            name: "summon",
-            cooldown: summon.cooldown,
-            initCooldown: summon.initCooldown,
-            priority: summon.priority,
-            animateTransition: {
-              idleAnimate: "A_Idle",
-              moveAnimate: "A_Move",
-              transAnimation: "A_Skill_1",
-              isWaitTrans: true,
-            },
+      case "getchar":
+        return;
+        if(enemy.key.includes("enemy_10107_mjcdog")){   //安眠伴随兽
+          enemy.attributes.moveSpeed = 1.6;
+          const getenmey = enemy.getTalent("getenmey");
+          let { range_radius, move_speed, duration, cooldown } = getenmey;
+          enemy.addDetection({
+            detectionRadius: range_radius,
+            enemyKeys: ["enemy_10103_mjcppp", "enemy_10103_mjcppp_2","enemy_10105_mjcdol","enemy_10105_mjcdol_2"],
+            duration: 0.1,
+            every: false,
             callback: () => {
-              Global.waveManager.startExtraAction({
-                key: summon.blackboard.branch_id
-              });
-            },
-            
-          })
-        }
-        break;
-      case "enemyline":
-        if(enemy.key === "enemy_1569_ldevil"){ //莫菲丝
-          enemy.addSkillSet({
-            name: skill.prefabKey,
-            cooldown: skill.cooldown,
-            initCooldown: skill.initCooldown,
-            priority: skill.priority,
-            animateTransition: {
-              idleAnimate: "A_Idle",
-              moveAnimate: "A_Move",
-              transAnimation: "A_Skill_3",
-              isWaitTrans: true,
-              animationScale: 1.8,
+              if(enemy.pickUpCount !== 0) return;
+              enemy.pickUp();
+
+              enemy.addBuff({
+                id: "getenmey",
+                key: "getenmey",
+                overlay: false,
+                duration,
+                effect: [{
+                  attrKey: "moveSpeed",
+                  method: "add",
+                  value: move_speed
+                }]
+              })
+              enemy.animationStateTransition({
+                idleAnimate: "B_Idle",
+                moveAnimate: "B_Move",
+                transAnimation: "AtoB",
+                isWaitTrans: true,
+              })
+
+              enemy.countdown.addCountdown({
+                name: "dropOff",
+                initCountdown: duration,
+                callback: () => {
+                  enemy.dropOff();
+                  enemy.animationStateTransition({
+                    idleAnimate: "A_Idle",
+                    moveAnimate: "A_Move",
+                    isWaitTrans: false,
+                  })
+                }
+              })
             }
           })
         }
         break;
+      case "summon":
+        if(enemy.key === "enemy_1569_ldevil"){ //莫菲丝
+          addBossSkillSummon(enemy, skill);
+        }
+        break;
+      case "enemyline":
+        if(enemy.key === "enemy_1569_ldevil"){ //莫菲丝
+          addBossSkillEnemyLine(enemy, skill);
+        }
+        break;
       case "ride":
         if(enemy.key === "enemy_1569_ldevil"){ //莫菲丝
-          const ride = enemy.getTalent("shield");
-
-          const moveBuff = {
-            id: "ride",
-            key: "ride",
-            overlay: false,
-            duration:  ride ? ride.interval : 8,
-            effect: [{
-              attrKey: "moveSpeed",
-              method: "add",
-              value: ride.move_speed
-            }]
-          };
-          enemy.addSkillSet({
-            name: skill.prefabKey,
-            cooldown: skill.cooldown,
-            initCooldown: skill.initCooldown,
-            priority: skill.priority,
-            animateTransition: {
-              idleAnimate: "A_Skill_4_Loop",
-              moveAnimate: "A_Skill_4_Loop",
-              transAnimation: "A_Skill_4_Begin",
-              isWaitTrans: true,
-            },
-            callback: () => {
-              enemy.countdown.setTimerPause("summon", true);
-              enemy.countdown.setTimerPause("enemyline", true);
-              enemy.countdown.setTimerPause("ride", true);
-              enemy.addBuff(moveBuff)
-
-              enemy.countdown.addCountdown({
-                name: "endRide",
-                initCountdown: ride ? ride.interval : 8,
-                callback: () => {
-                  enemy.animationStateTransition({
-                    idleAnimate: "A_Idle",
-                    moveAnimate: "A_Move",
-                    transAnimation: "A_Skill_4_End",
-                    isWaitTrans: true,
-                    callback: () => {
-                      enemy.countdown.setTimerPause("summon", false);
-                      enemy.countdown.setTimerPause("enemyline", false);
-                      enemy.countdown.setTimerPause("ride", false);
-                    }
-                  })
-
-                }
-              })
-            },
-            
-          })
+          addBossSkillRide(enemy, skill);
         }
         break;
     }
@@ -524,6 +638,56 @@ const Handler = {
         })
         break;
     
+    }
+  },
+
+  handleReborn: (enemy: Enemy) => {
+    if(enemy.key === "enemy_1569_ldevil"){
+      enemy.canReborn = false;
+      enemy.countdown.removeCountdown("damageSelf");
+      const reborn = enemy.getTalent("reborn");
+      const health = 1 / (reborn.duration - 1) * enemy.attributes.maxHp;
+
+      enemy.unMoveable = true;
+      enemy.removeSkillSet("summon");
+      enemy.removeSkillSet("enemyline");
+      enemy.removeSkillSet("ride");
+
+      Global.waveManager.startExtraAction({
+        key: reborn.branch_id
+      })
+      //todo 打断当前动画
+      enemy.animationStateTransition({
+        idleAnimate: "A_Revive_2",
+        moveAnimate: "A_Revive_2",
+        transAnimation: "A_Revive_1",
+        isWaitTrans: true,
+      });
+      
+      enemy.countdown.addCountdown({
+        name: "reborn",
+        initCountdown: 1,
+        countdown: 1,
+        maxCount: reborn.duration,
+        callback: (timer) => {
+          enemy.hp += health;
+          if(timer.count >= reborn.duration){
+            enemy.animationStateTransition({
+              idleAnimate: "B_Idle",
+              moveAnimate: "B_Move",
+              transAnimation: "A_Revive_3",
+              isWaitTrans: true,
+              callback: () => {
+                enemy.unMoveable = false;
+                addBossSkillSummon(enemy, enemy.getSkill("summonadvance"));
+                addBossSkillEnemyLine(enemy, enemy.getSkill("enemylineadvance"));
+                addBossSkillRide(enemy, enemy.getSkill("rideadvance"));
+              }
+            });
+            
+          }
+        }
+      });
     }
   },
 

@@ -136,15 +136,19 @@ class Countdown{
   }
 
   public set(states){
-    if(!states) return;
-    const { timerStates } = states;
+    if(!states) {
+      this.timers = [];
+    }else{
+      const { timerStates } = states;
 
-    this.timers = timerStates.map( state => {
-      state.timer.time = state.time;
-      state.timer.count = state.count;  
-      state.timer.pause = state.pause;
-      return state.timer;
-    });
+      this.timers = timerStates.map( state => {
+        state.timer.time = state.time;
+        state.timer.count = state.count;  
+        state.timer.pause = state.pause;
+        return state.timer;
+      });
+    }
+
   }
 }
 
