@@ -318,7 +318,9 @@ class Enemy extends DataObject{
     this.isStarted = true;
     this.show();
     this.handleStart();
-    
+
+    //更新tilePositon 防止enemy刚出现那帧就触发tile event导致的bug
+    this.updatePositions();
   }
 
   public reset(){
@@ -683,7 +685,6 @@ class Enemy extends DataObject{
 
     if(!outPos || outPos.x !== inPos.x || outPos.y !== inPos.y){
       this.tilePosition = inPos;
-
       Global.tileManager.changeTile(outPos, inPos, this);
       this.changeTile(outPos, inPos);
     }

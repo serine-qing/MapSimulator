@@ -3,6 +3,7 @@ import AliasHelper from "./AliasHelper";
 import Tile from "./Tile";
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
+import * as THREE from "three";
 
 import act35side from "../entityHandler/太阳甩在身后";
 import { getPixelSize } from "../utilities/utilities";

@@ -423,7 +423,7 @@ const Handler = {
         break;
       case "enemy_1569_ldevil":       //给莫菲丝加个自伤，方便看二阶段出怪
         enemy.canReborn = true;
-        const damage = enemy.attributes.maxHp * 0.005;
+        const damage = enemy.attributes.maxHp * 0.01;
         enemy.countdown.addCountdown({
           name: "damageSelf",
           initCountdown: 1,
