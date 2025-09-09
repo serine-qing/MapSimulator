@@ -18,7 +18,7 @@ const addMoonlight = (obj: DataObject) => {
     enemy.customData.moonlight = true;
     const spMoon = enemy.staticData.sp_moon;
     if(spMoon){
-      const wakeSkill = enemy.spSkillData.find(data => data.name === "wakeup");
+      const wakeSkill = enemy.getSPSkill("wakeup");
       if(wakeSkill){
         wakeSkill.spSpeed = spMoon;
       }
@@ -28,7 +28,7 @@ const addMoonlight = (obj: DataObject) => {
     const trap = obj as Trap;
     const spMoon = trap.staticData.sp_moon;
     if(spMoon){
-      const spawnSkill = trap.spSkillData.find(data => data.name === "spawn");
+      const spawnSkill = trap.getSPSkill("wakeup");
       if(spawnSkill){
         spawnSkill.spSpeed = spMoon;
       }
@@ -43,7 +43,7 @@ const removeMoonlight = (obj: DataObject) => {
     enemy.customData.moonlight = false;
     const sp = enemy.staticData.sp;
     if(sp){
-      const wakeSkill = enemy.spSkillData.find(data => data.name === "wakeup");
+      const wakeSkill = enemy.getSPSkill("wakeup");
       if(wakeSkill){
         wakeSkill.spSpeed = sp;
       }
@@ -52,7 +52,7 @@ const removeMoonlight = (obj: DataObject) => {
     const trap = obj as Trap;
     const sp = trap.staticData.sp;
     if(sp){
-      const spawnSkill = trap.spSkillData.find(data => data.name === "spawn");
+      const spawnSkill = trap.getSPSkill("wakeup");
       if(spawnSkill){
         spawnSkill.spSpeed = sp;
       }
@@ -170,7 +170,7 @@ const addBossSkillEnemyLine = (enemy: Enemy, skill) => {
       transAnimation = "B_Skill_3";
       break;
   }
-  enemy.addSkillSet({
+  enemy.addSkill({
     name: "enemyline",
     cooldown: skill.cooldown,
     initCooldown: skill.initCooldown,
@@ -194,7 +194,7 @@ const addBossSkillSummon = (enemy: Enemy, skill) => {
       transAnimation = "B_Skill_1";
       break;
   }
-  enemy.addSkillSet({
+  enemy.addSkill({
     name: "summon",
     cooldown: summon.cooldown,
     initCooldown: summon.initCooldown,
@@ -251,7 +251,7 @@ const addBossSkillRide = (enemy: Enemy, skill) => {
     }]
   };
 
-  enemy.addSkillSet({
+  enemy.addSkill({
     name: "ride",
     cooldown: skill.cooldown,
     initCooldown: skill.initCooldown,
@@ -316,8 +316,8 @@ const Handler = {
           effect: [
             {
               attrKey: "moveSpeed",
-              method: "mul",
-              value: rune.blackboard.find(item => item.key === "move_speed")?.value + 1
+              method: "add",
+              value: rune.blackboard.find(item => item.key === "move_speed")?.value
             },
             {
               attrKey: "attackSpeed",
@@ -440,7 +440,7 @@ const Handler = {
     switch (talent.key) {
       case "sleep2wake":
         enemy.staticData.sp = talent.value.sp;
-        enemy.staticData.sp_moon = talent.value.sp_moon;
+        enemy.staticData.sp_moon = talent.value.sp + talent.value.sp_moon;
         break;
     
       case "bigger":
@@ -505,11 +505,11 @@ const Handler = {
               moveSpeed = wake2sleep?.move_speed || 1;
               break;
             case "enemy_10105_mjcdol":
-              idleAnimate = "B_Idle";
-              moveAnimate = "B_Move";
-              activeIdleAnimate = "A_Idle";
-              activeMoveAnimate = "A_Move";
-              transAnimation = "BtoA";
+              idleAnimate = "A_Idle";
+              moveAnimate = "A_Move";
+              activeIdleAnimate = "B_Idle";
+              activeMoveAnimate = "B_Move";
+              transAnimation = "AtoB";
               moveSpeed = wake2sleep?.move_speed || 1;
               break;
           }
@@ -546,19 +546,28 @@ const Handler = {
         }
         break;
       case "getchar":
-        return;
         if(enemy.key.includes("enemy_10107_mjcdog")){   //安眠伴随兽
-          enemy.attributes.moveSpeed = 1.6;
+          enemy.maxPickUpCount = 1;
           const getenmey = enemy.getTalent("getenmey");
           let { range_radius, move_speed, duration, cooldown } = getenmey;
-          enemy.addDetection({
-            detectionRadius: range_radius,
-            enemyKeys: ["enemy_10103_mjcppp", "enemy_10103_mjcppp_2","enemy_10105_mjcdol","enemy_10105_mjcdol_2"],
-            duration: 0.1,
-            every: false,
-            callback: () => {
-              if(enemy.pickUpCount !== 0) return;
-              enemy.pickUp();
+          
+          enemy.addSkill({
+            name: "getenmey",
+            initCooldown: 0,
+            cooldown: cooldown + duration,
+            trigger: "manual",
+            animateTransition: {
+              idleAnimate: "B_Idle",
+              moveAnimate: "B_Move",
+              transAnimation: "AtoB",
+              isWaitTrans: true,
+            },
+            callback: (timer, find) => {
+              enemy.pickUp(find);
+
+              const wakeup = find.getSPSkill("wakeup");
+              const spSpeed = wakeup.spSpeed;
+              wakeup.spSpeed = 0;
 
               enemy.addBuff({
                 id: "getenmey",
@@ -571,18 +580,13 @@ const Handler = {
                   value: move_speed
                 }]
               })
-              enemy.animationStateTransition({
-                idleAnimate: "B_Idle",
-                moveAnimate: "B_Move",
-                transAnimation: "AtoB",
-                isWaitTrans: true,
-              })
 
               enemy.countdown.addCountdown({
                 name: "dropOff",
                 initCountdown: duration,
                 callback: () => {
-                  enemy.dropOff();
+                  wakeup.spSpeed = spSpeed;
+                  enemy.dropOff(0.4);
                   enemy.animationStateTransition({
                     idleAnimate: "A_Idle",
                     moveAnimate: "A_Move",
@@ -590,6 +594,22 @@ const Handler = {
                   })
                 }
               })
+
+            }
+          })
+
+          enemy.addDetection({
+            detectionRadius: range_radius,
+            enemyKeys: ["enemy_10103_mjcppp", "enemy_10103_mjcppp_2","enemy_10105_mjcdol","enemy_10105_mjcdol_2"],
+            duration: 0, //每帧触发
+            every: false,
+            callback: (find: Enemy) => {
+              if(enemy.isFullyLoaded()) return;
+
+              //仅可装载【休眠】状态的敌方单位
+              if(find.countdown.getCountdownTime("wakeup") !== -1){
+                enemy.triggerSkill("getenmey", find);
+              }
             }
           })
         }
@@ -649,9 +669,9 @@ const Handler = {
       const health = 1 / (reborn.duration - 1) * enemy.attributes.maxHp;
 
       enemy.unMoveable = true;
-      enemy.removeSkillSet("summon");
-      enemy.removeSkillSet("enemyline");
-      enemy.removeSkillSet("ride");
+      enemy.removeSkill("summon");
+      enemy.removeSkill("enemyline");
+      enemy.removeSkill("ride");
 
       Global.waveManager.startExtraAction({
         key: reborn.branch_id

@@ -3,7 +3,7 @@ import Global from "../utilities/Global";
 interface CountdownOpitons{
   name: string,
   initCountdown: number,            //初始倒计时
-  countdown?: number,                //后续执行倒计时
+  countdown?: number,                //后续执行倒计时, 如果是0代表每帧触发
   maxCount?: number,                 //最大执行次数
   callback?: Function,               //每次计时器归零的回调函数
   trigger?: string,                  //auto：自动触发， manual：手动触发，默认自动
@@ -58,21 +58,21 @@ class Countdown{
     return find? find.time : -1;
   }
 
-  public triggerCountdown(name: string): boolean{
+  public triggerCountdown(name: string, ...param): boolean{
     const timerIndex = this.timers.findIndex(timer => timer.name === name);
     const timer = this.timers[timerIndex];
 
     if(timer && !timer.pause && timer.time <= 0){
       const { countdown, callback, maxCount } = timer;
       timer.count ++;
-      if(countdown && (!maxCount || timer.count < maxCount)){
+      if(countdown !== undefined && (!maxCount || timer.count < maxCount)){
         timer.time += countdown;
       }else{
         this.timers.splice(timerIndex, 1);
       }
 
       if(callback){
-        callback(timer);
+        callback(timer, ...param);
         return true;
       }
     }
@@ -101,7 +101,7 @@ class Countdown{
 
         timer.count ++;
 
-        if(countdown && (!maxCount || timer.count < maxCount)){
+        if(countdown !== undefined  && (!maxCount || timer.count < maxCount)){
           timer.time += countdown;
         }else{
           this.timers.splice(i, 1);

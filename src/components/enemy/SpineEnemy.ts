@@ -197,17 +197,22 @@ class SpineEnemy extends Enemy{
   protected setAnimation(){
     const animate = this.animateState === "idle"? this.idleAnimate : this.moveAnimate;
     const isLoop = !this.transAnimationPlaying;
-    
-    if(animate && this.skeletonMesh){
 
-      this.skeletonMesh.state.setAnimation(
-        0, 
-        animate, 
-        isLoop
-      );
-
-    }else{
+    if(!animate){
       console.error(`${this.key}动画名获取失败！`)
+    }
+
+    if(animate && this.currentAnimation !== animate){
+
+      this.currentAnimation = animate;
+      if(this.skeletonMesh){
+        this.skeletonMesh.state.setAnimation(
+          0, 
+          animate, 
+          isLoop
+        );
+      }
+
     }
   }
 

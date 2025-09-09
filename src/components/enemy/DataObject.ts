@@ -100,6 +100,10 @@ class DataObject{
 
   }
 
+  public getSPSkill(name: string){
+    return this.spSkillData.find(data => data.name === name);
+  }
+
   public get(): any{
     const states = {
       customData: {...this.customData},
