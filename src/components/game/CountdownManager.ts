@@ -115,9 +115,14 @@ class Countdown{
     }
   }
 
-  public setTimerPause(name: string, isPause: boolean){
+  public stopCountdown(name: string){
     const timer = this.getTimer(name);
-    if(timer) timer.pause = isPause;
+    if(timer) timer.pause = true;
+  }
+
+  public startCountdown(name: string){
+    const timer = this.getTimer(name);
+    if(timer) timer.pause = false;
   }
 
   public get(){

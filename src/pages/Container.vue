@@ -254,7 +254,7 @@ const updateEnemyDatas = () => {
 
     const wakeup = enemy.spSkillData.find(data => data.name === "wakeup");
 
-    if(wakeup){
+    if(wakeup && !wakeup.pause){
       label.wakeupCountDown = wakeup.spCost - wakeup.sp;
     }else{
       label.wakeupCountDown = -1;

@@ -121,8 +121,6 @@ class GameView{
   }
 
   public render(delta: number){
-    
-    gameCanvas.stats?.begin();
 
     if(Global.gameManager.isSimulate) return;
     
@@ -139,9 +137,6 @@ class GameView{
         }
       )
     }
-
-
-    gameCanvas.stats?.end();
 
   }
 

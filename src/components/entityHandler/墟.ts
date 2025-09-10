@@ -1,6 +1,41 @@
 import Enemy from "../enemy/Enemy";
+import Trap from "../game/Trap";
+import Global from "../utilities/Global";
 
 const Handler = {
+  handleTrapStart: (trap: Trap) => {
+    switch (trap.key) {
+      //压力舒缓帮手
+      case "trap_253_boxnma":
+      case "trap_254_boxmac":
+        const duration = trap.customData.skillBlackboard.find(data => data.key === "born_duration")?.value;
+
+        trap.countdown.addCountdown({
+          name: "waiting",
+          initCountdown: duration,
+          callback: () => {
+            const waveManager =  Global.gameManager.waveManager;
+            waveManager.startExtraAction({
+              key: trap.extraWaveKey,
+            });
+            trap.hide();
+          }
+        })
+        break;
+    
+    }
+  },
+
+  handleEnemyStart: (enemy: Enemy) => {
+    switch (enemy.key) {
+      //压力舒缓帮手
+      case "enemy_10119_ymgbxm":
+      case "enemy_10119_ymgbxm_2":
+        enemy.startAnimate = "Start";
+        break;
+    }
+  },
+
   handleTalent: (enemy: Enemy, talent: any) => {
     const {duration, range_radius} = talent.value;
     switch (talent.key) {

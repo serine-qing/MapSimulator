@@ -450,14 +450,23 @@ class MapModel{
       //某些敌人(例如提示)没有路径route，所以会出现null，做下兼容处理
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
       if(sourceRoute && sourceRoute.motionMode !== "E_NUM") {
+        let isAirborne = false;
+        const startPosition = RowColToVec2(sourceRoute.startPosition);
+        const findStartTile = Global.tileManager.startTiles.find(tile => {
+          return tile.position.x === startPosition.x &&
+            tile.position.y === startPosition.y
+        })
+        if(!findStartTile) isAirborne = true;
+
         const route: EnemyRoute = {
           index: routeIndex,
           allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径          
           visitEveryTileCenter: sourceRoute.visitEveryTileCenter,
           visitEveryNodeCenter: sourceRoute.visitEveryNodeCenter,
           visitEveryNodeStably: !sourceRoute.checkpoints || sourceRoute.checkpoints.length === 0,
-          startPosition: RowColToVec2(sourceRoute.startPosition),
+          startPosition,
           endPosition: RowColToVec2(sourceRoute.endPosition),
+          isAirborne,
           motionMode: AliasHelper(sourceRoute.motionMode, "motionMode"),
           spawnOffset: sourceRoute.spawnOffset,
           spawnRandomRange: sourceRoute.spawnRandomRange,

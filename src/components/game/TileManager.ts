@@ -34,6 +34,8 @@ interface TileEventOption{
 class TileManager{
   public tiles: Tile[][] = [];
   public flatTiles: Tile[] = [];
+  public startTiles: Tile[] = [];   //红门
+  public endTiles: Tile[] = [];     //蓝门
   public height: number;    //矩阵高度(y)
   public width: number;    //矩阵宽度(x)
   public events: TileEvent[] = [];
@@ -87,6 +89,12 @@ class TileManager{
           this.tiles[y] = [];
         }
         this.tiles[y][x] = tile;
+        
+        if(tile.tileKey === "tile_start"){
+          this.startTiles.push(tile);
+        }else if(tile.tileKey === "tile_end"){
+          this.endTiles.push(tile);
+        }
         
       })
     })
@@ -274,7 +282,6 @@ class TileManager{
             eventToRemove.y === enemy.tilePosition.y &&
             (!eventToRemove.enemy || eventToRemove.enemy.includes(enemy.key))
           ){
-
             eventToRemove.callback(enemy);
           }
         })
@@ -320,6 +327,16 @@ class TileManager{
     outEvents.forEach(outEvent => outEvent.callback(enemy));
     newEvents.forEach(newEvent => newEvent.callback(enemy));
 
+  }
+
+  exitTile(outPos: Vector2, enemy: Enemy){
+    const events = this.getEvents(outPos, "out", enemy);
+    events.forEach(event => event.callback(enemy));
+  }
+
+  enterTile(inPos: Vector2, enemy: Enemy){
+    const events = this.getEvents(inPos, "in", enemy);
+    events.forEach(event => event.callback(enemy));
   }
 
   getEvents(position: Vector2, type: string, enemy): TileEvent[]{

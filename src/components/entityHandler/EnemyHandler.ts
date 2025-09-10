@@ -12,23 +12,8 @@ const EnemyHandler = {
   handleStart: (enemy: Enemy) => {
     act41side.handleEnemyStart(enemy);
     act42side.handleEnemyStart(enemy);
+    act44side.handleEnemyStart(enemy);
     act45side.handleEnemyStart(enemy);
-
-    if(enemy.isExtra){
-      switch (enemy.key) {
-        //压力舒缓帮手
-        case "enemy_10119_ymgbxm":
-        case "enemy_10119_ymgbxm_2":
-          enemy.animationStateTransition({
-            moveAnimate: enemy.moveAnimate,
-            idleAnimate: enemy.idleAnimate,
-            transAnimation: "Start",
-            animationScale: 1,
-            isWaitTrans: true
-          })
-          break;
-      }
-    }
 
     switch (enemy.key) {
       case "enemy_1334_ristar":   //行星碎屑

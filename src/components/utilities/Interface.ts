@@ -81,6 +81,7 @@ declare global {
     checkpoints: Array<CheckPoint>,
     startPosition: Vec2,
     endPosition: Vec2,
+    isAirborne: boolean,         //是否是空降单位（不从红门出）
     motionMode: string,
     spawnOffset: any,
     spawnRandomRange: any,

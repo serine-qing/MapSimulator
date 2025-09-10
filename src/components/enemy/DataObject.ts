@@ -26,6 +26,15 @@ interface SPSkillParam{
   maxCount?: number,  
 }
 
+interface spSkill{
+  name: string,
+  spSpeed: number,
+  sp: number,
+  spCost: number,
+  applyCount: number,
+  pause: boolean,
+}
+
 
 class DataObject{
   private events: {[key: string]: Function} = {};         //绑定的方法
@@ -33,13 +42,7 @@ class DataObject{
   public customData: {[key: string]: any} = {};    //数据存储
 
   public countdown: Countdown;  //倒计时
-  public spSkillData: {
-    name: string,
-    spSpeed: number,
-    sp: number,
-    spCost: number,
-    applyCount: number,
-  }[] = [];
+  public spSkillData: spSkill[] = [];
   constructor(){
     const countdownManager = Global.countdownManager;
     if(countdownManager) this.countdown = countdownManager.getCountdownInst();
@@ -67,7 +70,8 @@ class DataObject{
       spSpeed: spSpeed ? spSpeed : 1,
       sp: initSp,
       spCost: spCost,
-      applyCount: 0
+      applyCount: 0,
+      pause: false
     })
     
     //自动回复sp的技能
@@ -79,17 +83,18 @@ class DataObject{
         const index = this.spSkillData.findIndex(data => data.name === name);
         if(index === -1) return;
 
-        const spData = this.spSkillData[index];
-        spData.sp = Math.min(spData.sp + spData.spSpeed, spData.spCost);
+        const spSkill = this.spSkillData[index];
+        spSkill.sp = Math.min(spSkill.sp + spSkill.spSpeed, spSkill.spCost);
 
-        if(spData.sp >= spData.spCost){
+        if(spSkill.sp >= spSkill.spCost){
           
           if(callback) callback(timer);
-          
-          spData.applyCount++;
-          if(spData.applyCount >= maxCount){
-            this.countdown.removeCountdown(name);
-            this.spSkillData.splice(index, 1);
+          spSkill.applyCount++;
+          spSkill.sp = 0;
+
+          if(spSkill.applyCount >= maxCount){
+            this.countdown.stopCountdown(name);
+            spSkill.pause = true;
           }
           
         }
@@ -102,6 +107,14 @@ class DataObject{
 
   public getSPSkill(name: string){
     return this.spSkillData.find(data => data.name === name);
+  }
+
+  //技能从零开始
+  public reStartSPSkill(name: string){
+    const spSkill = this.getSPSkill(name);
+    spSkill.applyCount = 0;
+    spSkill.pause = false;
+    this.countdown.startCountdown(name);
   }
 
   public get(): any{
