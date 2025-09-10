@@ -19,6 +19,10 @@ abstract class Handler{
 
   abstract handleSkill(enemy: Enemy, skill: any);
 
+  abstract handlePickUp(enemy: Enemy, vehicle: Enemy);   //vehicle载具
+
+  abstract handleDropOff(enemy: Enemy, vehicle: Enemy);
+
   abstract handleAttack(enemy: Enemy);
   
   abstract handleReborn(enemy: Enemy);

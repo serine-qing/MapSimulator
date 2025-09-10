@@ -28,7 +28,7 @@ const addMoonlight = (obj: DataObject) => {
     const trap = obj as Trap;
     const spMoon = trap.staticData.sp_moon;
     if(spMoon){
-      const spawnSkill = trap.getSPSkill("wakeup");
+      const spawnSkill = trap.getSPSkill("spawn");
       if(spawnSkill){
         spawnSkill.spSpeed = spMoon;
       }
@@ -52,7 +52,7 @@ const removeMoonlight = (obj: DataObject) => {
     const trap = obj as Trap;
     const sp = trap.staticData.sp;
     if(sp){
-      const spawnSkill = trap.getSPSkill("wakeup");
+      const spawnSkill = trap.getSPSkill("spawn");
       if(spawnSkill){
         spawnSkill.spSpeed = sp;
       }
@@ -159,6 +159,16 @@ const removeShadows = (position: Vector2 | Vec2, direction: string) => {
   })
 }
 
+const canSleep = (enemy: Enemy): boolean => {
+  if(
+    enemy.key.includes("enemy_10103_mjcppp") || //"浅睡的臼齿"
+    enemy.key.includes("enemy_10105_mjcdol")     //"发条仆从"
+  ){
+    return true;
+  }
+  return false;
+}
+
 //#region boss技能  
 const addBossSkillEnemyLine = (enemy: Enemy, skill) => {
   let transAnimation;
@@ -263,9 +273,9 @@ const addBossSkillRide = (enemy: Enemy, skill) => {
       isWaitTrans: true,
     },
     callback: () => {
-      enemy.countdown.setTimerPause("summon", true);
-      enemy.countdown.setTimerPause("enemyline", true);
-      enemy.countdown.setTimerPause("ride", true);
+      enemy.countdown.stopCountdown("summon");
+      enemy.countdown.stopCountdown("enemyline");
+      enemy.countdown.stopCountdown("ride");
       enemy.addBuff(moveBuff)
 
       enemy.countdown.addCountdown({
@@ -278,9 +288,9 @@ const addBossSkillRide = (enemy: Enemy, skill) => {
             transAnimation: endTransAnimation,
             isWaitTrans: true,
             callback: () => {
-              enemy.countdown.setTimerPause("summon", false);
-              enemy.countdown.setTimerPause("enemyline", false);
-              enemy.countdown.setTimerPause("ride", false);
+              enemy.countdown.startCountdown("summon");
+              enemy.countdown.startCountdown("enemyline");
+              enemy.countdown.startCountdown("ride");
             }
           })
 
@@ -406,8 +416,14 @@ const Handler = {
             spSpeed: sp,
             maxCount: 1,
             callback: () => {
-              Global.waveManager.startExtraAction({
-                key: branch_id
+              trap.countdown.addCountdown({
+                name: "spawnDelay",
+                initCountdown: 3,
+                callback: () => {
+                  Global.waveManager.startExtraAction({
+                    key: branch_id
+                  })
+                }
               })
             }
           })
@@ -416,6 +432,23 @@ const Handler = {
   },
 
   handleEnemyStart: (enemy: Enemy) => {
+    switch (enemy.key) {
+      case "enemy_10103_mjcppp":
+      case "enemy_10104_mjcbln":
+      case "enemy_10105_mjcdol":
+      case "enemy_10107_mjcdog":
+      case "enemy_10108_mjclun":
+      case "enemy_10110_mjcsdw":
+      case "enemy_10103_mjcppp_2":
+      case "enemy_10104_mjcbln_2":
+      case "enemy_10105_mjcdol_2":
+      case "enemy_10107_mjcdog_2":
+      case "enemy_10108_mjclun_2":
+      case "enemy_10110_mjcsdw_2":
+        enemy.startAnimate = "Start";
+        break;
+    
+    }
     switch (enemy.key) {
       case "enemy_10104_mjcbln":
       case "enemy_10104_mjcbln_2":
@@ -482,48 +515,57 @@ const Handler = {
   },
 
   handleSkill: (enemy: Enemy, skill: any) => {
+    //todo 代码太长了 看能不能优化下
     switch (skill.prefabKey) {
       case "wakeup":
-        if(
-          enemy.key.includes("enemy_10103_mjcppp") || //"浅睡的臼齿"
-          enemy.key.includes("enemy_10105_mjcdol")     //"发条仆从"
-        ){
-          let idleAnimate, moveAnimate, activeIdleAnimate, activeMoveAnimate, transAnimation, moveSpeed;
+        if( canSleep(enemy) ){
+          let idleAnimate, moveAnimate, activeIdleAnimate, activeMoveAnimate, awakeTransAnim, sleepTransAnim;
           
-          const sleep2wake = enemy.getTalent("sleep2wake");
-          const wake2sleep = enemy.getTalent("wake2sleep");
-          const unmoveTime = sleep2wake?.unmove;
-
           switch (enemy.key) {
             case "enemy_10103_mjcppp":
+            case "enemy_10103_mjcppp_2":
               idleAnimate = "Idle_B";
               moveAnimate = "Move_B";
               activeIdleAnimate = "Idle_A";
               activeMoveAnimate = "Move_A";
-              transAnimation = "Revive";
-              
-              moveSpeed = wake2sleep?.move_speed || 1;
+              awakeTransAnim = "Revive";
               break;
             case "enemy_10105_mjcdol":
+            case "enemy_10105_mjcdol_2":
               idleAnimate = "A_Idle";
               moveAnimate = "A_Move";
               activeIdleAnimate = "B_Idle";
               activeMoveAnimate = "B_Move";
-              transAnimation = "AtoB";
-              moveSpeed = wake2sleep?.move_speed || 1;
+              awakeTransAnim = "AtoB";
+              sleepTransAnim = "BtoA"
               break;
           }
-          
+
+          const sleep2wake = enemy.getTalent("sleep2wake");
+          const wake2sleep = enemy.getTalent("wake2sleep");
+          const unmoveTime = sleep2wake?.unmove;
+          const defaultSpeed = enemy.attributes.moveSpeed;
+          const moveSpeed = wake2sleep.move_speed || 1;
+
           enemy.idleAnimate = idleAnimate;
           enemy.moveAnimate = moveAnimate;
-          enemy.unMoveable = true;
-          enemy.countdown.addCountdown({
-            name: "unmove",
-            initCountdown: unmoveTime,
-            callback: () => {
-              enemy.unMoveable = false;
+          
+          //初始不可移动计时器
+          const unmoveCountdown = () => {
+            if(unmoveTime){
+              enemy.idle();
+              enemy.unMoveable = true;
+              enemy.countdown.addCountdown({
+                name: "unmove",
+                initCountdown: unmoveTime,
+                callback: () => {
+                  enemy.unMoveable = false;
+                }
+              })
             }
-          })
+          }
+
+          unmoveCountdown();
 
           enemy.addSPSkill({
             name: "wakeup",
@@ -532,14 +574,31 @@ const Handler = {
             spSpeed: sleep2wake.sp,
             maxCount: 1,
             callback: () => {
+              enemy.countdown.removeCountdown("unmove");
               enemy.animationStateTransition({
                 idleAnimate: activeIdleAnimate,
                 moveAnimate: activeMoveAnimate,
-                transAnimation,
+                transAnimation: awakeTransAnim,
                 isWaitTrans: true
               });
               enemy.unMoveable = false;
               enemy.attributes.moveSpeed = moveSpeed;
+
+              enemy.countdown.addCountdown({
+                name: "wake2sleep",
+                initCountdown: wake2sleep.duration,
+                callback: () => {
+                  enemy.attributes.moveSpeed = defaultSpeed;
+                  unmoveCountdown();
+                  enemy.animationStateTransition({
+                    idleAnimate,
+                    moveAnimate,
+                    transAnimation: sleepTransAnim,
+                    isWaitTrans: true
+                  })
+                  enemy.reStartSPSkill("wakeup");
+                }
+              })
             }
           })
 
@@ -564,11 +623,6 @@ const Handler = {
             },
             callback: (timer, find) => {
               enemy.pickUp(find);
-
-              const wakeup = find.getSPSkill("wakeup");
-              const spSpeed = wakeup.spSpeed;
-              wakeup.spSpeed = 0;
-
               enemy.addBuff({
                 id: "getenmey",
                 key: "getenmey",
@@ -585,7 +639,6 @@ const Handler = {
                 name: "dropOff",
                 initCountdown: duration,
                 callback: () => {
-                  wakeup.spSpeed = spSpeed;
                   enemy.dropOff(0.4);
                   enemy.animationStateTransition({
                     idleAnimate: "A_Idle",
@@ -634,6 +687,18 @@ const Handler = {
 
   },
 
+  handlePickUp: (enemy: Enemy, vehicle: Enemy) => {
+    if(canSleep(enemy)){
+      enemy.stopSPSkill("wakeup");
+    }
+  },
+
+  handleDropOff: (enemy: Enemy, vehicle: Enemy) => {
+    if(canSleep(enemy)){
+      enemy.startSPSkill("wakeup");
+    }
+  },
+
   handleAttack: (enemy: Enemy) => {
     switch (enemy.key) {
       case "enemy_10104_mjcbln":
@@ -652,7 +717,7 @@ const Handler = {
                 transAnimation: "Takeoff",
                 isWaitTrans: true,
               })
-              enemy.motion = "FLY";
+              enemy.nearFly = true;
             }
           }
         })

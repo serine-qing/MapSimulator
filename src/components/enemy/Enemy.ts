@@ -160,7 +160,7 @@ class Enemy extends DataObject{
   talents: any[];          //天赋
   skills: any[];           //技能
   skillSet: SkillSet[] = [];         //复杂技能组，一般复杂的boss才会有
-  isUsingSkill: boolean = false;   //当前是否处于技能释放中
+  canUseSkill: boolean = true;   //当前是否处于技能释放中
 
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
@@ -175,6 +175,7 @@ class Enemy extends DataObject{
   shadowOffset: Vec2;   //足坐标偏移
   tilePosition: THREE.Vector2;     //中心地块坐标
 
+  isAirborne: boolean = false;   //是否是空降单位（不从红门出）
   hugeEnemy: boolean = false;    //是否是巨型敌人
   unMoveable: boolean = false;   //是否可移动
   public action: Action;
@@ -223,6 +224,7 @@ class Enemy extends DataObject{
   protected animateState: string = "idle";  //当前处于什么动画状态 idle/move
   protected currentAnimation: string;       //当前动画状态
   protected animations: any[];
+  public startAnimate: string;  //入场动画
   public moveAnimate: string;   //移动的动画名
   public idleAnimate: string;   //站立的动画名
   public meshOffset: Vec2;                //模型偏移
@@ -275,6 +277,7 @@ class Enemy extends DataObject{
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
+    this.isAirborne = this.route.isAirborne;
     this.visualRoutes = this.route.visualRoutes;
     this.motion = checkEnemyMotion(this.key, motion);
 
@@ -312,6 +315,22 @@ class Enemy extends DataObject{
     this.isStarted = true;
     this.show();
     this.handleStart();
+
+    //入场动画
+    if(this.isAirborne && this.startAnimate){
+      this.canAttack = false;
+      this.canUseSkill = false;
+      this.animationStateTransition({
+        transAnimation: this.startAnimate,
+        isWaitTrans: true,
+        callback: () => {
+          this.canAttack = true;
+          this.canUseSkill = true;
+        }
+      })
+      //清除最开始1帧未切换动画状态
+      if(this.mesh) this.mesh.update(0.001);
+    }
 
     //更新tilePositon 防止enemy刚出现那帧就触发tile event导致的bug
     this.updatePositions();
@@ -1150,7 +1169,7 @@ class Enemy extends DataObject{
 
   public updateSkillSet(){
 
-    if( this.skillSet.length > 0 && !this.isUsingSkill){
+    if( this.skillSet.length > 0 && this.canUseSkill){
       for(let i = 0; i < this.skillSet.length; i++){
         const skill = this.skillSet[i];
         if( this.triggerSkill(skill.name) ) {
@@ -1245,7 +1264,7 @@ class Enemy extends DataObject{
         isWaitTrans: animateTransition.isWaitTrans,
         callback: (...param) => {
           animateTransition.callback && animateTransition.callback(...param);
-          this.isUsingSkill = false;
+          this.canUseSkill = true;
         }
       }
     }
@@ -1258,7 +1277,7 @@ class Enemy extends DataObject{
       maxCount,
       callback: (...param) => {
         if(animTrans){
-          this.isUsingSkill = true;  //正在释放技能动画中
+          this.canUseSkill = false;  //正在释放技能动画中
           this.animationStateTransition(animTrans);
         }
         if(callback) callback(...param);
@@ -1330,8 +1349,7 @@ class Enemy extends DataObject{
 
             const detectPos: THREE.Vector2 = obj.position;
             const distance = this.position.distanceTo(detectPos);
-            
-            if(this.id === 14) console.log(distance)
+          
             if(distance <= detectionRadius){
               
               callback(obj);
@@ -1350,6 +1368,7 @@ class Enemy extends DataObject{
     if(!this.isFullyLoaded()){
       this.passengers.push(enemy);
       enemy.disappear();
+      EnemyHandler.handlePickUp(enemy, this);
     }
   }
 
@@ -1368,6 +1387,8 @@ class Enemy extends DataObject{
         dropPos = this.position;
       }
       enemy.appearAt(dropPos);
+      EnemyHandler.handleDropOff(enemy, this);
+
     }
   }
 
@@ -1396,6 +1417,7 @@ class Enemy extends DataObject{
   //渐变退出，用exitCountDown时间控制（不同的子类有不同的实现方法）
   public disappear(countDown?: number){
     this.isDisappear = true;
+    
     if(!Global.gameManager.isSimulate) {
       this.exitCountDown = countDown? countDown : 1;
     }else{
@@ -1408,6 +1430,7 @@ class Enemy extends DataObject{
       position.x,
       position.y
     )
+
     this.isDisappear = false;
     this.show();
   } 
@@ -1450,7 +1473,7 @@ class Enemy extends DataObject{
 
   }
 
-  protected idle(){
+  public idle(){
     const prevAnimate = this.animateState;
     this.animateState = "idle";
 
@@ -1586,6 +1609,7 @@ class Enemy extends DataObject{
       transAnimationPlaying: this.transAnimationPlaying,
       shadowHeight: this.shadowHeight,
       visible: this.visible,
+      nearFly: this.nearFly,
       exitCountDown: this.exitCountDown,
       simulateTrackTime: this.simulateTrackTime,
       obstacleAvoidanceVector: this.obstacleAvoidanceVector, 
@@ -1599,7 +1623,7 @@ class Enemy extends DataObject{
       canReborn: this.canReborn,
       canDie: this.canDie,
       reborned: this.reborned,
-      isUsingSkill: this.isUsingSkill,
+      canUseSkill: this.canUseSkill,
       isDisappear: this.isDisappear,
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
@@ -1638,6 +1662,7 @@ class Enemy extends DataObject{
       transAnimationPlaying,
       shadowHeight,
       visible,
+      nearFly,
       exitCountDown,
       currentSecond,
       simulateTrackTime,
@@ -1652,7 +1677,7 @@ class Enemy extends DataObject{
       canReborn,
       canDie,
       reborned,
-      isUsingSkill,
+      canUseSkill,
       isDisappear,
       canAttack,
       attackCountdown,
@@ -1674,6 +1699,7 @@ class Enemy extends DataObject{
     this.isStarted = isStarted;
     this.isFinished = isFinished;
     this.visible = visible;
+    this.nearFly = nearFly;
     this.exitCountDown = exitCountDown;
     this.currentSecond = currentSecond;
     this.transAnimationPlaying = transAnimationPlaying;
@@ -1695,7 +1721,7 @@ class Enemy extends DataObject{
     this.canReborn = canReborn;
     this.canDie = canDie;
     this.reborned = reborned;
-    this.isUsingSkill = isUsingSkill;
+    this.canUseSkill = canUseSkill;
     this.isDisappear = isDisappear;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
@@ -1710,7 +1736,7 @@ class Enemy extends DataObject{
     if(this.object){
       //恢复当前动画状态
 
-      if(animateState){
+      if(animateState && Global.gameManager.pause){
         this.setAnimation();
       }
 

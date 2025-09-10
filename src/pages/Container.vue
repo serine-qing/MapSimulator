@@ -254,7 +254,7 @@ const updateEnemyDatas = () => {
 
     const wakeup = enemy.spSkillData.find(data => data.name === "wakeup");
 
-    if(wakeup){
+    if(wakeup && !wakeup.pause){
       label.wakeupCountDown = wakeup.spCost - wakeup.sp;
     }else{
       label.wakeupCountDown = -1;
@@ -461,7 +461,7 @@ const updateTrapDatas = () => {
 
     if(countDown === -1){
       const spawn = trap.spSkillData.find(data => data.name === "spawn");
-      if(spawn){
+      if(spawn && !spawn.pause){
         countDown = spawn.spCost -spawn.sp;
       }
     }

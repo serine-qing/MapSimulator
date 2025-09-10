@@ -203,7 +203,6 @@ class SpineEnemy extends Enemy{
     }
 
     if(animate && this.currentAnimation !== animate){
-
       this.currentAnimation = animate;
       if(this.skeletonMesh){
         this.skeletonMesh.state.setAnimation(
