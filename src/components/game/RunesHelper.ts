@@ -16,14 +16,16 @@ class RunesHelper{
 
   public charNumDdd: number = 0;
   public squadNum: number = 13;
+
   constructor(runes: any){
     this.runes = runes;
 
+    
+    act42side.parseRunes(this);
+    act45side.parseRunes(this);
+
     const addOtherRuneBlackbord = [];
     this.runes.forEach(rune => {
-
-      act42side.parseRune(rune);
-      act45side.parseRune(rune);
 
       const { blackboard } = rune;
 
@@ -172,6 +174,27 @@ class RunesHelper{
     addOtherRuneBlackbord.forEach(rune => {
       this.addRuneBlackb(rune);
     })
+  }
+
+  //加上BBKey可获取双重key指定的rune
+  public getRunes(runekey: string, BBKey?: string): any[]{
+    const find = [];
+    this.runes.forEach(rune => {
+      if(rune.key === runekey){
+        if(BBKey){
+          const find = rune.blackboard.find(bb => bb.key === "key");
+          if(!find || find.valueStr !== BBKey) return;
+        }
+        find.push(rune);
+      }
+    })
+
+    return find;
+  }
+
+  public getBlackboard(rune: any, key: string){
+    const find = rune.blackboard?.find(item => item.key === key);
+    if(find) return find.valueStr ? find.valueStr : find.value;
   }
 
   private getAttrChanges(rune){

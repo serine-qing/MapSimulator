@@ -175,10 +175,13 @@ class Enemy extends DataObject{
   shadowOffset: Vec2;   //足坐标偏移
   tilePosition: THREE.Vector2;     //中心地块坐标
 
+  dropOffRandomOffset: number;
+
   isAirborne: boolean = false;   //是否是空降单位（不从红门出）
   hugeEnemy: boolean = false;    //是否是巨型敌人
   unMoveable: boolean = false;   //是否可移动
   public action: Action;
+  
   route: EnemyRoute;
   checkPointIndex: number = 0;   //目前处于哪个检查点
   visualRoutes: any;             //可视化路线
@@ -735,11 +738,12 @@ class Enemy extends DataObject{
     this.simulateTrackTime += this.deltaTrackTime(delta);
 
     if(this.countdown.getCountdownTime("checkPoint") > 0) return;
-
+    
     const checkPoint: CheckPoint = this.currentCheckPoint();
     if( !checkPoint ) return;
 
     const {type, time, reachOffset} = checkPoint;
+
     switch (type) {
       case "MOVE":  
         if(this.isDisappear) return;
@@ -750,7 +754,6 @@ class Enemy extends DataObject{
         if(this.unMoveable || this.attributes.moveSpeed <= 0){
           return;
         }
-
         const currentPosition = this.position;
 
         const currentNode = Global.SPFA.getPathNode(
@@ -1374,10 +1377,11 @@ class Enemy extends DataObject{
 
   //卸载
   //randomOffset:卸客区域为以自身为中心的randomOffset边长正方形范围
-  public dropOff(randomOffset?: number){
+  public dropOff(){
     while(this.passengers.length > 0){
       const enemy = this.passengers.shift();
       let dropPos: Vec2;
+      const randomOffset = this.dropOffRandomOffset;
       if(randomOffset){
         dropPos = {
           x: this.position.x + Math.random() * randomOffset - randomOffset / 2,
@@ -1386,6 +1390,12 @@ class Enemy extends DataObject{
       }else{
         dropPos = this.position;
       }
+
+      enemy.route = this.route;
+      //进入蓝门掉落敌人的时候 checkPointIndex已经超过数值上限
+      enemy.checkPointIndex = Math.min(this.checkPointIndex, this.route.checkpoints.length - 1);
+      enemy.nextNode = this.nextNode;
+      enemy.visualRoutes = this.visualRoutes;
       enemy.appearAt(dropPos);
       EnemyHandler.handleDropOff(enemy, this);
 
@@ -1736,7 +1746,7 @@ class Enemy extends DataObject{
     if(this.object){
       //恢复当前动画状态
 
-      if(animateState && Global.gameManager.pause){
+      if(animateState){
         this.setAnimation();
       }
 

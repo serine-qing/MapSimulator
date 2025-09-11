@@ -208,12 +208,16 @@ const newGame = async (map) => {
 const title = ref("");
 const challenge = ref("");
 const description = ref("");
+let extraDescription;
 const stageAttrInfo = ref("");
 const characterLimit = ref(0);
 const squadNum = ref(13);
 
 //生成关卡详情
 const generateStageInfo = () => {
+  //额外关卡信息
+  extraDescription = ref(mapModel.extraDescription);
+
   const {levelId, operation, cn_name, challenge: _challenge, description:_description} = mapData;
   console.log(levelId)
   title.value = `${operation} ${cn_name}`;
@@ -490,6 +494,7 @@ defineExpose({
   <div class="info">
     <h2>{{ title }}</h2>
     <p class="description">{{ description }}</p>
+    <p v-for="desc in extraDescription" :style="{color: desc.color?desc.color:'black'}">{{ desc.text }}</p>
     <p>部署上限：{{ characterLimit }}，可携带干员数：{{ squadNum }}</p>
     <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>
     <p v-if="stageAttrInfo"><span class="challenge">属性加成：</span>

@@ -1,9 +1,10 @@
 import Enemy from "../enemy/Enemy"
+import RunesHelper from "../game/RunesHelper";
 import Tile from "../game/Tile"
 import Trap from "../game/Trap"
 
 abstract class Handler{
-  abstract parseRune(rune);
+  abstract parseRunes(runesHelper: RunesHelper);
 
   abstract parseExtraWave(trapDatas: trapData[], branches: any, extraRoutes);
 

@@ -4,8 +4,8 @@ import Global from "../utilities/Global";
 import Tile from "../game/Tile";
 import Trap from "../game/Trap";
 import DataObject from "../enemy/DataObject";
+import RunesHelper from "../game/RunesHelper";
 
-let hasMoonlight = false;
 let direction, duration;
 let cw; //旋转方向 1顺时针 0逆时针
 let moonlight_gbuff: Buff;
@@ -305,40 +305,62 @@ const addBossSkillRide = (enemy: Enemy, skill) => {
 //#endregion       
 
 const Handler = {
-  parseRune: (rune) => {
-    if(rune.key === "env_system_new"){
-      const type = rune.blackboard.find(item => item.key === "key")?.valueStr;
-      if(type === "env_034_act45side_light"){
-        hasMoonlight = true;
-        direction = rune.blackboard.find(item => item.key === "direction")?.valueStr?.toLowerCase();
-        duration = rune.blackboard.find(item => item.key === "duration")?.value;
-        cw = rune.blackboard.find(item => item.key === "cw")?.value;
-        
-      }
-    }else if(rune.key === "env_gbuff_new" && hasMoonlight){
-      const type = rune.blackboard.find(item => item.key === "key")?.valueStr;
-      if(type === "act45side_enemy_global_buff"){
+  parseRunes: (runesHelper: RunesHelper) => {
+    const staticData = Global.gameManager.staticData;
+    const mapModel = Global.mapModel;
 
-        moonlight_gbuff = {
-          id: "moonlight_gbuff", 
-          key: "moonlight_gbuff", 
-          overlay: false, 
-          effect: [
-            {
-              attrKey: "moveSpeed",
-              method: "add",
-              value: rune.blackboard.find(item => item.key === "move_speed")?.value
-            },
-            {
-              attrKey: "attackSpeed",
-              method: "add",
-              value: rune.blackboard.find(item => item.key === "attack_speed")?.value
-            },
-          ]
-        }
-
-      }
+    const moonlightRune = runesHelper.getRunes("env_system_new", "env_034_act45side_light")[0];
+    
+    //月光机制
+    if(moonlightRune){
+      staticData.hasMoonlight = true;
+      direction = runesHelper.getBlackboard(moonlightRune, "direction")?.toLowerCase();
+      duration = runesHelper.getBlackboard(moonlightRune, "duration");
+      cw = runesHelper.getBlackboard(moonlightRune, "cw");
+      mapModel.addExtraDescription({
+        text: `月光切换间隔：${duration}秒，切换方向：${cw === 1 ? "顺时针" : "逆时针"}`,
+      })
     }
+    
+    let desc = "";
+
+    //月光对敌人的buff
+    const gbuffRune = runesHelper.getRunes("env_gbuff_new", "act45side_enemy_global_buff")[0];
+    if(gbuffRune){
+      const moveSpeed = runesHelper.getBlackboard(gbuffRune, "move_speed");
+      const attackSpeed = runesHelper.getBlackboard(gbuffRune, "attack_speed");
+      moonlight_gbuff = {
+        id: "moonlight_gbuff", 
+        key: "moonlight_gbuff", 
+        overlay: false, 
+        effect: [
+          {
+            attrKey: "moveSpeed",
+            method: "add",
+            value: moveSpeed
+          },
+          {
+            attrKey: "attackSpeed",
+            method: "add",
+            value: attackSpeed
+          },
+        ]
+      }
+
+      desc += `月光下敌人移动速度+${moveSpeed}，攻击速度+${attackSpeed}%`;
+    }
+
+    //月光对干员的buff
+    const charbuffRune = runesHelper.getRunes("env_gbuff_new", "act45side_ally_global_buff")[0];
+    if(charbuffRune){
+      const attackSpeed = runesHelper.getBlackboard(charbuffRune, "attack_speed"); 
+      desc += `；我方干员攻击速度+${attackSpeed}%`
+    }
+
+    desc !== "" && mapModel.addExtraDescription({
+      text: desc,
+      color: "#d22d2dcc"
+    })
   },
 
   parseExtraWave: (branches) => {
@@ -350,7 +372,7 @@ const Handler = {
   },
 
   afterGameInit: () => {
-    if(!hasMoonlight) return;
+    if(!Global.gameManager.staticData.hasMoonlight) return;
     const gameManager = Global.gameManager;
     gameManager.customData.moonlightDire = direction;
     gameManager.staticData.cw = cw; 
@@ -551,7 +573,8 @@ const Handler = {
           enemy.moveAnimate = moveAnimate;
           
           //初始不可移动计时器
-          const unmoveCountdown = () => {
+          const sleepCountdown = () => {
+            enemy.customData.isSleep = true;
             if(unmoveTime){
               enemy.idle();
               enemy.unMoveable = true;
@@ -565,7 +588,7 @@ const Handler = {
             }
           }
 
-          unmoveCountdown();
+          sleepCountdown();
 
           enemy.addSPSkill({
             name: "wakeup",
@@ -581,6 +604,7 @@ const Handler = {
                 transAnimation: awakeTransAnim,
                 isWaitTrans: true
               });
+              enemy.customData.isSleep = false;
               enemy.unMoveable = false;
               enemy.attributes.moveSpeed = moveSpeed;
 
@@ -589,7 +613,7 @@ const Handler = {
                 initCountdown: wake2sleep.duration,
                 callback: () => {
                   enemy.attributes.moveSpeed = defaultSpeed;
-                  unmoveCountdown();
+                  sleepCountdown();
                   enemy.animationStateTransition({
                     idleAnimate,
                     moveAnimate,
@@ -606,6 +630,8 @@ const Handler = {
         break;
       case "getchar":
         if(enemy.key.includes("enemy_10107_mjcdog")){   //安眠伴随兽
+          //todo 随机数也需要存缓存，后面再做
+          // enemy.dropOffRandomOffset = 0.4;
           enemy.maxPickUpCount = 1;
           const getenmey = enemy.getTalent("getenmey");
           let { range_radius, move_speed, duration, cooldown } = getenmey;
@@ -639,7 +665,7 @@ const Handler = {
                 name: "dropOff",
                 initCountdown: duration,
                 callback: () => {
-                  enemy.dropOff(0.4);
+                  enemy.dropOff();
                   enemy.animationStateTransition({
                     idleAnimate: "A_Idle",
                     moveAnimate: "A_Move",
@@ -660,7 +686,7 @@ const Handler = {
               if(enemy.isFullyLoaded()) return;
 
               //仅可装载【休眠】状态的敌方单位
-              if(find.countdown.getCountdownTime("wakeup") !== -1){
+              if(find.customData.isSleep){
                 enemy.triggerSkill("getenmey", find);
               }
             }
@@ -776,9 +802,6 @@ const Handler = {
     }
   },
 
-  handleDestroy: () => {
-    hasMoonlight = false;
-  }
 };
 
 export default Handler;

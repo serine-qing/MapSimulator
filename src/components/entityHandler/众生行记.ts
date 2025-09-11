@@ -1,26 +1,23 @@
 import assetsManager from "../assetManager/assetsManager";
 import Enemy from "../enemy/Enemy";
+import RunesHelper from "../game/RunesHelper";
 import Tile from "../game/Tile";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
 import Unrealshapes_BG from "@/assets/images/Unrealshapes_BG.png"
 
 const Handler = {
-  parseRune: (rune) => {
-    if(rune.key === "env_system_new"){
-      const type = rune.blackboard.find(item => item.key === "key")?.valueStr;
-      if(type === "env_act42side_level_ctrl"){
+  parseRunes: (runesHelper: RunesHelper) => {
+    const levelCtrl = runesHelper.getRunes("env_system_new", "env_act42side_level_ctrl")[0];
+    if(levelCtrl){
+      const customData = Global.gameManager.customData;
+      customData.hiddenRect = [];
 
-        const customData = Global.gameManager.customData;
-        customData.hiddenRect = [];
-
-        rune.blackboard.forEach(item => {
-          if(item.key.includes("rect_")){
-            customData.hiddenRect.push(item.valueStr.split("|"));
-            
-          }
-        })
-      }
+      levelCtrl.blackboard.forEach(item => {
+        if(item.key.includes("rect_")){
+          customData.hiddenRect.push(item.valueStr.split("|"));
+        }
+      })
     }
   },
 

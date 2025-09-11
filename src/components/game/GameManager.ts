@@ -620,9 +620,6 @@ class GameManager extends DataObject{
   }
 
   public destroy(){
-    //todo handler写成个类吧
-    act45side.handleDestroy();
-
     AnimationFrame.removeAnimationFrame("Gameloop");
     AnimationFrame.setPause(true);
 

@@ -252,10 +252,11 @@ const updateEnemyDatas = () => {
     const unMoveable = enemy.unMoveable;
     const countDown = enemy.countdown.getCountdownTime("checkPoint");
 
-    const wakeup = enemy.spSkillData.find(data => data.name === "wakeup");
+    
 
-    if(wakeup && !wakeup.pause){
-      label.wakeupCountDown = wakeup.spCost - wakeup.sp;
+    if(enemy.customData.isSleep){
+      const wakeup = enemy.spSkillData.find(data => data.name === "wakeup");
+      if(wakeup && !wakeup.pause) label.wakeupCountDown = wakeup.spCost - wakeup.sp;
     }else{
       label.wakeupCountDown = -1;
     }
@@ -503,7 +504,7 @@ const update = () => {
 AnimationFrame.addAnimationFrame({
   name: "container",
   order: 1,
-  interval: 2,
+  interval: 1,
   animate: () => {
     if(waveManager){
       update();

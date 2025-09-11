@@ -25,6 +25,12 @@ interface extraActionData{
   actionDatas: ActionData[]
 }
 
+interface Description{
+  text: string,
+  color?: string,
+  lineBreak?: boolean,     //是否换行
+}
+
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
@@ -51,6 +57,8 @@ class MapModel{
   public SPFA: SPFA;  //寻路对象
 
   public hiddenGroups: any[];
+
+  public extraDescription: Description[] = [];  //额外地图描述
   constructor(data: any, extraRunes: {[key: string]: any}){
     this.sourceData = data;
     this.extraRunes = extraRunes;
@@ -67,6 +75,9 @@ class MapModel{
     
     this.characterLimit = options.characterLimit + this.runesHelper.charNumDdd;
     this.squadNum = this.runesHelper.squadNum;
+
+    //关卡额外描述
+    this.initExtraDesc();
 
     //获取可使用的装置图标
     await this.getTokenCards();
@@ -104,6 +115,20 @@ class MapModel{
     })
 
     this.initSPFA();
+  }
+
+  private initExtraDesc(){
+    switch (this.sourceData.operation.replace(/[^a-zA-Z0-9-]/g, "")) {
+      case "SS-8":
+      case "SS-EX-8":
+        this.addExtraDescription({
+          text: "为boss添加了每秒1%最大生命值的扣血buff，以查看boss二阶段技能和出怪",
+          color: "#3633F3"
+        })
+        break;
+    
+    }
+    
   }
 
   private async getTokenCards(){
@@ -923,6 +948,10 @@ class MapModel{
       }
     })
 
+  }
+
+  public addExtraDescription(desc: Description){
+    this.extraDescription.push(desc);
   }
 
 }
