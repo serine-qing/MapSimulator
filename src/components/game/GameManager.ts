@@ -28,6 +28,7 @@ import FbxEnemy from "../enemy/FbxEnemy";
 import DataObject from "../enemy/DataObject";
 
 import act45side from "../entityHandler/无忧梦呓";
+import SeededRandom from "../utilities/Random";
 //游戏控制器
 class GameManager extends DataObject{
   public isSimulate: boolean = false;
@@ -46,6 +47,7 @@ class GameManager extends DataObject{
   public waveManager: WaveManager;
   public trapManager: TrapManager;
   public countdownManager: CountdownManager;
+  public seededRandom: SeededRandom;
 
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
@@ -69,20 +71,24 @@ class GameManager extends DataObject{
   constructor(){
     super();
     Global.gameManager = this;
+
+    //不需要考虑先后顺序的可以放这里
+    this.countdownManager = new CountdownManager();
+    this.countdown = this.countdownManager.getCountdownInst();
+    this.gameBuff = new GameBuff();
+    this.gameView = new GameView();
+    this.seededRandom = new SeededRandom(Math.random() * 1000000);
   }
 
   public init(mapModel: MapModel){
     
     AnimationFrame.setPause(false);
 
-    this.countdownManager = new CountdownManager();
-    this.countdown = this.countdownManager.getCountdownInst();
     //初始化敌人控制类
     this.mapModel = mapModel;
     this.isCampaign = this.mapModel.sourceData.levelId.includes("campaign");
     this.simStep = this.isCampaign? 5 : GameConfig.SIMULATE_STEP;
-    this.gameBuff = new GameBuff();
-
+    
     GameHandler.beforeGameInit();
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
@@ -94,7 +100,6 @@ class GameManager extends DataObject{
 
     this.trapManager = new TrapManager(mapModel.trapDatas);
     this.waveManager = new WaveManager();
-    this.gameView = new GameView();
     
     if(this.trapManager.traps.find(trap => trap.key === "trap_121_gractrl")){
       this.gractrl = new Gractrl();
@@ -450,6 +455,7 @@ class GameManager extends DataObject{
       eManagerState: this.waveManager.get(),
       countdownState: this.countdownManager.get(),
       tokenCardState: this.tokenCards.map(tc => tc.get()),
+      SeededRandomState: this.seededRandom.get(),
       ...superStates
     }
     if(this.gractrl){
@@ -473,7 +479,8 @@ class GameManager extends DataObject{
       eManagerState, 
       countdownState, 
       tokenCardState,
-      gractrlState
+      gractrlState,
+      SeededRandomState
     } = states;
     
     this.gameSecond = gameSecond;
@@ -498,6 +505,8 @@ class GameManager extends DataObject{
     
     this.waveManager.set(eManagerState);
     this.countdownManager.set(countdownState);
+    this.seededRandom.set(SeededRandomState);
+
     this.isFinished = isFinished;
     this.finishedSecond = finishedSecond;
 

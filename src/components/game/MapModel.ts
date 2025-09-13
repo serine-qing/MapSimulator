@@ -20,9 +20,9 @@ import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
 
-interface extraActionData{
+interface ExtraWaveData{
   key: string,
-  actionDatas: ActionData[]
+  actionDatas: ActionData[][]
 }
 
 interface Description{
@@ -47,7 +47,7 @@ class MapModel{
   public trapDatas: trapData[] = [];
 
   public actionDatas: ActionData[][] = [];
-  public extraActionDatas: extraActionData[] = [];
+  public extraWaves: ExtraWaveData[] = [];
 
   public enemyDatas: EnemyData[] = [];
 
@@ -106,10 +106,10 @@ class MapModel{
     })
 
     //绑定额外actions的 route和enemydata、trap
-    this.extraActionDatas.forEach(extraActionData => {
-      const actionDatas = extraActionData.actionDatas;
+    this.extraWaves.forEach(extraWave => {
+      const actionDatas = extraWave.actionDatas;
 
-      actionDatas.forEach(action => {
+      actionDatas.flat().forEach(action => {
         this.actionDataBindEnemyAndTrap(action, true);
       })
     })
@@ -122,11 +122,10 @@ class MapModel{
       case "SS-8":
       case "SS-EX-8":
         this.addExtraDescription({
-          text: "为boss添加了每秒1%最大生命值的扣血buff，以查看boss二阶段技能和出怪",
+          text: "为boss添加了每秒扣血的buff，以查看boss二阶段技能和出怪",
           color: "#3633F3"
         })
         break;
-    
     }
     
   }
@@ -389,22 +388,23 @@ class MapModel{
 
       let currentTime = wave.preDelay;
       
-      const innerWaves = this.parseActions(wave.fragments, currentTime)
-      
-      this.actionDatas.push(innerWaves);
+      const innerFragments = this.parseActions(wave.fragments, currentTime)
 
+      this.actionDatas.push(innerFragments.flat());
+      
       //todo postDelay实际上没应用
       currentTime += wave.postDelay;
     });
     
   }
 
-  private parseActions(fragments: any[], currentTime: number): ActionData[]{
+  private parseActions(fragments: any[], currentTime: number): ActionData[][]{
 
-    const innerWaves: ActionData[] = [];
+    const innerFragments: ActionData[][] = []
 
     fragments.forEach((fragment: any) => { 
-        
+      const innerActions: ActionData[] = [];
+
       currentTime += fragment.preDelay;
       let fragmentTime = currentTime;
       let lastTime = currentTime;//action波次的最后一只怪出现时间
@@ -450,20 +450,21 @@ class MapModel{
               hiddenGroup: action.hiddenGroup
             }
 
-            innerWaves.push(eAction);
+            innerActions.push(eAction);
           }
         }
       })
 
       currentTime = lastTime;
 
+      innerActions.sort((a, b)=>{
+        return a.startTime - b.startTime;
+      })
+
+      innerFragments.push(innerActions);
     })
 
-    innerWaves.sort((a, b)=>{
-      return a.startTime - b.startTime;
-    })
-
-    return innerWaves;
+    return innerFragments;
   }
 
   //解析敌人路径
@@ -799,7 +800,7 @@ class MapModel{
     act42side.parseExtraWave(this.trapDatas, branches, this.sourceData.extraRoutes);
     act45side.parseExtraWave(branches);
 
-    if(this.extraActionDatas.length === 0){
+    if(this.extraWaves.length === 0){
       Object.keys(branches).forEach(key => {
         const branche = branches[key]?.phases;
         this.parseExtraActions(key, branche)
@@ -811,7 +812,7 @@ class MapModel{
   public parseExtraActions(key: string, data){
     const actionDatas = this.parseActions(data, 0);
     
-    this.extraActionDatas.push({
+    this.extraWaves.push({
       key,
       actionDatas,
     });

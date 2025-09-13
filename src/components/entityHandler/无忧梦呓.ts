@@ -189,6 +189,9 @@ const addBossSkillEnemyLine = (enemy: Enemy, skill) => {
       transAnimation,
       isWaitTrans: true,
       animationScale: 1.8,
+      callback: () => {
+        console.log("line!")
+      }
     }
   })
 }
@@ -204,6 +207,8 @@ const addBossSkillSummon = (enemy: Enemy, skill) => {
       transAnimation = "B_Skill_1";
       break;
   }
+  const randomFragment = enemy.level !== 0;
+
   enemy.addSkill({
     name: "summon",
     cooldown: summon.cooldown,
@@ -214,9 +219,13 @@ const addBossSkillSummon = (enemy: Enemy, skill) => {
       isWaitTrans: true,
     },
     callback: () => {
-      Global.waveManager.startExtraAction({
-        key: summon.blackboard.branch_id
-      });
+      const options = {
+        key: summon.blackboard.branch_id,
+        fragmentIndex: null
+      };
+
+      if(randomFragment) options.fragmentIndex = Global.seededRandom.nextInt(0, 9);
+      Global.waveManager.startExtraAction(options);
     },
     
   })
@@ -426,6 +435,11 @@ const Handler = {
   handleTrapStart: (trap: Trap) => {
     if(trap.key === "trap_249_mjcsdw"){
       const branch_id = trap.getSkillBoard("branch_id");
+
+      const action = Global.mapModel.extraWaves.find(data => data.key === branch_id)?.actionDatas[0][0];
+      const enemyKey = action?.enemyData?.key;
+      const isEX = enemyKey === "enemy_10110_mjcsdw_2"; //是否是红怪
+      
       if(branch_id){
         const sp = trap.getSkillBoard("sp");
         trap.staticData.sp = sp;
@@ -438,15 +452,23 @@ const Handler = {
             spSpeed: sp,
             maxCount: 1,
             callback: () => {
-              trap.countdown.addCountdown({
-                name: "spawnDelay",
-                initCountdown: 3,
-                callback: () => {
-                  Global.waveManager.startExtraAction({
-                    key: branch_id
-                  })
-                }
-              })
+              if(isEX){
+                //EX关没有延迟 直接出
+                Global.waveManager.startExtraAction({
+                  key: branch_id
+                })
+              }else{
+                trap.countdown.addCountdown({
+                  name: "spawnDelay",
+                  initCountdown: 3,
+                  callback: () => {
+                    Global.waveManager.startExtraAction({
+                      key: branch_id
+                    })
+                  }
+                })
+              }
+              
             }
           })
       }
@@ -478,7 +500,8 @@ const Handler = {
         break;
       case "enemy_1569_ldevil":       //给莫菲丝加个自伤，方便看二阶段出怪
         enemy.canReborn = true;
-        const damage = enemy.attributes.maxHp * 0.01;
+        //todo 0.04打断当前动画 
+        const damage = enemy.attributes.maxHp * ( enemy.enemyData.level === 0? 0.01 : 0.02);
         enemy.countdown.addCountdown({
           name: "damageSelf",
           initCountdown: 1,
@@ -756,6 +779,11 @@ const Handler = {
     if(enemy.key === "enemy_1569_ldevil"){
       enemy.canReborn = false;
       enemy.countdown.removeCountdown("damageSelf");
+      enemy.countdown.removeCountdown("endRide");
+      enemy.countdown.startCountdown("summon");
+      enemy.countdown.startCountdown("enemyline");
+      enemy.countdown.startCountdown("ride");
+
       const reborn = enemy.getTalent("reborn");
       const health = 1 / (reborn.duration - 1) * enemy.attributes.maxHp;
 
@@ -767,7 +795,7 @@ const Handler = {
       Global.waveManager.startExtraAction({
         key: reborn.branch_id
       })
-      //todo 打断当前动画
+      
       enemy.animationStateTransition({
         idleAnimate: "A_Revive_2",
         moveAnimate: "A_Revive_2",

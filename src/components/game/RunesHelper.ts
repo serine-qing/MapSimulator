@@ -393,7 +393,7 @@ class RunesHelper{
   }
 
   public checkTalentChanges(data: EnemyData){
-    const find = this.talentChanges.find(talentChange => talentChange.enemy.includes(data.key))
+    const find = this.talentChanges.find(talentChange => talentChange.enemy?.includes(data.key))
     if(find){
       //todo calMethod是不是该放外面
       data.talentBlackboard.forEach(tB => {

@@ -20,7 +20,12 @@ interface activeExtraAction{
 interface startExtraActionOptions{
   key: string,
   enemyKey?: string,
+  fragmentIndex?: number,     //指定执行的fragment
   actionIndex?: number        //指定执行的currentActionIndex，数组只有一个元素
+}
+
+interface Fragment{
+  actions: Action[]
 }
 
 //敌人状态管理
@@ -28,7 +33,7 @@ class WaveManager{
   public mapModel: MapModel;
 
   public actions: Action[][] = [];  
-  public extraActions: {[key: string]: Action[]} = {};  
+  public extraWaves: {[key: string]: Fragment[]} = {};  
   private allActions: Action[];                           //全部action的数组，用于存取数据
   private activeExtraActions: activeExtraAction[] = [];  
 
@@ -59,12 +64,18 @@ class WaveManager{
     Global.SPFA.generatepathMaps(); //生成寻路地图，不过不一次性全部生成其实也行
 
     this.initActions();
-    this.initExtraActions();
+    this.initExtraWave();
     
     this.allActions = [
-      ...this.actions.flat(),
-      ...Object.values(this.extraActions).flat()
+      ...this.actions.flat()
     ];
+    
+    Object.values(this.extraWaves).forEach(fragments => {
+      fragments.forEach(fragment => {
+        this.allActions.push(...fragment.actions)
+        
+      })
+    })
 
     this.generateVisualRoutes();  //生成模拟显示路线
 
@@ -170,12 +181,22 @@ class WaveManager{
   }
 
 
-  public initExtraActions(){
-    this.mapModel.extraActionDatas.forEach(extraActionData => {
-      const actions = this.createActions(extraActionData.actionDatas);
-      actions.forEach(action => action.isExtra = true);
+  public initExtraWave(){
+    this.mapModel.extraWaves.forEach(extraWaveData => {
+
+      this.extraWaves[extraWaveData.key] = [];
+      const extraWave = this.extraWaves[extraWaveData.key];
+
+      extraWaveData.actionDatas.forEach(actionDatas => {
+        const fragment: Fragment = {
+          actions: this.createActions(actionDatas)
+        }
+
+        fragment.actions.forEach(action => action.isExtra = true);
+
+        extraWave.push(fragment)
+      })
       
-      this.extraActions[extraActionData.key] = actions;
     })
 
   }
@@ -187,8 +208,7 @@ class WaveManager{
     actionDatas.forEach(actionData => {
       const action = new Action(actionData);
       action.id = this.actionId++;
-      actions.push(action);
-      
+      actions.push(action); 
       
     })
   
@@ -291,9 +311,17 @@ class WaveManager{
   }
 
   public startExtraAction(options: startExtraActionOptions){
-    const {key, enemyKey, actionIndex} = options;
+    const {key, enemyKey, fragmentIndex, actionIndex} = options;
+    const wave = this.getExtraWave(key);
+    if(!wave) return;
 
-    let actions = this.getExtraAction(key);
+    let actions;
+    if(fragmentIndex !== undefined && fragmentIndex !== null){
+      const fragment = wave[fragmentIndex];
+      actions = fragment.actions;
+    }else{
+      actions = wave.map(fragment => fragment.actions).flat();
+    }
 
     if(actions && actions.length > 0){
 
@@ -311,8 +339,8 @@ class WaveManager{
     }
   }
 
-  public getExtraAction(key: string){
-    const extraAction = this.extraActions[key];
+  public getExtraWave(key: string){
+    const extraAction = this.extraWaves[key];
     return extraAction? extraAction : null;
   }
 
@@ -366,7 +394,6 @@ class WaveManager{
               this.enemies.push(enemy);
             }else{
               enemy = action.enemys[action.applyId];
-              
             }
 
             action.applyId++;

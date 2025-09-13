@@ -7,6 +7,7 @@ import MapModel from "../game/MapModel";
 import SPFA from "../game/SPFA";
 import TileManager from "../game/TileManager";
 import TrapManager from "../game/TrapManager";
+import SeededRandom from "./Random";
 
 interface Global_Type{
   mapModel: MapModel,
@@ -18,6 +19,7 @@ interface Global_Type{
   gameBuff: GameBuff,
   tileManager: TileManager,
   gameView: GameView,
+  seededRandom: SeededRandom,
   [key: string]: any
 }
 
@@ -31,6 +33,7 @@ const Global: Global_Type = {
   gameBuff: null,
   tileManager: null,
   gameView: null,
+  seededRandom: null,
 
   reset: () => {
     Global.mapModel = null;
@@ -42,6 +45,7 @@ const Global: Global_Type = {
     Global.gameBuff = null;
     Global.tileManager = null;
     Global.gameView = null;
+    Global.seededRandom = null;
   }
 }
 

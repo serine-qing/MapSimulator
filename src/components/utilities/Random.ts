@@ -1,3 +1,5 @@
+import Global from "./Global";
+
 class SeededRandom {
   public seed: number;
   private originalSeed: number;
@@ -5,9 +7,10 @@ class SeededRandom {
   private c: number;
   private m: number;
   constructor(seed) {
+    Global.seededRandom = this;
     this.seed = seed;
     this.originalSeed = seed;
-    // LCG参数（数值经过精心选择）
+    //线性同余生成器(LCG)
     this.a = 1664525;
     this.c = 1013904223;
     this.m = Math.pow(2, 32);
@@ -33,4 +36,18 @@ class SeededRandom {
   reset() {
     this.seed = this.originalSeed;
   }
+
+  get(){
+    const states = {
+      seed: this.seed
+    };
+    return states;
+  }
+
+  set(states){
+    const { seed } = states;
+    this.seed = seed;
+  }
 }
+
+export default SeededRandom;

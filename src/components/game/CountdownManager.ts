@@ -58,15 +58,21 @@ class Countdown{
     return find? find.time : -1;
   }
 
-  public triggerCountdown(name: string, ...param): boolean{
+  public triggerCountdown(name: string, force: boolean, ...param): boolean{
     const timerIndex = this.timers.findIndex(timer => timer.name === name);
     const timer = this.timers[timerIndex];
 
-    if(timer && !timer.pause && timer.time <= 0){
+    if(timer && (force || !timer.pause && timer.time <= 0)){
       const { countdown, callback, maxCount } = timer;
       timer.count ++;
       if(countdown !== undefined && (!maxCount || timer.count < maxCount)){
-        timer.time += countdown;
+        
+        if(force){
+          timer.time = countdown;
+        }else{
+          timer.time += countdown;
+        }
+        
       }else{
         this.timers.splice(timerIndex, 1);
       }

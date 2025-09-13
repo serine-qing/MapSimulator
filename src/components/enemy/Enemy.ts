@@ -108,6 +108,7 @@ class Enemy extends DataObject{
 
   id: number;    //WaveManager中使用的id
   key: string;
+  level: number;
   levelType: string;
   motion: string;
   name: string;
@@ -180,6 +181,7 @@ class Enemy extends DataObject{
   isAirborne: boolean = false;   //是否是空降单位（不从红门出）
   hugeEnemy: boolean = false;    //是否是巨型敌人
   unMoveable: boolean = false;   //是否可移动
+  waitAnimationTrans: boolean = false; //是否正在等待动画完成
   public action: Action;
   
   route: EnemyRoute;
@@ -256,11 +258,12 @@ class Enemy extends DataObject{
     this.dontBlockWave = action.dontBlockWave;
 
     const {
-      key, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
+      key, level, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
       attributes, notCountInTotal, talents, skills, attrChanges, animations, moveAnimate, idleAnimate
     } = this.enemyData;
 
     this.key = key;
+    this.level = level;
     this.levelType = levelType;
 
     this.name = name;
@@ -748,10 +751,9 @@ class Enemy extends DataObject{
       case "MOVE":  
         if(this.isDisappear) return;
         if(this.countdown.getCountdownTime("waiting") > 0) return;
-        if(this.countdown.getCountdownTime("waitAnimationTrans") > 0) return;
 
         //部分0移速的怪也有移动指令，例如GO活动的装备
-        if(this.unMoveable || this.attributes.moveSpeed <= 0){
+        if(this.waitAnimationTrans || this.unMoveable || this.attributes.moveSpeed <= 0){
           return;
         }
         const currentPosition = this.position;
@@ -1308,7 +1310,7 @@ class Enemy extends DataObject{
   }
   
   public triggerSkill(name: string, ...param): boolean{
-    return this.countdown.triggerCountdown(name, ...param);
+    return this.countdown.triggerCountdown(name, false, ...param);
   }
 
   public addWatcher(watcher: Watcher){
@@ -1526,12 +1528,17 @@ class Enemy extends DataObject{
       this.transAnimationPlaying = false;
       this.changeAnimation();
       if( callback ) callback();
+
+      if(isWaitTrans) this.waitAnimationTrans = false;
     }
 
     if(transAnimation){
       
       const animationFind = this.animations.find( animation => animation.name === transAnimation);
       if(animationFind){
+        //强制执行并清除还没执行的动画和回调，防止动画中插入另一个动画出bug
+        this.countdown.triggerCountdown("animationTrans", true);
+
         if(animationScale) this.animationScale = animationScale;
         const duration = animationFind.duration * this.animationScale;
 
@@ -1564,8 +1571,10 @@ class Enemy extends DataObject{
 
         this.moveAnimate = transAnimation;
         this.idleAnimate = transAnimation;
+        if(isWaitTrans) this.waitAnimationTrans = true;
+
         this.countdown.addCountdown({
-          name: isWaitTrans ? "waitAnimationTrans" : "animationTrans",
+          name: "animationTrans",
           initCountdown: duration, 
           callback: apply
         });
@@ -1611,6 +1620,7 @@ class Enemy extends DataObject{
       isFinished: this.isFinished,
       currentSecond: this.currentSecond,
       unMoveable: this.unMoveable,
+      waitAnimationTrans: this.waitAnimationTrans,
       idleAnimate: this.idleAnimate,
       moveAnimate: this.moveAnimate,
       animateState: this.animateState,
@@ -1626,6 +1636,7 @@ class Enemy extends DataObject{
       obstacleAvoidanceCalCount: this.obstacleAvoidanceCalCount,
       motion: this.motion,
       route: this.route,
+      visualRoutes: this.visualRoutes,
       tilePosition: this.tilePosition,
       ZOffset: this.ZOffset,
       hp: this.hp,
@@ -1666,6 +1677,7 @@ class Enemy extends DataObject{
       animateState,
       currentAnimation,
       unMoveable,
+      waitAnimationTrans,
       idleAnimate,
       moveAnimate,
       animationScale,
@@ -1680,6 +1692,7 @@ class Enemy extends DataObject{
       obstacleAvoidanceCalCount,
       motion,
       route,
+      visualRoutes,
       tilePosition,
       ZOffset,
       hp,
@@ -1715,6 +1728,7 @@ class Enemy extends DataObject{
     this.transAnimationPlaying = transAnimationPlaying;
     this.shadowHeight = shadowHeight;
     this.unMoveable = unMoveable;
+    this.waitAnimationTrans = waitAnimationTrans;
     this.idleAnimate = idleAnimate;
     this.moveAnimate = moveAnimate;
     this.animateState = animateState;
@@ -1725,6 +1739,7 @@ class Enemy extends DataObject{
     this.obstacleAvoidanceCalCount = obstacleAvoidanceCalCount;
     this.motion = motion;
     this.route = route;
+    this.visualRoutes = visualRoutes;
     this.tilePosition = tilePosition;
     this.hp = hp;
     this.die = die;
