@@ -7,6 +7,7 @@ import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "../enemy/DataObject";
+import GameHandler from "../entityHandler/GameHandler";
 
 interface DynamicTexture{
   key: string,
@@ -39,7 +40,6 @@ class Tile extends DataObject{
   textureObj: THREE.Mesh;
   previewTexture: THREE.Mesh = null;
   cube: Mesh;
-  object: Object3D;
   border: BoxHelper;
 
   textures = new THREE.Group();
@@ -74,6 +74,8 @@ class Tile extends DataObject{
     this.heightType = heightType;
 
     this.initSize();
+
+    GameHandler.handleTileInit(this);
   }
 
   public initMeshs(){

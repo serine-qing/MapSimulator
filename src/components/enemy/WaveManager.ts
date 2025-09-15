@@ -7,6 +7,7 @@ import eventBus from "@/components/utilities/EventBus";
 import SpineEnemy from "./SpineEnemy";
 import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
+import EnemyHandler from "../entityHandler/EnemyHandler";
 
 interface activeExtraAction{
   time: number,
@@ -397,8 +398,11 @@ class WaveManager{
             }
 
             action.applyId++;
-            enemy.start();
-            this.enemiesInMap.push(enemy);
+
+            const isHandle = EnemyHandler.handleSpawnEnemy(enemy);
+            if(!isHandle){
+              enemy.start();
+            }
             break;
           case "ACTIVATE_PREDEFINED":
           case "TRIGGER_PREDEFINED":

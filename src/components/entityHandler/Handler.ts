@@ -6,11 +6,19 @@ import Trap from "../game/Trap"
 abstract class Handler{
   abstract parseRunes(runesHelper: RunesHelper);
 
+  abstract checkActionDatas(actionDatas: ActionData[][]);
+
   abstract parseExtraWave(trapDatas: trapData[], branches: any, extraRoutes);
 
+  abstract handleTileInit(tile: Tile);
+  
   abstract initTileEvents(tile: Tile);
 
   abstract afterGameInit();
+
+  abstract beforeEnemyStart(enemyData: EnemyData);
+
+  abstract handleSpawnEnemy(enemy: Enemy): boolean;
 
   abstract handleEnemyStart(enemy: Enemy);
 
@@ -19,6 +27,8 @@ abstract class Handler{
   abstract handleTalent(enemy: Enemy, talent: any);
 
   abstract handleSkill(enemy: Enemy, skill: any);
+
+  abstract handleChangeCheckPoint(enemy: Enemy);
 
   abstract handlePickUp(enemy: Enemy, vehicle: Enemy);   //vehicle载具
 

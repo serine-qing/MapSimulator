@@ -74,7 +74,7 @@ declare global {
 
   interface EnemyRoute{
     index: number, 
-    allowDiagonalMove: boolean,  //是否允许斜角路径
+    allowDiagonalMove?: boolean,  //是否允许斜角路径
     visitEveryTileCenter: boolean,  //https://www.bilibili.com/opus/900558138389823489
     visitEveryNodeCenter: boolean,
     visitEveryNodeStably: boolean,

@@ -19,6 +19,7 @@ import act41side from "../entityHandler/挽歌燃烧殆尽";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
+import EnemyHandler from "../entityHandler/EnemyHandler";
 
 interface ExtraWaveData{
   key: string,
@@ -113,6 +114,8 @@ class MapModel{
         this.actionDataBindEnemyAndTrap(action, true);
       })
     })
+
+    EnemyHandler.checkActionDatas(this.actionDatas);
 
     this.initSPFA();
   }

@@ -90,7 +90,7 @@ class TileManager{
         }
         this.tiles[y][x] = tile;
         
-        if(tile.tileKey === "tile_start"){
+        if(tile.tileKey === "tile_start" || tile.tileKey === "tile_flystart"){
           this.startTiles.push(tile);
         }else if(tile.tileKey === "tile_end"){
           this.endTiles.push(tile);

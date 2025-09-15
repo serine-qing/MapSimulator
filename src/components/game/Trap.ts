@@ -7,9 +7,9 @@ import { Countdown } from "./CountdownManager";
 import TrapHandler from "../entityHandler/TrapHandler";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
-import DataObject from "../enemy/DataObject";
+import BattleObject from "../enemy/BattleObject";
 
-class Trap extends DataObject{
+class Trap extends BattleObject{
   data: trapData;  //原始数据
   isTokenCard: boolean = false;  //是否是待部署区装置
   iconUrl: string; 
@@ -22,7 +22,6 @@ class Trap extends DataObject{
   mainSkillLvl: number;    //技能等级
   visible: boolean;         //是否可见
   
-  object: THREE.Object3D;          //fbxMesh和skeletonMesh
   fbxMesh: THREE.Mesh;
 
   skeletonData: any;
@@ -233,6 +232,13 @@ class Trap extends DataObject{
 
   public start(){
     TrapHandler.start(this);
+  }
+
+  public update(delta: number){
+    if(!this.visible) return;
+    this.updateSkillSP(delta);
+    this.updateSkillState();
+    this.updateSPBar();
   }
 
   public get(){

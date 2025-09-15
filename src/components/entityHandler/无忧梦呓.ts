@@ -18,7 +18,7 @@ const addMoonlight = (obj: DataObject) => {
     enemy.customData.moonlight = true;
     const spMoon = enemy.staticData.sp_moon;
     if(spMoon){
-      const wakeSkill = enemy.getSPSkill("wakeup");
+      const wakeSkill = enemy.getSkillState("wakeup");
       if(wakeSkill){
         wakeSkill.spSpeed = spMoon;
       }
@@ -28,7 +28,7 @@ const addMoonlight = (obj: DataObject) => {
     const trap = obj as Trap;
     const spMoon = trap.staticData.sp_moon;
     if(spMoon){
-      const spawnSkill = trap.getSPSkill("spawn");
+      const spawnSkill = trap.getSkillState("spawn");
       if(spawnSkill){
         spawnSkill.spSpeed = spMoon;
       }
@@ -43,7 +43,7 @@ const removeMoonlight = (obj: DataObject) => {
     enemy.customData.moonlight = false;
     const sp = enemy.staticData.sp;
     if(sp){
-      const wakeSkill = enemy.getSPSkill("wakeup");
+      const wakeSkill = enemy.getSkillState("wakeup");
       if(wakeSkill){
         wakeSkill.spSpeed = sp;
       }
@@ -52,7 +52,7 @@ const removeMoonlight = (obj: DataObject) => {
     const trap = obj as Trap;
     const sp = trap.staticData.sp;
     if(sp){
-      const spawnSkill = trap.getSPSkill("spawn");
+      const spawnSkill = trap.getSkillState("spawn");
       if(spawnSkill){
         spawnSkill.spSpeed = sp;
       }
@@ -188,10 +188,7 @@ const addBossSkillEnemyLine = (enemy: Enemy, skill) => {
     animateTransition: {
       transAnimation,
       isWaitTrans: true,
-      animationScale: 1.8,
-      callback: () => {
-        console.log("line!")
-      }
+      animationScale: 1.8
     }
   })
 }
@@ -445,32 +442,35 @@ const Handler = {
         trap.staticData.sp = sp;
         trap.staticData.sp_moon = sp + trap.getSkillBoard("sp_moon");
 
-        trap.addSPSkill({
-            name: "spawn",
-            initSp: 0,
-            spCost: 999,
-            spSpeed: sp,
-            maxCount: 1,
-            callback: () => {
-              if(isEX){
-                //EX关没有延迟 直接出
-                Global.waveManager.startExtraAction({
-                  key: branch_id
-                })
-              }else{
-                trap.countdown.addCountdown({
-                  name: "spawnDelay",
-                  initCountdown: 3,
-                  callback: () => {
-                    Global.waveManager.startExtraAction({
-                      key: branch_id
-                    })
-                  }
-                })
-              }
-              
+        trap.addSkill({
+          name: "spawn",
+          initCooldown: 0,
+          initSp: 0,
+          spCost: 999,
+          spSpeed: sp,
+          spPlusBySecond: true,
+          maxCount: 1,
+          showSPBar: true,
+          callback: () => {
+            if (isEX) {
+              //EX关没有延迟 直接出
+              Global.waveManager.startExtraAction({
+                key: branch_id
+              });
+            } else {
+              trap.countdown.addCountdown({
+                name: "spawnDelay",
+                initCountdown: 3,
+                callback: () => {
+                  Global.waveManager.startExtraAction({
+                    key: branch_id
+                  });
+                }
+              });
             }
-          })
+
+          },
+        })
       }
     }
   },
@@ -500,8 +500,7 @@ const Handler = {
         break;
       case "enemy_1569_ldevil":       //给莫菲丝加个自伤，方便看二阶段出怪
         enemy.canReborn = true;
-        //todo 0.04打断当前动画 
-        const damage = enemy.attributes.maxHp * ( enemy.enemyData.level === 0? 0.01 : 0.02);
+        const damage = enemy.attributes.maxHp * ( enemy.enemyData.level === 0? 0.01 : 0.015);
         enemy.countdown.addCountdown({
           name: "damageSelf",
           initCountdown: 1,
@@ -613,12 +612,14 @@ const Handler = {
 
           sleepCountdown();
 
-          enemy.addSPSkill({
-            name: "wakeup",
+          enemy.addSkill({
+            name: "wakeup", 
             initSp: 0,
             spCost: skill.spCost,
             spSpeed: sleep2wake.sp,
-            maxCount: 1,
+            spPlusBySecond: true,
+            showSPBar: true,
+            eternal: true,
             callback: () => {
               enemy.countdown.removeCountdown("unmove");
               enemy.animationStateTransition({
@@ -642,11 +643,11 @@ const Handler = {
                     moveAnimate,
                     transAnimation: sleepTransAnim,
                     isWaitTrans: true
-                  })
-                  enemy.reStartSPSkill("wakeup");
+                  });
+                  enemy.reStartSkill("wakeup");
                 }
-              })
-            }
+              });
+            },
           })
 
         }
@@ -682,7 +683,7 @@ const Handler = {
                   method: "add",
                   value: move_speed
                 }]
-              })
+              });
 
               enemy.countdown.addCountdown({
                 name: "dropOff",
@@ -693,11 +694,11 @@ const Handler = {
                     idleAnimate: "A_Idle",
                     moveAnimate: "A_Move",
                     isWaitTrans: false,
-                  })
+                  });
                 }
-              })
+              });
 
-            }
+            },
           })
 
           enemy.addDetection({
@@ -738,13 +739,13 @@ const Handler = {
 
   handlePickUp: (enemy: Enemy, vehicle: Enemy) => {
     if(canSleep(enemy)){
-      enemy.stopSPSkill("wakeup");
+      enemy.stopSkill("wakeup");
     }
   },
 
   handleDropOff: (enemy: Enemy, vehicle: Enemy) => {
     if(canSleep(enemy)){
-      enemy.startSPSkill("wakeup");
+      enemy.startSkill("wakeup");
     }
   },
 

@@ -9,7 +9,8 @@ import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
-import DataObject from "./DataObject";
+import { Vector2 } from "@/spine/Utils";
+import BattleObject from "./BattleObject";
 
 const healthBarWidth = getPixelSize(5/7);
 const HealThBarGeometry = new THREE.PlaneGeometry(healthBarWidth, 0.4);
@@ -36,7 +37,6 @@ const BossHealThBarMaterial = new THREE.MeshBasicMaterial({
   depthTest: false,
   depthWrite: false,
 })
-
 
 interface AnimateTransition{
   //transAnimation: 是否有过渡动画
@@ -68,29 +68,12 @@ interface DetectionParam{
   callback: Function,  
 }
 
-interface SkillSet{
-  name: string,
-  priority: number,
-}
-
-interface SkillParam{
-  name: string,
-  animateTransition: AnimateTransition,
-  initCooldown: number,
-  cooldown?: number,
-  priority?: number,             //技能cd同时转好时的触发优先级
-  trigger?: string,            //auto：自动触发， manual：手动触发，默认自动
-  callback?: Function,
-  maxCount?: number,           //最大触发次数
-  cooldownStop?: boolean,       //是否有技能阻回条，默认是
-}
-
 interface ChangeTileEvent{
   name: string,
   callback: Function
 }
 
-class Enemy extends DataObject{
+class Enemy extends BattleObject{
   static shadowMaterial = new THREE.MeshBasicMaterial( { 
     color: "#000000",
     transparent: true, // 启用透明度
@@ -160,8 +143,6 @@ class Enemy extends DataObject{
 
   talents: any[];          //天赋
   skills: any[];           //技能
-  skillSet: SkillSet[] = [];         //复杂技能组，一般复杂的boss才会有
-  canUseSkill: boolean = true;   //当前是否处于技能释放中
 
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
@@ -186,6 +167,7 @@ class Enemy extends DataObject{
   
   route: EnemyRoute;
   checkPointIndex: number = 0;   //目前处于哪个检查点
+  checkPointCallback: {[key: number]: Function} = {}; //结束检查点的回调函数
   visualRoutes: any;             //可视化路线
 
   passengers: Enemy[] = [];      //装载的敌人数组
@@ -224,11 +206,8 @@ class Enemy extends DataObject{
 
   public label: any;           //前端container所用label
 
-  public object: THREE.Object3D;
-
   protected animateState: string = "idle";  //当前处于什么动画状态 idle/move
   protected currentAnimation: string;       //当前动画状态
-  protected animations: any[];
   public startAnimate: string;  //入场动画
   public moveAnimate: string;   //移动的动画名
   public idleAnimate: string;   //站立的动画名
@@ -243,13 +222,14 @@ class Enemy extends DataObject{
   protected transAnimationPlaying: boolean = false;       //是否正在播放转换动画
 
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
-  public mesh: THREE.Mesh;
+  public mesh: any;
   public meshContainer: THREE.Object3D;
 
   public canAttack: boolean = false;
   public attackCountdown: number = 0;           //攻击间隔倒计时
 
   public initialState;                      //初始状态数据
+
   constructor(action: ActionData, enemyData: EnemyData){
     super();
     this.enemyData = enemyData;
@@ -283,6 +263,7 @@ class Enemy extends DataObject{
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
     this.route = action.route;
+
     this.isAirborne = this.route.isAirborne;
     this.visualRoutes = this.route.visualRoutes;
     this.motion = checkEnemyMotion(this.key, motion);
@@ -340,6 +321,8 @@ class Enemy extends DataObject{
 
     //更新tilePositon 防止enemy刚出现那帧就触发tile event导致的bug
     this.updatePositions();
+
+    Global.waveManager.enemiesInMap.push(this);
   }
 
   public reset(){
@@ -389,6 +372,9 @@ class Enemy extends DataObject{
 
   public changeCheckPoint(index: number){
     this.checkPointIndex = index;
+    const callback = this.checkPointCallback[this.checkPointIndex - 1];
+    callback && callback(this);
+    EnemyHandler.handleChangeCheckPoint(this);
   }
 
   public currentCheckPoint(): CheckPoint{
@@ -688,11 +674,16 @@ class Enemy extends DataObject{
       this.updateAttrs();
       this.updateAttackRange();
       this.updateAttack(delta);
-      this.updateSkillSet();
+      
     }
+    
+    this.updateSkillSP(delta);
+    if(!this.isDisappear) this.updateSkillState();
+
     this.updateAction(delta);
     this.updateFaceToward();
     this.updateHP();
+    this.updateSPBar();
 
     const watcherFuncs = this.watchers.map(watcher => watcher.function);
     watcherFuncs.forEach(watcherFunc => watcherFunc());
@@ -1172,19 +1163,6 @@ class Enemy extends DataObject{
     this.attackCountdown = this.getAttr("attackTime");
   }
 
-  public updateSkillSet(){
-
-    if( this.skillSet.length > 0 && this.canUseSkill){
-      for(let i = 0; i < this.skillSet.length; i++){
-        const skill = this.skillSet[i];
-        if( this.triggerSkill(skill.name) ) {
-          return;
-        };
-      }
-      
-    }
-  }
-
   public attack(){
     EnemyHandler.handleAttack(this);
   }
@@ -1241,76 +1219,6 @@ class Enemy extends DataObject{
   public getSkill(key: string){
     const find = this.skills.find(skill => skill.prefabKey === key);
     return find? find : null;
-  }
-
-  public addSkill(skillParam: SkillParam){
-    const { name, animateTransition, priority, 
-      initCooldown, cooldown, trigger, callback, maxCount } = skillParam;
-
-    //技能是否有阻回条，默认是
-    const cooldownStop = skillParam.cooldownStop !== undefined ? skillParam.cooldownStop : true;
-    let cooldownStopTime = 0;
-    if(cooldownStop){
-
-      const find = this.animations.find(animation => animation.name === animateTransition.transAnimation);
-      cooldownStopTime = ( find.duration || 0 ) * (animateTransition.animationScale || 1) * 0.93;
-    }
-
-    let animTrans;
-    if(animateTransition){
-
-      animTrans = {
-        moveAnimate: animateTransition.moveAnimate,
-        idleAnimate: animateTransition.idleAnimate,
-        transAnimation: animateTransition.transAnimation,
-        startLag: animateTransition.startLag,
-        endLag: animateTransition.endLag,
-        animationScale: animateTransition.animationScale,
-        isWaitTrans: animateTransition.isWaitTrans,
-        callback: (...param) => {
-          animateTransition.callback && animateTransition.callback(...param);
-          this.canUseSkill = true;
-        }
-      }
-    }
-    
-    this.countdown.addCountdown({
-      name,
-      initCountdown: initCooldown,
-      countdown: cooldown + cooldownStopTime,
-      trigger: "manual",
-      maxCount,
-      callback: (...param) => {
-        if(animTrans){
-          this.canUseSkill = false;  //正在释放技能动画中
-          this.animationStateTransition(animTrans);
-        }
-        if(callback) callback(...param);
-      }
-    });
-
-    if(trigger !== "manual"){
-      this.skillSet.push({
-        name,
-        priority: priority ? priority : 0
-      })
-      
-      this.skillSet.sort((a, b) => a.priority - b.priority);
-    }
-  }
-
-  public removeSkill(name: string){
-    this.countdown.removeCountdown(name);
-    const findIndex = this.skillSet.findIndex(set => set.name === name);
-    if(findIndex > -1){
-      this.skillSet.splice(findIndex, 1);
-    }else{
-      console.error(`${name} 技能set删除失败`);
-    }
-  }
-  
-  public triggerSkill(name: string, ...param): boolean{
-    return this.countdown.triggerCountdown(name, false, ...param);
   }
 
   public addWatcher(watcher: Watcher){
@@ -1451,11 +1359,15 @@ class Enemy extends DataObject{
 
   //根据速度方向更换spine方向
   private changeTowardBySpeed(){
+    if(this.key === "enemy_10072_mpprhd") return; //侵入式调用
+
     if(this.unitVector.x > 0.1) this.faceToward = 1;
     else if(this.unitVector.x < -0.1) this.faceToward = -1;
   }
 
   private changeTowardByNode(){
+    if(this.key === "enemy_10072_mpprhd") return; //侵入式调用
+
     let nextNode = this.nextNode;
     let offsetX;
     while(nextNode){
@@ -1507,6 +1419,48 @@ class Enemy extends DataObject{
       this.changeAnimation();
     }
     
+  }
+
+  public clearCheckPoint(){
+    this.route = {...this.route};
+    this.route.checkpoints = [];
+    this.checkPointIndex = 0;
+  }
+
+  public addWaitCheckPoint(time: number, callback?: Function){
+    const checkPoint: CheckPoint = {
+      position: null,
+      type: "WAIT_FOR_SECONDS",
+      time,
+      reachOffset: null,
+      randomizeReachOffset: false
+    };
+
+    this.route = {...this.route};
+    this.route.checkpoints = [...this.route.checkpoints];
+
+    this.route.checkpoints.push(checkPoint);
+    
+    if(Global.gameManager.isSimulate && callback)
+      this.checkPointCallback[this.route.checkpoints.length - 1] = callback;
+  }
+
+  public addMoveCheckPoint(position: Vec2 | Vector2, callback?: Function){
+    const checkPoint: CheckPoint = {
+      position: {x: position.x, y: position.y},
+      type: "MOVE",
+      time: 0,
+      reachOffset: {x: 0, y: 0},
+      randomizeReachOffset: false
+    };
+
+    this.route = {...this.route};
+    this.route.checkpoints = [...this.route.checkpoints];
+
+    this.route.checkpoints.push(checkPoint);
+
+    if(Global.gameManager.isSimulate && callback) 
+      this.checkPointCallback[this.route.checkpoints.length - 1] = callback;
   }
 
   //动画状态机发生转换
@@ -1644,7 +1598,6 @@ class Enemy extends DataObject{
       canReborn: this.canReborn,
       canDie: this.canDie,
       reborned: this.reborned,
-      canUseSkill: this.canUseSkill,
       isDisappear: this.isDisappear,
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
@@ -1653,7 +1606,6 @@ class Enemy extends DataObject{
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
       passengers: [...this.passengers],
-      skillSet: [...this.skillSet],
       changeTileEvents: [...this.changeTileEvents],
       watchers: [...this.watchers],
       buffs: [...this.buffs],
@@ -1700,14 +1652,12 @@ class Enemy extends DataObject{
       canReborn,
       canDie,
       reborned,
-      canUseSkill,
       isDisappear,
       canAttack,
       attackCountdown,
       currentAttackRange,
       attributes,
       passengers,
-      skillSet,
       changeTileEvents,
       watchers,
       buffs
@@ -1746,17 +1696,14 @@ class Enemy extends DataObject{
     this.canReborn = canReborn;
     this.canDie = canDie;
     this.reborned = reborned;
-    this.canUseSkill = canUseSkill;
     this.isDisappear = isDisappear;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.passengers = [...passengers];
-    this.skillSet = [...skillSet];
     this.changeTileEvents = [...changeTileEvents],
     this.watchers = [...watchers];
     this.buffs = [...buffs];
-
 
     if(this.object){
       //恢复当前动画状态

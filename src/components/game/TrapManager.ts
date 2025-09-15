@@ -69,6 +69,14 @@ class TrapManager{
     trap.destroy();
   }
 
+  public update(delta: number) {
+    this.traps.forEach(trap => {
+      if(trap.visible){
+        trap.update(delta);
+      }
+    })
+  }
+
   get(){
     const state = {
       instance: [...this.traps],

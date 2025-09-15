@@ -252,11 +252,9 @@ const updateEnemyDatas = () => {
     const unMoveable = enemy.unMoveable;
     const countDown = enemy.countdown.getCountdownTime("checkPoint");
 
-    
-
     if(enemy.customData.isSleep){
-      const wakeup = enemy.spSkillData.find(data => data.name === "wakeup");
-      if(wakeup && !wakeup.pause) label.wakeupCountDown = wakeup.spCost - wakeup.sp;
+      const wakeup = enemy.getSkillState("wakeup");
+      if(wakeup && !wakeup.finished) label.wakeupCountDown = Math.floor(wakeup.spCost - wakeup.sp);
     }else{
       label.wakeupCountDown = -1;
     }
@@ -461,9 +459,9 @@ const updateTrapDatas = () => {
     let countDown = trap.countdown.getCountdownTime("waiting");
 
     if(countDown === -1){
-      const spawn = trap.spSkillData.find(data => data.name === "spawn");
-      if(spawn && !spawn.pause){
-        countDown = spawn.spCost -spawn.sp;
+      const spawn = trap.getSkillState("spawn");
+      if(spawn && !spawn.finished){
+        countDown = Math.floor(spawn.spCost -spawn.sp);
       }
     }
     

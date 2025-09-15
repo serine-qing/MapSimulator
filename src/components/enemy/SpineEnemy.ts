@@ -36,7 +36,7 @@ class SpineEnemy extends Enemy{
 
     this.object.add(this.meshContainer);
     
-    const motion = this.initialState.motion;
+    const motion = this.initialState?.motion || "WALK";
     let isGroundUnit = motion === "WALK"; //是否是地面单位
     if(this.key.includes("enemy_3005_lpeopl")) isGroundUnit = true;  //修道院居民在boss关是空中单位
 

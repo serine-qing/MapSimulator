@@ -6,14 +6,23 @@ import act41side from "./挽歌燃烧殆尽";
 import act42side from "./众生行记";
 import act44side from "./墟";
 import act45side from "./无忧梦呓";
+import main15 from "./15章";
 
 const EnemyHandler = {
+  checkActionDatas: (actionDatas: ActionData[][]) => {
+    main15.checkActionDatas(actionDatas);
+  },
+
+  handleSpawnEnemy: (enemy: Enemy): boolean => {
+    return main15.handleSpawnEnemy(enemy);
+  },
 
   handleStart: (enemy: Enemy) => {
     act41side.handleEnemyStart(enemy);
     act42side.handleEnemyStart(enemy);
     act44side.handleEnemyStart(enemy);
     act45side.handleEnemyStart(enemy);
+    main15.handleEnemyStart(enemy);
 
     switch (enemy.key) {
       case "enemy_1334_ristar":   //行星碎屑
@@ -185,6 +194,10 @@ const EnemyHandler = {
         break;
 
     }
+  },
+
+  handleChangeCheckPoint: (enemy: Enemy) => {
+    main15.handleChangeCheckPoint(enemy);
   },
 
   handlePickUp: (enemy: Enemy, vehicle: Enemy) => {
