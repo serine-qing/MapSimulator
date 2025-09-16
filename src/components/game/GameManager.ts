@@ -196,6 +196,8 @@ class GameManager extends DataObject{
       this.countdownManager.update(delta);
       this.waveManager.update(delta);
       this.trapManager.update(delta);
+
+      GameHandler.afterGameUpdate();
       
       if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
 

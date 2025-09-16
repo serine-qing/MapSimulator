@@ -149,7 +149,7 @@ const Handler = {
           },
           initCooldown,
           cooldown,
-          trigger: "manual",
+          autoTrigger: false,
           callback: () => {
             enemy.motion = "FLY";
             enemy.addBuff({

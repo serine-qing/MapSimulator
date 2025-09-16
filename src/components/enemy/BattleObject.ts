@@ -51,7 +51,7 @@ interface AnimateTransition{
 interface SkillStates{
   name: string,
   priority: number,
-  trigger: string,
+  autoTrigger: boolean,
   spCost: number,
   duration: number,
   maxCount: number,
@@ -72,7 +72,7 @@ interface SkillParam{
   initCooldown?: number,
   cooldown?: number,
   priority?: number,             //技能cd同时转好时的触发优先级
-  trigger?: string,            //auto：自动触发， manual：手动触发，默认自动
+  autoTrigger?: boolean,            //默认自动触发
   callback?: Function,
   maxCount?: number,           //最大触发次数
   cooldownStop?: boolean,       //是否有技能阻回条，默认是
@@ -107,7 +107,7 @@ class BattleObject extends DataObject{
 
   public addSkill(skillParam: SkillParam){
     const { name, animateTransition, priority, 
-      initCooldown, cooldown, trigger, callback, eternal, 
+      initCooldown, cooldown, autoTrigger, callback, eternal, 
       initSp, spSpeed, spCost, spPlusBySecond, duration, showSPBar
     } = skillParam;
 
@@ -115,7 +115,7 @@ class BattleObject extends DataObject{
     const initCountdown = initCooldown? initCooldown : 0;
     const countdown = cooldown? cooldown : 0;
     
-    if(cooldown === undefined || cooldown === null) maxCount = 1;
+    if( !spCost && (cooldown === undefined || cooldown === null)) maxCount = 1;
 
     //技能是否有阻回条，默认是
     const cooldownStop = skillParam.cooldownStop !== undefined ? skillParam.cooldownStop : true;
@@ -148,7 +148,7 @@ class BattleObject extends DataObject{
     this.skillStates.push({
       name,
       priority: priority ? priority : 0,
-      trigger: trigger ? trigger : "auto",
+      autoTrigger: autoTrigger === false ? false : true,
       spPlusBySecond: spPlusBySecond? true : false,
       spCost: spCost? spCost : 0,
       spSpeed: isNumber(spSpeed)? spSpeed: 1,
@@ -189,6 +189,7 @@ class BattleObject extends DataObject{
       callback: (...param) => {
         const state = this.getSkillState(name);
         const {duration, maxCount} = state;
+
         if(animTrans){
           this.canUseSkill = false;  //正在释放技能动画中
           this.animationStateTransition(animTrans);
@@ -197,7 +198,7 @@ class BattleObject extends DataObject{
         if(duration){
           state.beUsing = true;
           this.countdown.addCountdown({
-            name: "skillbeUsing",
+            name: name + "beUsing",
             initCountdown: duration,
             callback: () => {
               state.beUsing = false;
@@ -246,10 +247,10 @@ class BattleObject extends DataObject{
     if( this.skillStates.length > 0 && this.canUseSkill){
       for(let i = 0; i < this.skillStates.length; i++){
         const skill = this.skillStates[i];
-        const {name, trigger} = skill;
+        const {name, autoTrigger} = skill;
 
         if( 
-          trigger === "auto" && 
+          autoTrigger && 
           this.triggerSkill(name) 
         ) {
           return;
@@ -336,6 +337,7 @@ class BattleObject extends DataObject{
     if(!this.object) return;
 
     const skill = this.skillStates.find(data => data.showSPBar);
+
     if(!skill) {
       this.hideSPBar(); 
       return;
@@ -358,7 +360,7 @@ class BattleObject extends DataObject{
         this.spBarUsing.visible = true;
         const time = this.countdown.getCountdownTime(skill.name + "beUsing");
         const useRate = time / skill.duration;
-
+        
         this.spBarUsing.scale.x = useRate;
         this.spBarUsing.position.x = - spBarWidth * (1 - useRate) / 2;
       }else{

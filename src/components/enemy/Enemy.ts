@@ -73,6 +73,13 @@ interface ChangeTileEvent{
   callback: Function
 }
 
+interface AddCheckPointParam{
+  position?: Vec2 | Vector2,
+  time?: number,
+  callback?: Function,
+  index?: number,
+}
+
 class Enemy extends BattleObject{
   static shadowMaterial = new THREE.MeshBasicMaterial( { 
     color: "#000000",
@@ -167,7 +174,6 @@ class Enemy extends BattleObject{
   
   route: EnemyRoute;
   checkPointIndex: number = 0;   //目前处于哪个检查点
-  checkPointCallback: {[key: number]: Function} = {}; //结束检查点的回调函数
   visualRoutes: any;             //可视化路线
 
   passengers: Enemy[] = [];      //装载的敌人数组
@@ -372,8 +378,6 @@ class Enemy extends BattleObject{
 
   public changeCheckPoint(index: number){
     this.checkPointIndex = index;
-    const callback = this.checkPointCallback[this.checkPointIndex - 1];
-    callback && callback(this);
     EnemyHandler.handleChangeCheckPoint(this);
   }
 
@@ -382,6 +386,9 @@ class Enemy extends BattleObject{
   }
 
   public nextCheckPoint(){
+    const callback = this.currentCheckPoint()?.callback;
+    callback && callback(this);
+    
     this.changeCheckPoint(this.checkPointIndex + 1);
     //抵达终点
     if( this.currentCheckPoint() === undefined){
@@ -1427,40 +1434,47 @@ class Enemy extends BattleObject{
     this.checkPointIndex = 0;
   }
 
-  public addWaitCheckPoint(time: number, callback?: Function){
+  public addWaitCheckPoint(param: AddCheckPointParam){
+    const {time, callback, index} = param;
+
     const checkPoint: CheckPoint = {
       position: null,
       type: "WAIT_FOR_SECONDS",
       time,
       reachOffset: null,
-      randomizeReachOffset: false
+      randomizeReachOffset: false,
+      callback
     };
 
     this.route = {...this.route};
     this.route.checkpoints = [...this.route.checkpoints];
 
-    this.route.checkpoints.push(checkPoint);
-    
-    if(Global.gameManager.isSimulate && callback)
-      this.checkPointCallback[this.route.checkpoints.length - 1] = callback;
+    if(index && index <= this.checkPointIndex){
+      this.route.checkpoints.splice(index, 0, checkPoint);
+    }else{
+      this.route.checkpoints.push(checkPoint);
+    }
   }
 
-  public addMoveCheckPoint(position: Vec2 | Vector2, callback?: Function){
+  public addMoveCheckPoint(param: AddCheckPointParam){
+    const {position, callback, index} = param;
     const checkPoint: CheckPoint = {
       position: {x: position.x, y: position.y},
       type: "MOVE",
       time: 0,
       reachOffset: {x: 0, y: 0},
-      randomizeReachOffset: false
+      randomizeReachOffset: false,
+      callback
     };
 
     this.route = {...this.route};
     this.route.checkpoints = [...this.route.checkpoints];
 
-    this.route.checkpoints.push(checkPoint);
-
-    if(Global.gameManager.isSimulate && callback) 
-      this.checkPointCallback[this.route.checkpoints.length - 1] = callback;
+    if(index && index <= this.route.checkpoints.length){
+      this.route.checkpoints.splice(index, 0, checkPoint);
+    }else{
+      this.route.checkpoints.push(checkPoint);
+    }
   }
 
   //动画状态机发生转换

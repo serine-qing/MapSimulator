@@ -69,7 +69,8 @@ declare global {
     time: number,
     reachOffset: Vec2,
     randomizeReachOffset: boolean,
-    pathMap?: PathMap
+    pathMap?: PathMap,
+    callback?: Function,        //执行完检查点后的回调函数
   }
 
   interface EnemyRoute{

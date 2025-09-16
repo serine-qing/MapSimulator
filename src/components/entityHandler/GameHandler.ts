@@ -16,7 +16,11 @@ const GameHandler = {
 
   handleTileInit: (tile: Tile) => {
     main15.handleTileInit(tile);
-  }
+  },
+
+  afterGameUpdate: () => {
+    main15.afterGameUpdate();
+  },
 }
 
 export default GameHandler;

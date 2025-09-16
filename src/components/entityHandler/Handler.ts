@@ -39,6 +39,8 @@ abstract class Handler{
   abstract handleReborn(enemy: Enemy);
 
   abstract handleDie(enemy: Enemy);
+
+  abstract afterGameUpdate();
 }
 
 export default Handler;

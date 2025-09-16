@@ -664,7 +664,7 @@ const Handler = {
             name: "getenmey",
             initCooldown: 0,
             cooldown: cooldown + duration,
-            trigger: "manual",
+            autoTrigger: false,
             animateTransition: {
               idleAnimate: "B_Idle",
               moveAnimate: "B_Move",
