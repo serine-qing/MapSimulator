@@ -117,7 +117,8 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
     const texture = getClone(texture1, index);
     textureMats[key] = new THREE.MeshBasicMaterial({
       map: texture,
-      transparent: true   //矢量图能透明
+      transparent: true,   //矢量图能透明
+      depthWrite: false    //关闭depthWrite，这样无论如何都遮挡不到敌人模型了
     })
   })
 
@@ -161,6 +162,7 @@ const getTexture = (name:string) => {
   if(textureMat){
     const textureGeo = new THREE.PlaneGeometry( 1, 1 );
     const textureMesh = new THREE.Mesh( textureGeo, textureMat );
+    textureMesh.renderOrder = -1;
     return textureMesh;
   }else{
     return null;

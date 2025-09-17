@@ -1,3 +1,4 @@
+import { Object3D } from "three";
 import { Countdown } from "../game/CountdownManager";
 import Global from "../utilities/Global";
 
@@ -7,6 +8,7 @@ class DataObject{
   public customData: {[key: string]: any} = {};    //数据存储
   public deepCopyData: {[key: string]: any} = {};    //深拷贝数据存储
   public countdown: Countdown;  //倒计时
+  public object: Object3D;          //fbxMesh和skeletonMesh
 
   constructor(){
     const countdownManager = Global.countdownManager;

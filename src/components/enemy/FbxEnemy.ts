@@ -46,6 +46,15 @@ class FbxEnemy extends Enemy{
     }
   }
 
+  public getMeshClone(): THREE.Mesh{
+    if(!Global.gameManager.isSimulate){
+      const clone = this.mesh.clone();
+      GC_Add(clone);
+      return clone;
+    }
+    return null;  
+  }
+
   public setObjectPosition(x: number, y: number){
     super.setObjectPosition(x, y);
   }

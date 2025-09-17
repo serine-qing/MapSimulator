@@ -8,6 +8,7 @@ import SpineEnemy from "./SpineEnemy";
 import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
+import { Mesh } from "three";
 
 interface activeExtraAction{
   time: number,

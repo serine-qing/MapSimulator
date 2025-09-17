@@ -9,6 +9,9 @@ import Trap from "./Trap"
 import { GC_Sweep } from "./GC"
 import Global from "../utilities/Global"
 import { getPixelSize } from "../utilities/utilities";
+import { SkeletonMesh } from "@/spine/SkeletonMesh";
+import Enemy from "../enemy/Enemy";
+import GameHandler from "../entityHandler/GameHandler";
 
 class GameView{
   
@@ -18,6 +21,8 @@ class GameView{
   public enemyObjects = new THREE.Group();
   private tileBgImage: THREE.Mesh;
 
+  public enemyMeshs: {[key: string]: THREE.Object3D} = {};           //每种敌人对应的mesh
+
   constructor(){
     Global.gameView = this;
   }
@@ -26,6 +31,8 @@ class GameView{
     this.initMap();
     this.initTraps();
     this.initEnemys();
+
+    GameHandler.afterGameViewInit();
   }
 
   //初始化地图tiles
@@ -75,6 +82,19 @@ class GameView{
       
     })
     this.mapContainer.add(this.enemyObjects);
+  }
+
+  public initEnemyCloneMeshs(){
+    Global.waveManager.enemies.forEach(enemy => {
+      if(!this.enemyMeshs[enemy.key]){
+        this.enemyMeshs[enemy.key] = enemy.getMeshClone();
+      }
+    })
+    
+  }
+
+  public getEnemyMesh(key: string){
+    return this.enemyMeshs[key];
   }
 
   public setBgImage(texture: THREE.Texture){

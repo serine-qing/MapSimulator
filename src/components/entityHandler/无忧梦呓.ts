@@ -620,6 +620,7 @@ const Handler = {
             spPlusBySecond: true,
             showSPBar: true,
             eternal: true,
+            maxCount: 1,
             callback: () => {
               enemy.countdown.removeCountdown("unmove");
               enemy.animationStateTransition({

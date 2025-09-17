@@ -1,9 +1,7 @@
 import * as THREE from "three";
-import GameConfig from "@/components/utilities/GameConfig"
 import { checkEnemyMotion, getAnimationSpeed } from "@/components/utilities/SpineHelper";
 import { GC_Add } from "../game/GC";
 import Action from "../game/Action";
-import { Countdown } from "../game/CountdownManager";
 import Tile from "../game/Tile";
 import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
@@ -193,6 +191,7 @@ class Enemy extends BattleObject{
   public visible: boolean = false;
   public isDisappear: boolean = false;
 
+  public hasShadow: boolean = true;
   public shadow: THREE.Mesh;
   public activeShadow: THREE.Mesh;
   public shadowHeight: number = 0.2;
@@ -230,6 +229,10 @@ class Enemy extends BattleObject{
   public gractrlSpeed: number = 1;       //重力影响的速度倍率
   public mesh: any;
   public meshContainer: THREE.Object3D;
+
+  public carryContainer: THREE.Group;    //用于存放搭载、抓取、绑定物体的容器
+  protected carryOffset: THREE.Vector3;  
+  public carriedEnemyKey: string;         //搭载、抓取、绑定的enemykey
 
   public canAttack: boolean = false;
   public attackCountdown: number = 0;           //攻击间隔倒计时
@@ -291,13 +294,22 @@ class Enemy extends BattleObject{
     this.animations = animations;
     this.moveAnimate = moveAnimate;
     this.idleAnimate = idleAnimate;
+
+    //构建three对象
+    this.object = new THREE.Object3D();
+    this.object.userData.enemy = this;
+    GC_Add(this.object);
+
+    this.carryContainer = new THREE.Group();
+    this.carryContainer.visible = false;
+    this.object.add(this.carryContainer);
   }
 
   public start(){
     this.reset();
 
     //初始get和set都要在各种handle之前，否则会干扰
-    if(Global.gameManager.isSimulate){
+    if(this.isSimulate()){
       this.initialState = this.get();
     }else{
       this.set(this.initialState)
@@ -359,7 +371,7 @@ class Enemy extends BattleObject{
   }
 
   public setObjectPosition(x: number, y: number){
-    if(Global.gameManager.isSimulate || !this.object) return;
+    if(this.isSimulate() || !this.object) return;
 
     const Vec2 = getCoordinate(x, y);
 
@@ -404,7 +416,7 @@ class Enemy extends BattleObject{
     EnemyHandler.finishedMap(this);
     this.dropOff();
     
-    if(!Global.gameManager.isSimulate){
+    if(!this.isSimulate()){
       this.options.RoutesVisible = false;
       const exitCountdown = this.hp <= 0 ? 2 : 1;
       //敌人退出地图的渐变
@@ -413,17 +425,42 @@ class Enemy extends BattleObject{
       this.hide();
     }
   }
+  
+  //设置搭载、抓起物体的偏移
+  public setCarryOffset(offset: THREE.Vector3){
+    this.carryOffset = offset;
+    this.carryContainer.position.copy(offset);
+  }
+
+  public addCarryEnemy(key: string){
+    this.carriedEnemyKey = key;
+    if(this.isSimulate()) return;
+
+    const mesh = Global.gameView.getEnemyMesh(key);
+    this.carryContainer.add(mesh);
+    this.carryContainer.visible = true;
+  }
+  
+  public removeCarryEnemy(){
+    this.carriedEnemyKey = null;
+    if(this.isSimulate()) return;
+
+    this.carryContainer.clear();
+    this.carryContainer.visible = false;
+    
+  }
 
   public initMesh(){
-    this.object = new THREE.Object3D();
-    this.object.userData.enemy = this;
-    GC_Add(this.object);
-
     this.initShadow();
     this.drawAttackRangeCircle(this.attributes.rangeRadius);
   }
 
+  public getMeshClone(): THREE.Object3D{
+    return null;
+  }
+
   private initShadow(){
+    if(!this.hasShadow) return;
     const majorAxis = getPixelSize(0.28); //椭圆长轴
     const minorAxis = getPixelSize(0.06); //椭圆短轴
 
@@ -540,9 +577,14 @@ class Enemy extends BattleObject{
     return this.motion === "FLY";
   }
 
+  protected isSimulate(): boolean{
+    return Global.gameManager.isSimulate;
+  }
+
   //飞行单位根据是否在高台，修改阴影高度
   updateShadowHeight(){
-    if(Global.gameManager.isSimulate || !this.isFly()) return;
+    if(!this.hasShadow) return;
+    if(this.isSimulate() || !this.isFly()) return;
     
     const x = Math.round(this.position.x);
     const y = Math.round(this.position.y);
@@ -1326,12 +1368,12 @@ class Enemy extends BattleObject{
 
   public show(){
     this.visible = true;
-    if(!Global.gameManager.isSimulate && this.object) this.object.visible = true;
+    if(!this.isSimulate() && this.object) this.object.visible = true;
   }
 
   public hide(){  
     this.visible = false;
-    if(!Global.gameManager.isSimulate && this.object) {
+    if(!this.isSimulate() && this.object) {
       if(!this.isStarted || this.isFinished){
         
         //如果拖动模拟时间条到未开始或结束，就隐藏路线显示
@@ -1345,7 +1387,7 @@ class Enemy extends BattleObject{
   public disappear(countDown?: number){
     this.isDisappear = true;
     
-    if(!Global.gameManager.isSimulate) {
+    if(!this.isSimulate()) {
       this.exitCountDown = countDown? countDown : 1;
     }else{
       this.hide();
@@ -1616,6 +1658,8 @@ class Enemy extends BattleObject{
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
       currentAttackRange: this.currentAttackRange,
+      carriedEnemyKey: this.carriedEnemyKey,
+      carryOffset: this.carryOffset,
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
@@ -1670,6 +1714,8 @@ class Enemy extends BattleObject{
       canAttack,
       attackCountdown,
       currentAttackRange,
+      carriedEnemyKey,
+      carryOffset,
       attributes,
       passengers,
       changeTileEvents,
@@ -1713,6 +1759,7 @@ class Enemy extends BattleObject{
     this.isDisappear = isDisappear;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
+    this.carriedEnemyKey = carriedEnemyKey;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.passengers = [...passengers];
     this.changeTileEvents = [...changeTileEvents],
@@ -1732,7 +1779,7 @@ class Enemy extends BattleObject{
 
       this.setZOffset(ZOffset);
 
-      this.shadow.position.z = this.shadowHeight;
+      if(this.hasShadow) this.shadow.position.z = this.shadowHeight;
       this.visible? this.show() : this.hide();
       if(this.tilePosition){
         this.updateFaceToward();
@@ -1741,8 +1788,17 @@ class Enemy extends BattleObject{
 
       this.updateAttackRangeCircle(currentAttackRange);
       this.updateHPBar();
+
+      //恢复抓取、装载的敌人显示
+      if(carriedEnemyKey){
+        this.addCarryEnemy(carriedEnemyKey);
+        carryOffset && this.setCarryOffset(carryOffset);
+      }else{
+        this.removeCarryEnemy();
+      }
     }
     
+    EnemyHandler.handleEnemySet(this, state);
   }
 
   public destroy(){

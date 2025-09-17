@@ -94,8 +94,6 @@ class BattleObject extends DataObject{
   protected animations: any[];
 
   public canUseSkill: boolean = true;   //当前是否可用技能
-
-  public object: Object3D;          //fbxMesh和skeletonMesh
   constructor(){
     super();
   }
@@ -115,6 +113,8 @@ class BattleObject extends DataObject{
     const initCountdown = initCooldown? initCooldown : 0;
     const countdown = cooldown? cooldown : 0;
     
+    //没有填cooldown的话 默认最大执行次数为1
+    //但是填了spCost的话，基本就是跟SP相关的技能了 需要手动设置maxCount
     if( !spCost && (cooldown === undefined || cooldown === null)) maxCount = 1;
 
     //技能是否有阻回条，默认是

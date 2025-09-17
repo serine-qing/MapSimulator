@@ -4,6 +4,7 @@ import Tile from "../game/Tile";
 import Global from "../utilities/Global";
 import Trap from "../game/Trap";
 import BattleObject from "../enemy/BattleObject";
+import { Vector3 } from "three";
 
 const addMpweakSkill = (obj: BattleObject) => {
   obj.addSkill({
@@ -22,7 +23,6 @@ const addMpweakSkill = (obj: BattleObject) => {
   Global.gameManager.deepCopyData.mpweaks.push(obj)
 }
 
-
 const enemyToSpawn = (_enemy: BattleObject) => {
   const enemy = _enemy as Enemy;
 
@@ -30,6 +30,34 @@ const enemyToSpawn = (_enemy: BattleObject) => {
   const prtsPoint: Enemy = gameManager.customData.prtsPoint;
 
   const spawnPosition: Vector2 = gameManager.staticData.prtsSpawnPosition;
+
+  //各敌人抓取位置不一样
+  let offset;
+  switch (enemy.key) {
+    case "enemy_1565_mpprme":
+      offset = new Vector3(-1, 0, -3);
+      break;
+    case "enemy_10078_mprein":
+    case "enemy_10078_mprein_2":
+      offset = new Vector3(0, 0, -3);
+      break;
+    case "enemy_10079_mpmage":
+    case "enemy_10079_mpmage_2":
+      offset = new Vector3(0, 0, -4);
+      break;
+    case "enemy_10076_mpgrou":
+    case "enemy_10076_mpgrou_2":
+      offset = new Vector3(0, 0, 0);
+      break;
+    case "enemy_10077_mpbarr":
+    case "enemy_10077_mpbarr_2":
+      offset = new Vector3(0, 0, 0);
+      break;
+    default:
+      offset = new Vector3(0, 0, 3);
+      break;
+  }
+
   prtsPoint.addMoveCheckPoint({
     position: spawnPosition, 
     callback: () => {
@@ -39,20 +67,38 @@ const enemyToSpawn = (_enemy: BattleObject) => {
         transAnimation: "Grab_Begin",
         isWaitTrans: true
       })
+      prtsPoint.countdown.addCountdown({
+        name: "grabDelay",
+        initCountdown: 1.1,
+        callback: () => {
+          prtsPoint.setCarryOffset(offset);          //设置抓取物体的偏移
+          prtsPoint.addCarryEnemy(enemy.key);
+        }
+      })
     }
   });
-  //todo animationScale需要更精确的数值
+
   prtsPoint.addMoveCheckPoint({
     position: enemy.route.startPosition, 
     callback: () => {
-      enemy.start();
+      
       prtsPoint.animationStateTransition({
         idleAnimate: "Idle",
         moveAnimate: "Idle",
         transAnimation: "Grab_End",
         animationScale: 1.5,
         isWaitTrans: true
+      });
+
+      prtsPoint.countdown.addCountdown({
+        name: "loosenDelay",
+        initCountdown: 0.6,
+        callback: () => {
+          prtsPoint.removeCarryEnemy();
+            enemy.start();
+        }
       })
+      
     }
   });
 }
@@ -134,20 +180,20 @@ const Handler = {
     switch (enemy.key) {
       case "enemy_10072_mpprhd":   //侵入式调用
         Global.gameManager.customData.prtsPoint = enemy;
+        Global.gameManager.staticData.hasPrtsPoint = true;
         enemy.clearCheckPoint();
         enemy.cantFinished = true;
 
         enemy.deepCopyData.commands = [];                     //指令队列
         enemy.deepCopyData.prtsBattleObjects = [];           //指令目标队列
+
+        enemy.hasShadow = false;
+
         break;
       case "enemy_10082_mpweak":   //弱化节点
         addMpweakSkill(enemy);
         break;
     }
-  },
-
-  handleChangeCheckPoint: (enemy: Enemy) => {
-
   },
 
   afterGameUpdate: () => {
@@ -197,6 +243,12 @@ const Handler = {
     }
 
   },  
+
+  afterGameViewInit: () => {
+    if(Global.gameManager.staticData.hasPrtsPoint)
+      Global.gameView.initEnemyCloneMeshs();
+  }
+
 };
 
 export default Handler;

@@ -7,10 +7,11 @@ import GameConfig from "../utilities/GameConfig";
 import { gameCanvas } from "../game/GameCanvas";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
+import { SkeletonMesh } from "@/spine/SkeletonMesh";
 
 class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据
-  public skeletonMesh;
+  public skeletonMesh: SkeletonMesh;
 
   constructor(action: ActionData, enemyData: EnemyData){
     super(action, enemyData);
@@ -23,22 +24,15 @@ class SpineEnemy extends Enemy{
     if(!skeletonData) return;
 
     this.skeletonData = skeletonData;
+    const depthTest = this.key === "enemy_10072_mpprhd" ? false : true; //侵入式调用需要不被其他东西遮挡
 
     //从数据创建SkeletonMesh并将其附着到场景
-    this.skeletonMesh = new spine.SkeletonMesh(this.skeletonData, function(parameters) {
-      //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
-      //重叠时显示哪个用mesh的renderOrder属性控制
-      parameters.depthWrite = false;
-    }); 
-    this.mesh = this.skeletonMesh;
-    this.meshContainer = new THREE.Object3D();
-    this.meshContainer.add(this.skeletonMesh);
+    this.skeletonMesh = this.getMesh({depthTest});
 
-    this.object.add(this.meshContainer);
-    
     const motion = this.initialState?.motion || "WALK";
     let isGroundUnit = motion === "WALK"; //是否是地面单位
     if(this.key.includes("enemy_3005_lpeopl")) isGroundUnit = true;  //修道院居民在boss关是空中单位
+    else if(this.key === "enemy_10072_mpprhd") isGroundUnit = true;  //侵入式调用从模型来说被视为地面单位
 
     const offsetY = isGroundUnit? -1/4 : 0;
     const coordinateOffset = getCoordinate(0, offsetY)
@@ -46,22 +40,63 @@ class SpineEnemy extends Enemy{
     this.skeletonMesh.position.x = coordinateOffset.x;
     this.skeletonMesh.position.y = coordinateOffset.y;
 
-    const spineScale = getSpineScale(this);
-    this.meshContainer.scale.set(spineScale.x, spineScale.y ,1);
-
-    this.idle();
-
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    
-
     this.skeletonMesh.position.z = isGroundUnit? 
       getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
+
+    this.mesh = this.skeletonMesh;
+    this.meshContainer = new THREE.Object3D();
+    this.meshContainer.add(this.skeletonMesh);
+    const spineScale = getSpineScale(this);
+    this.meshContainer.scale.set(spineScale.x, spineScale.y ,1);
+    
+    this.object.add(this.meshContainer);
+    
+    this.idle();
 
     this.getSkelSize();
 
     this.changeAnimation();
     //初始不可见的
     this.hide();
+
+  }
+
+  public getMesh(options?: any): SkeletonMesh{
+    const { depthTest } = options || {};
+    const skelmesh = new spine.SkeletonMesh(this.skeletonData, function(parameters) {
+      //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
+      //重叠时显示哪个用mesh的renderOrder属性控制
+      // parameters.depthWrite = false;
+      parameters.depthTest = depthTest !== undefined? depthTest : true;
+    }); 
+
+    return skelmesh;
+  }
+
+  public getMeshClone(): THREE.Object3D{
+    if(!Global.gameManager.isSimulate){
+      const clone = this.getMesh({
+        depthTest: false
+      });
+      GC_Add(clone);
+
+      clone.rotation.x = GameConfig.MAP_ROTATION;
+      clone.state.setAnimation(
+        0, 
+        "Default", 
+        false
+      );
+
+      clone.update(0.001)
+      const meshContainer = new THREE.Object3D();
+      meshContainer.add(clone);
+      const spineScale = getSpineScale(this);
+      meshContainer.scale.set(spineScale.x, spineScale.y ,1);
+
+      return meshContainer;
+    }
+    return null;
 
   }
 

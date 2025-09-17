@@ -21,6 +21,10 @@ const GameHandler = {
   afterGameUpdate: () => {
     main15.afterGameUpdate();
   },
+
+  afterGameViewInit: () => {
+    main15.afterGameViewInit();
+  }
 }
 
 export default GameHandler;

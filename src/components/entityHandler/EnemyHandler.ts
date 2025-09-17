@@ -197,7 +197,6 @@ const EnemyHandler = {
   },
 
   handleChangeCheckPoint: (enemy: Enemy) => {
-    main15.handleChangeCheckPoint(enemy);
   },
 
   handlePickUp: (enemy: Enemy, vehicle: Enemy) => {
@@ -234,6 +233,10 @@ const EnemyHandler = {
 
   handleDie: (enemy: Enemy) => {
     act35side.handleDie(enemy);
+  },
+
+  handleEnemySet: (enemy: Enemy, state) => {
+
   }
 }
 

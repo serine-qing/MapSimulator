@@ -40,7 +40,11 @@ abstract class Handler{
 
   abstract handleDie(enemy: Enemy);
 
+  abstract handleEnemySet(enemy: Enemy, state);
+
   abstract afterGameUpdate();
+
+  abstract afterGameViewInit();
 }
 
 export default Handler;
