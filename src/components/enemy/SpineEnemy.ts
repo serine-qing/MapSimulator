@@ -13,8 +13,8 @@ class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据
   public skeletonMesh: SkeletonMesh;
 
-  constructor(action: ActionData, enemyData: EnemyData){
-    super(action, enemyData);
+  constructor(param: EnemyParam, enemyData: EnemyData){
+    super(param, enemyData);
   }
   //初始化spine小人
   public initMesh(){
@@ -67,7 +67,7 @@ class SpineEnemy extends Enemy{
     const skelmesh = new spine.SkeletonMesh(this.skeletonData, function(parameters) {
       //不再进行深度检测，避免skel骨架和其他物体重叠时导致渲染异常的现象
       //重叠时显示哪个用mesh的renderOrder属性控制
-      // parameters.depthWrite = false;
+      parameters.depthWrite = false;
       parameters.depthTest = depthTest !== undefined? depthTest : true;
     }); 
 

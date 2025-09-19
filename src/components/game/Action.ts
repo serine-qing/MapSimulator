@@ -13,13 +13,14 @@ class Action{
   isExtra: boolean = false;       //是否是额外波次
   enemys: Enemy[] = []            //绑定的敌人。额外出怪可能会多次调用，数组length就会大于1
   applyId: number = 0;            //调用id
+  prtsSpawn: boolean = false;     //prts抓取的怪
 
   trap: Trap              //绑定的装置
   waveManager: WaveManager;
 
   actionTime: number;           //实际执行时间
   constructor(data: ActionData){
-    const { key, actionType, startTime, dontBlockWave, blockFragment } = data;
+    const { key, actionType, startTime, dontBlockWave, blockFragment, prtsSpawn } = data;
 
     this.actionData = data;
     this.key = key;
@@ -27,6 +28,7 @@ class Action{
     this.startTime = startTime;
     this.dontBlockWave = dontBlockWave;
     this.blockFragment = blockFragment;
+    this.prtsSpawn = prtsSpawn;      //15章机制
   }
 
   public get(){

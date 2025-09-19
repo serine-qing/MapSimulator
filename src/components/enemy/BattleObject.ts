@@ -57,7 +57,10 @@ interface SkillStates{
   maxCount: number,
   showSPBar: boolean,
   spPlusBySecond: boolean,
-  
+  eternal: boolean,
+  initCooldown: number,
+  cooldown: number,
+
   sp: number,
   spSpeed: number,
   beUsing: boolean,             //是否正在技能释放中
@@ -69,11 +72,14 @@ interface SkillStates{
 interface SkillParam{
   name: string,
   animateTransition?: AnimateTransition,
+  endAnimateTransition?: AnimateTransition,
   initCooldown?: number,
   cooldown?: number,
   priority?: number,             //技能cd同时转好时的触发优先级
   autoTrigger?: boolean,            //默认自动触发
   callback?: Function,
+  endCallback?: Function,      //技能结束的回调(需要有duration)
+  duration?: number,            //技能持续时间（没有就瞬发）
   maxCount?: number,           //最大触发次数
   cooldownStop?: boolean,       //是否有技能阻回条，默认是
   eternal?: boolean,           //永久性技能（结束后不会被删除，占用内存更多）
@@ -82,7 +88,6 @@ interface SkillParam{
   spSpeed?: number,
   spPlusBySecond?: boolean,     //sp是否是在整数秒时刻增加
   spCost?: number, 
-  duration?: number,            //技能持续时间（没有就瞬发）
   showSPBar?: boolean
 }
 
@@ -98,14 +103,14 @@ class BattleObject extends DataObject{
     super();
   }
 
-    public getSkillState(name: string): SkillStates{
+  public getSkillState(name: string): SkillStates{
     const find = this.skillStates.find(state => state.name === name);
     return find? find : null;
   }
 
   public addSkill(skillParam: SkillParam){
-    const { name, animateTransition, priority, 
-      initCooldown, cooldown, autoTrigger, callback, eternal, 
+    const { name, animateTransition, endAnimateTransition, priority, 
+      initCooldown, cooldown, autoTrigger, callback, endCallback, eternal, 
       initSp, spSpeed, spCost, spPlusBySecond, duration, showSPBar
     } = skillParam;
 
@@ -123,7 +128,7 @@ class BattleObject extends DataObject{
 
     if(this.animations && cooldownStop && animateTransition){
       const find = this.animations.find(animation => animation.name === animateTransition.transAnimation);
-      cooldownStopTime = ( find.duration || 0 ) * (animateTransition.animationScale || 1) * 0.93;
+      cooldownStopTime = ( find.duration || 0 ) * (animateTransition.animationScale || 1);
     }
 
     //技能转换动画
@@ -155,6 +160,9 @@ class BattleObject extends DataObject{
       duration: duration? duration : 0,
       showSPBar: showSPBar ? showSPBar: false,
       maxCount,
+      eternal,
+      initCooldown,
+      cooldown,
       //下面是动态数据
       pause: false,
       sp: initSp? initSp : 0,
@@ -175,7 +183,6 @@ class BattleObject extends DataObject{
         }
       })
     }
-
     
     //priority越大 技能释放优先级越高
     this.skillStates.sort((a, b) => b.priority - a.priority);
@@ -184,16 +191,21 @@ class BattleObject extends DataObject{
     this.countdown.addCountdown({
       name,
       initCountdown,
-      countdown: countdown + cooldownStopTime,
+      countdown: countdown + cooldownStopTime + (duration? duration : 0),
       trigger: "manual",
       callback: (...param) => {
         const state = this.getSkillState(name);
-        const {duration, maxCount} = state;
+        const {duration} = state;
 
         if(animTrans){
           this.canUseSkill = false;  //正在释放技能动画中
           this.animationStateTransition(animTrans);
         }
+
+        if(callback) callback(...param);
+
+        state.applyCount++;
+        state.sp = 0;
 
         if(duration){
           state.beUsing = true;
@@ -202,25 +214,29 @@ class BattleObject extends DataObject{
             initCountdown: duration,
             callback: () => {
               state.beUsing = false;
+              //有持续时间的技能，结束转换动画
+              endAnimateTransition && this.animationStateTransition(endAnimateTransition);  
+              endCallback && endCallback();
+              this.checkSkillOver(state);
             }
           })
+        }else{
+          this.checkSkillOver(state);
         }
 
-        if(callback) callback(...param);
-        state.applyCount++;
-        state.sp = 0;
-
-        if(state.applyCount >= maxCount){
-
-          if(eternal)
-            state.finished = true;
-          else
-            this.removeSkill(state.name);
-
-        }
       }
     });
     
+  }
+  
+  private checkSkillOver(skill: SkillStates){
+    if(skill.applyCount >= skill.maxCount){
+
+      if(skill.eternal)
+        skill.finished = true;
+      else
+        this.removeSkill(skill.name);
+    }
   }
 
   //直接给技能加sp
@@ -293,8 +309,8 @@ class BattleObject extends DataObject{
   public triggerSkill(name: string, ...param): boolean{
     const state = this.getSkillState(name);
 
-    //没有暂停、没有结束、SP足够
-    if(state && !state.pause && !state.finished && (!state.spCost || state.sp === state.spCost)){
+    //没有暂停、不在使用中、没有结束、SP足够
+    if(state && !state.beUsing && !state.pause && !state.finished && (!state.spCost || state.sp === state.spCost)){
       return this.countdown.triggerCountdown(name, false, ...param);
     }
     
@@ -350,14 +366,10 @@ class BattleObject extends DataObject{
     if(skill.finished){
       this.hideSPBar();
     }else{
-      const spRate = skill.sp / skill.spCost;
-      this.spBar.visible = true;
-      this.spBarShadow.visible = true;
-      this.spBar.scale.x = spRate;
-      this.spBar.position.x = - spBarWidth * (1 - spRate) / 2;
-
       if(skill.beUsing){
+        this.spBar.visible = false;
         this.spBarUsing.visible = true;
+        
         const time = this.countdown.getCountdownTime(skill.name + "beUsing");
         const useRate = time / skill.duration;
         
@@ -365,6 +377,21 @@ class BattleObject extends DataObject{
         this.spBarUsing.position.x = - spBarWidth * (1 - useRate) / 2;
       }else{
         this.spBarUsing.visible = false;
+        this.spBar.visible = true;
+        this.spBarShadow.visible = true;
+
+        
+        let rate = 0;
+        //有spCost就显示当期sp，否则显示countdown
+        if( skill.spCost ){
+          rate = skill.sp / skill.spCost;
+        }else{
+          const currentTime = this.countdown.getCountdownTime(skill.name);
+          const maxTime = skill.applyCount === 0 ? skill.initCooldown : skill.cooldown;
+          if(currentTime && maxTime) rate = 1 - currentTime / maxTime;
+        }
+        this.spBar.scale.x = rate;
+        this.spBar.position.x = - spBarWidth * (1 - rate) / 2;
       }
     }
   }

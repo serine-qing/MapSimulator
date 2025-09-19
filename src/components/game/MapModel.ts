@@ -85,43 +85,26 @@ class MapModel{
     //获取trap数据
     await this.getTrapDatas();
 
-    //解析波次数据
-    this.parseWaves(waves);
-
     await this.initEnemyData(enemyDbRefs);
 
     //获取哪些敌人的spine是可用的
     //获取敌人spine
     await this.getEnemyMeshs();
 
-    this.parseExtraWave();
-
     //解析敌人路径
     this.routes = this.parseEnemyRoutes(routes);
     this.extraRoutes = this.parseEnemyRoutes(extraRoutes);
 
-    //绑定actions的 route和enemydata、trap
-    this.actionDatas.flat().forEach( action => {
-      //route可能为null
-      this.actionDataBindEnemyAndTrap(action, false);
-    })
-
-    //绑定额外actions的 route和enemydata、trap
-    this.extraWaves.forEach(extraWave => {
-      const actionDatas = extraWave.actionDatas;
-
-      actionDatas.flat().forEach(action => {
-        this.actionDataBindEnemyAndTrap(action, true);
-      })
-    })
-
-    EnemyHandler.checkActionDatas(this.actionDatas);
+    //解析波次数据
+    this.parseWaves(waves);
+    this.parseExtraWave();
 
     this.initSPFA();
   }
 
   private initExtraDesc(){
-    switch (this.sourceData.operation.replace(/[^a-zA-Z0-9-]/g, "")) {
+
+    switch (this.sourceData.levelCode) {
       case "SS-8":
       case "SS-EX-8":
         this.addExtraDescription({
@@ -391,7 +374,7 @@ class MapModel{
 
       let currentTime = wave.preDelay;
       
-      const innerFragments = this.parseActions(wave.fragments, currentTime)
+      const innerFragments = this.parseActions(wave.fragments, currentTime, false)
 
       this.actionDatas.push(innerFragments.flat());
       
@@ -401,7 +384,7 @@ class MapModel{
     
   }
 
-  private parseActions(fragments: any[], currentTime: number): ActionData[][]{
+  private parseActions(fragments: any[], currentTime: number, isExtra: boolean): ActionData[][]{
 
     const innerFragments: ActionData[][] = []
 
@@ -453,12 +436,16 @@ class MapModel{
               hiddenGroup: action.hiddenGroup
             }
 
+            this.actionDataBindEnemyAndTrap(eAction, isExtra);
+
             innerActions.push(eAction);
           }
-        }
+        } 
       })
 
       currentTime = lastTime;
+
+      EnemyHandler.checkActionDatas(innerActions);  //排序之前调用，有些解析需要按照顺序
 
       innerActions.sort((a, b)=>{
         return a.startTime - b.startTime;
@@ -661,6 +648,7 @@ class MapModel{
       enemyData.levelType = AliasHelper(enemyData.levelType, "levelType");
       enemyData.applyWay = AliasHelper(enemyData.applyWay, "applyWay");
       this.runesHelper.checkTalentChanges(enemyData);
+      this.runesHelper.checkSkillChanges(enemyData);
       this.runesHelper.checkEnemyAttribute(enemyData);
 
       enemyData.talents = parseTalent(enemyData);
@@ -676,6 +664,11 @@ class MapModel{
     })
 
     this.enemyDatas = enemyDatas;
+  }
+
+  public getEnemyData(key: string): EnemyData{
+    const find = this.enemyDatas.find(data => data.key === key);
+    return find;
   }
 
   private async getEnemyMeshUrls(){
@@ -813,7 +806,7 @@ class MapModel{
   }
 
   public parseExtraActions(key: string, data){
-    const actionDatas = this.parseActions(data, 0);
+    const actionDatas = this.parseActions(data, 0, true);
     
     this.extraWaves.push({
       key,

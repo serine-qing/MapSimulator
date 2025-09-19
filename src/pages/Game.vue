@@ -21,6 +21,7 @@ import btnSpeed1x from '@/assets/images/btn_speed_1x.png';
 import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
 import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
+import ExternalLinks from "@/pages/ExternalLinks.vue"
 import Notice from "@/pages/Notice.vue"
 import Global from "@/components/utilities/Global";
 
@@ -162,6 +163,7 @@ const newGame = async (map) => {
   }
   mapData = map;
   levelId.value = mapData.levelId;
+  mapData.levelCode = mapData.operation.replace(/[^a-zA-Z0-9-]/g, "");
 
   if(
     mapData.levelId.includes("obt/recalrune")
@@ -213,6 +215,9 @@ const stageAttrInfo = ref("");
 const characterLimit = ref(0);
 const squadNum = ref(13);
 
+const levelCode = ref("");
+const levelFullCode = ref("");   //包含磨难 险地
+const levelName = ref("");
 //生成关卡详情
 const generateStageInfo = () => {
   //额外关卡信息
@@ -220,6 +225,11 @@ const generateStageInfo = () => {
 
   const {levelId, operation, cn_name, challenge: _challenge, description:_description} = mapData;
   console.log(levelId)
+
+  levelCode.value = mapData.levelCode;
+  levelFullCode.value = operation;
+  levelName.value = cn_name;
+
   title.value = `${operation} ${cn_name}`;
 
   challenge.value = _challenge?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
@@ -494,6 +504,12 @@ defineExpose({
   <div class="info">
     <h2>{{ title }}</h2>
     <p class="description">{{ description }}</p>
+
+    <ExternalLinks 
+      :level-code="levelCode" 
+      :level-name="levelName"
+      :level-full-code="levelFullCode"
+    ></ExternalLinks>
     <p v-for="desc in extraDescription" :style="{color: desc.color?desc.color:'black'}">{{ desc.text }}</p>
     <p>部署上限：{{ characterLimit }}，可携带干员数：{{ squadNum }}</p>
     <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>

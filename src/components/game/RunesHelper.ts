@@ -13,6 +13,7 @@ class RunesHelper{
   private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
   private bannedTiles: Vec2[] = [];
   private talentChanges: any[] = [];
+  private skillCDChanges: any[] = [];
 
   public charNumDdd: number = 0;
   public squadNum: number = 13;
@@ -145,6 +146,16 @@ class RunesHelper{
         //更改可携带干员数
         case "global_squad_num_limit":
           this.squadNum = blackboard[0].value;
+          break;
+
+        //todo 修改敌人技能cd
+        case "enemy_skill_cd_mul":
+          this.skillCDChanges.push({
+            enemy: this.getBlackboard(rune, "enemy").split("|"),
+            scale: this.getBlackboard(rune, "scale"),
+            skill: this.getBlackboard(rune, "skill"),
+            calMethod: "mul",
+          })
           break;
       }
       
@@ -298,6 +309,18 @@ class RunesHelper{
     return change? change : key;
   }
 
+  //检查是否是需要应用的enemy
+  private isApplyEnemy(enemyKey: string, enemy?, enemyExclude?): boolean{
+    let apply = true;
+    if(enemy){
+      apply = enemy.includes(enemyKey);
+    }else if(enemyExclude){
+      apply = !enemyExclude.includes(enemyKey);
+    }
+
+    return apply;
+  }
+
   public checkEnemyAttribute(data: EnemyData){
     const { key , attributes, levelType } = data;
     
@@ -416,6 +439,27 @@ class RunesHelper{
       })
     }
   }
+
+  public checkSkillChanges(data: EnemyData){
+
+    //技能CD修改
+    data.skills && data.skills.forEach(skill => {
+      const find = this.skillCDChanges.find(change => change.skill === skill.prefabKey);
+      if(find && this.isApplyEnemy(data.key, find.enemy)){
+        switch (find.calMethod) {
+          case "mul":
+            skill.cooldown *= find.scale;
+            break;
+          case "add":
+            
+            break;
+        }
+
+      }
+    });
+
+  }
+
 }
 
 export default RunesHelper;

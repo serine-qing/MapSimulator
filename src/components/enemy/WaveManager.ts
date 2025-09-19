@@ -367,22 +367,20 @@ class WaveManager{
             if(Global.gameManager.isSimulate){
               let enemyData = actionData.enemyData;
 
+              const enemyParam: EnemyParam = {
+                startTime: actionData.startTime,
+                fragmentTime: actionData.fragmentTime,
+                dontBlockWave: actionData.dontBlockWave,
+                route: actionData.route
+              }
+
               if(enemyKey){
                 //如果额外设置了extra action的enemyKey，就用这个enemy去替换原本的
-                const find = this.mapModel.enemyDatas.find(data => data.key === enemyKey);
+                const find = this.mapModel.getEnemyData(enemyKey);
                 if(find) enemyData = find;
               }
 
-              if(actionData.enemyData.fbxMesh){
-                enemy = new FbxEnemy(actionData, enemyData);
-              }else if(actionData.enemyData.skeletonData){
-                enemy = new SpineEnemy(actionData, enemyData);
-              }else{
-                enemy = new Enemy(actionData, enemyData);
-              }
-
-              //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
-              enemy.id = this.enemyId++;
+              enemy = this.newEnemy(enemyParam, enemyData);
               
               action.enemys.push(enemy);
               action.waveManager = this;
@@ -448,6 +446,22 @@ class WaveManager{
       }
     }
 
+  }
+
+  public newEnemy(enemyParam: EnemyParam, enemyData: EnemyData): Enemy{
+    let enemy;
+    if(enemyData.fbxMesh){
+      enemy = new FbxEnemy(enemyParam, enemyData);
+    }else if(enemyData.skeletonData){
+      enemy = new SpineEnemy(enemyParam, enemyData);
+    }else{
+      enemy = new Enemy(enemyParam, enemyData);
+    }
+
+    //这个enemyId就是wave处于整个waves二维数组中的哪个位置，方便使用
+    enemy.id = this.enemyId++;
+
+    return enemy;
   }
 
   public update(delta: number){

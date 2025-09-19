@@ -47,6 +47,13 @@
             :key="index3"
             @click="handleItemClick(stage)"
           >
+            <!-- <span 
+              v-if="
+                stage.operation.includes('突袭') || 
+                stage.operation.includes('磨难') || 
+                stage.operation.includes('险地')
+              "
+            ></span> -->
             {{ stage.operation + " " + stage.cn_name }}
           </el-menu-item>
 
@@ -69,10 +76,35 @@ const emit = defineEmits<{
 
 //3级关卡菜单
 
+const activeEpisode = "追迹日落以西";
 
 const storys = ref([]);
 const stageId = ref();   //当前关卡id
 const currentStage:any = ref();   //当前关卡
+
+const initActiveEpisode = (storys) => {
+  for(let n = 0; n < storys.length; n++){
+    const story = storys[n];
+
+    if(story.stage !== true){
+
+      for(let i = 0; i < story.childNodes.length; i++){
+        const episode = story.childNodes[i];
+        if(episode.episode === activeEpisode){
+          story.childNodes.splice(i, 1);
+          episode.type = "当前活动：" + episode.episode;
+          episode.stage = true;
+          storys.unshift(episode);
+          return;
+        }
+      }
+
+    }
+  }
+
+    
+
+}
 
 getStorys().then((res) => {
   res.data.storys.forEach(story => {
@@ -80,6 +112,9 @@ getStorys().then((res) => {
       story.childNodes.reverse();
     }
   })
+
+  initActiveEpisode(res.data.storys)
+
   storys.value = res.data.storys;
   //网址带有关卡id 就进行初始化
   const id = route.query.id as string;

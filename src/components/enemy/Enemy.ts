@@ -106,6 +106,8 @@ class Enemy extends BattleObject{
   notCountInTotal: boolean;        //是否是非首要目标
   cantFinished: boolean = false;   //敌人是否可进点
 
+  cantWait: boolean = false;        //是否无视wait检查点
+
   startTime: number;     //该敌人开始时间
   fragmentTime: number;  //分支开始时间
 
@@ -148,7 +150,8 @@ class Enemy extends BattleObject{
 
   talents: any[];          //天赋
   skills: any[];           //技能
-
+  
+  cursorPosition: THREE.Vector2;          //todo 光标坐标
   position: THREE.Vector2;
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
@@ -239,12 +242,15 @@ class Enemy extends BattleObject{
 
   public initialState;                      //初始状态数据
 
-  constructor(action: ActionData, enemyData: EnemyData){
+  public spawnedEnemies: Enemy[] = [];      //（会召唤技能的敌人）召唤的敌人数组
+  public spawnIndex: number = 0;            //当前应该spawn的敌人id
+
+  constructor(param: EnemyParam, enemyData: EnemyData){
     super();
     this.enemyData = enemyData;
-    this.startTime = action.startTime;
-    this.fragmentTime = action.fragmentTime;
-    this.dontBlockWave = action.dontBlockWave;
+    this.startTime = param.startTime;
+    this.fragmentTime = param.fragmentTime;
+    this.dontBlockWave = param.dontBlockWave;
 
     const {
       key, level, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
@@ -271,7 +277,7 @@ class Enemy extends BattleObject{
     this.hp = attributes.maxHp;
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
     
-    this.route = action.route;
+    this.route = param.route;
 
     this.isAirborne = this.route.isAirborne;
     this.visualRoutes = this.route.visualRoutes;
@@ -303,6 +309,8 @@ class Enemy extends BattleObject{
     this.carryContainer = new THREE.Group();
     this.carryContainer.visible = false;
     this.object.add(this.carryContainer);
+
+    EnemyHandler.handleEnemyConstructor(this);
   }
 
   public start(){
@@ -344,10 +352,9 @@ class Enemy extends BattleObject{
   }
 
   public reset(){
-
     this.setPosition(
-      this.route.startPosition.x,
-      this.route.startPosition.y
+      this.route.startPosition.x + (this.route.spawnOffset.x || 0),
+      this.route.startPosition.y + (this.route.spawnOffset.y || 0)
     );
     this.isStarted = false;
     this.isFinished = false;
@@ -390,7 +397,6 @@ class Enemy extends BattleObject{
 
   public changeCheckPoint(index: number){
     this.checkPointIndex = index;
-    EnemyHandler.handleChangeCheckPoint(this);
   }
 
   public currentCheckPoint(): CheckPoint{
@@ -402,6 +408,14 @@ class Enemy extends BattleObject{
     callback && callback(this);
     
     this.changeCheckPoint(this.checkPointIndex + 1);
+
+    if(this.cantWait){
+      //跳过wait检查点
+      while(this.currentCheckPoint()?.type?.includes("WAIT")){
+        this.changeCheckPoint(this.checkPointIndex + 1);
+      }
+    }
+
     //抵达终点
     if( this.currentCheckPoint() === undefined){
       this.finishedMap();
@@ -774,6 +788,16 @@ class Enemy extends BattleObject{
     if(index > -1) this.changeTileEvents.splice(index, 1);
   }
 
+  public setHighlandEnemy(){
+    //没有路径，直接忽略它
+    //可能是一些放在无路径地面的敌人，或者是bug
+    this.unMoveable = true;
+    this.notCountInTotal = true;
+    this.dontBlockWave = true;
+    const tile = Global.tileManager.getTile(this.getIntPosition());
+    this.setZOffset( tile.height );
+  }
+
   private updateAction(delta: number) {
     //模拟动画时间
     this.currentSecond += delta;
@@ -807,14 +831,7 @@ class Enemy extends BattleObject{
         this.updateNextNode(currentNode);
         
         if(!this.nextNode){
-          //没有路径，直接忽略它
-          //可能是一些放在无路径地面的敌人，或者是bug
-          this.unMoveable = true;
-          this.notCountInTotal = true;
-          this.dontBlockWave = true;
-          const tile = Global.tileManager.getTile(this.getIntPosition());
-          this.setZOffset( tile.height );
-
+          this.setHighlandEnemy();
           return;
         }
         
@@ -1610,6 +1627,48 @@ class Enemy extends BattleObject{
   protected setAnimation(){
   }
 
+  public spawnExtraEnemy(key: string){
+    //todo 死亡召唤如果是自主移动到了检查点，召唤的token会跳过此检查点。反之亦然
+    //todo 常规召唤时，如果处于检查点，视为已通过此检查点
+    let enemy: Enemy;
+    if(Global.gameManager.isSimulate){
+      const waveManager = Global.waveManager;
+      const enemyData = Global.mapModel.getEnemyData(key);
+      const enemyParam: EnemyParam = {
+        startTime: waveManager.waveSecond,
+        fragmentTime: waveManager.waveSecond,
+        dontBlockWave: true,
+        route: this.route
+      }
+
+      enemy = waveManager.newEnemy(enemyParam, enemyData);
+      enemy.isExtra = true;
+      waveManager.enemies.push(enemy);
+
+      this.spawnedEnemies.push(enemy);
+
+      if(this.key.includes("enemy_10077_mpbarr")){
+        //自助出餐终端召唤的修理小助手无视任何等待检查点
+        enemy.cantWait = true;
+      }
+      
+    }else{
+      enemy = this.spawnedEnemies[this.spawnIndex];
+    }
+
+    this.spawnIndex ++;
+    enemy.start();
+
+    enemy.setPosition(this.position.x, this.position.y);
+    if(this.currentCheckPoint().type === "WAIT_FOR_SECONDS"){
+      //只跳过WAIT_FOR_SECONDS
+      enemy.changeCheckPoint(this.checkPointIndex + 1);
+    }else{
+      enemy.changeCheckPoint(this.checkPointIndex);
+    }
+
+  }
+
   public get(){
     const superStates = super.get();
 
@@ -1660,6 +1719,7 @@ class Enemy extends BattleObject{
       currentAttackRange: this.currentAttackRange,
       carriedEnemyKey: this.carriedEnemyKey,
       carryOffset: this.carryOffset,
+      spawnIndex: this.spawnIndex,
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
@@ -1716,6 +1776,7 @@ class Enemy extends BattleObject{
       currentAttackRange,
       carriedEnemyKey,
       carryOffset,
+      spawnIndex,
       attributes,
       passengers,
       changeTileEvents,
@@ -1760,6 +1821,7 @@ class Enemy extends BattleObject{
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
     this.carriedEnemyKey = carriedEnemyKey;
+    this.spawnIndex = spawnIndex;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.passengers = [...passengers];
     this.changeTileEvents = [...changeTileEvents],

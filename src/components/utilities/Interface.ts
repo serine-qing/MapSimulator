@@ -89,6 +89,13 @@ declare global {
     visualRoutes?: any,          //前端可视化使用
   }
 
+  interface EnemyParam{
+    startTime: number,
+    fragmentTime: number,
+    dontBlockWave: boolean,
+    route: EnemyRoute
+  }
+
   interface ActionData{
     enemyId?: number,              //id 和敌人index对应
     actionType: string,      //敌人生成模式
@@ -98,7 +105,8 @@ declare global {
     fragmentTime: number,     //分支(FRAGMENT)开始时间
     hiddenGroup: string,      //敌人属于哪个分组
     dontBlockWave: boolean,   //是否不影响下一波次刷新
-    blockFragment: boolean,   
+    blockFragment: boolean,  
+    prtsSpawn?: boolean, 
     route?: EnemyRoute,  
     enemyData?: EnemyData,
     trapData?: trapData               //波次绑定的装置

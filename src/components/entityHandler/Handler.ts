@@ -6,7 +6,7 @@ import Trap from "../game/Trap"
 abstract class Handler{
   abstract parseRunes(runesHelper: RunesHelper);
 
-  abstract checkActionDatas(actionDatas: ActionData[][]);
+  abstract checkActionDatas(actionDatas: ActionData[]);
 
   abstract parseExtraWave(trapDatas: trapData[], branches: any, extraRoutes);
 
@@ -17,6 +17,8 @@ abstract class Handler{
   abstract afterGameInit();
 
   abstract beforeEnemyStart(enemyData: EnemyData);
+  
+  abstract handleEnemyConstructor(enemy: Enemy);
 
   abstract handleSpawnEnemy(enemy: Enemy): boolean;
 

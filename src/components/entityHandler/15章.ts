@@ -92,10 +92,10 @@ const enemyToSpawn = (_enemy: BattleObject) => {
 
       prtsPoint.countdown.addCountdown({
         name: "loosenDelay",
-        initCountdown: 0.6,
+        initCountdown: 0.8,
         callback: () => {
           prtsPoint.removeCarryEnemy();
-            enemy.start();
+          enemy.start();
         }
       })
       
@@ -121,30 +121,43 @@ const mpweakToClick = (mpweak: BattleObject) => {
         animationScale: 1.5,
         isWaitTrans: true
       })
-      mpweak.triggerSkill("mpweak");
-      mpweak.customData.needClick = false;
+      
+      prtsPoint.countdown.addCountdown({
+        name: "clickDelay",
+        initCountdown: 0.8,
+        callback: () => {
+          mpweak.triggerSkill("mpweak");
+          mpweak.customData.needClick = false;
+        }
+      })
+
     }
   });
 }
 
 const Handler = {
   //删除多余的侵入式调用
-  checkActionDatas: (actionDatas: ActionData[][]) => {
-    let hasPrtsPoint = false;
-    actionDatas.forEach(arr => {
-      for(let i = 0; i < arr.length; i++){
-        const actionData = arr[i];
-        if(actionData?.enemyData?.key === "enemy_10072_mpprhd"){
-          if(hasPrtsPoint){
-            arr.splice(i, 1);
-            i--;
-          }else{
-            hasPrtsPoint = true;
-          }
+  checkActionDatas: (actionDatas: ActionData[]) => {
+    
+    const staticData = Global.gameManager.staticData;
+
+    for(let i = 0; i < actionDatas.length; i++){
+      const actionData = actionDatas[i];
+      if(actionData.enemyData?.key === "enemy_10072_mpprhd"){
+
+        if(staticData.hasPrtsPoint){  
+          
+          const next = actionDatas[ i+1 ];
+          if(next) next.prtsSpawn = true;   //下一个action就是prts去抓取
+          actionDatas.splice(i, 1);
+          i--;
+        }else{
+          
+          staticData.hasPrtsPoint = true;
         }
       }
+    }
 
-    })  
   },
 
   handleTileInit: (tile: Tile) => {
@@ -166,7 +179,7 @@ const Handler = {
 
     if(!prtsPoint) return false;
     
-    if(enemy.isAirborne){
+    if(enemy.action.prtsSpawn){
       prtsPoint.deepCopyData.commands.push("spawn");
       prtsPoint.deepCopyData.prtsBattleObjects.push(enemy);
       
@@ -192,6 +205,57 @@ const Handler = {
         break;
       case "enemy_10082_mpweak":   //弱化节点
         addMpweakSkill(enemy);
+        break;
+    }
+
+    if(enemy.key.includes("enemy_10077_mpbarr")){             //自助出餐终端
+      const spawn = enemy.getSkill("spawn");
+      enemy.addSkill({
+        name: "spawn",
+        initCooldown: spawn.initCooldown,
+        cooldown: spawn.cooldown,
+        animateTransition:{
+          transAnimation: "Skill",
+          isWaitTrans: true
+        },
+        callback: () => {
+          enemy.countdown.addCountdown({
+            name: "spawnDelay",
+            initCountdown: 1,
+            callback:() => {
+              enemy.spawnExtraEnemy(spawn.blackboard.enemy_key);
+            }
+          })
+        }
+      })
+    }      
+  },
+
+  handleSkill: (enemy: Enemy, skill: any) => {
+    switch (skill.prefabKey) {
+      case "stopcost": 
+        enemy.addSkill({
+          name: skill.prefabKey,
+          initCooldown: skill.initCooldown,
+          duration: skill.blackboard?.projectile_life_time,
+          showSPBar: true,
+          animateTransition:{
+            idleAnimate: "Skill_Loop",
+            transAnimation: "Skill_Begin",
+            isWaitTrans: false,
+          },
+          endAnimateTransition:{
+            idleAnimate: "Idle",
+            transAnimation: "Skill_End",
+            isWaitTrans: false,
+            callback: () => {
+              enemy.unMoveable = false;
+            }
+          },
+          callback: () => {
+            enemy.unMoveable = true;
+          }
+        })
         break;
     }
   },

@@ -2,15 +2,21 @@ import Enemy from "../enemy/Enemy";
 import * as THREE from "three";
 import Global from "../utilities/Global";
 import act35side from "./太阳甩在身后";
+import act37side from "./追迹日落以西";
 import act41side from "./挽歌燃烧殆尽";
 import act42side from "./众生行记";
 import act44side from "./墟";
 import act45side from "./无忧梦呓";
+import main11 from "./11章";
 import main15 from "./15章";
 
 const EnemyHandler = {
-  checkActionDatas: (actionDatas: ActionData[][]) => {
+  checkActionDatas: (actionDatas: ActionData[]) => {
     main15.checkActionDatas(actionDatas);
+  },
+
+  handleEnemyConstructor: (enemy: Enemy) => {
+    act37side.handleEnemyConstructor(enemy);
   },
 
   handleSpawnEnemy: (enemy: Enemy): boolean => {
@@ -18,10 +24,12 @@ const EnemyHandler = {
   },
 
   handleStart: (enemy: Enemy) => {
+    act37side.handleEnemyStart(enemy);
     act41side.handleEnemyStart(enemy);
     act42side.handleEnemyStart(enemy);
     act44side.handleEnemyStart(enemy);
     act45side.handleEnemyStart(enemy);
+    main11.handleEnemyStart(enemy);
     main15.handleEnemyStart(enemy);
 
     switch (enemy.key) {
@@ -171,11 +179,13 @@ const EnemyHandler = {
     act42side.handleSkill(enemy, skill);
     act44side.handleSkill(enemy, skill);
     act45side.handleSkill(enemy, skill);
+    main15.handleSkill(enemy, skill);
 
     const { initCooldown, cooldown } =  skill;
 
     switch (skill.prefabKey) {
       case "doom":
+      case "suicide":
         let cd = initCooldown;
         if(enemy.key === "enemy_1521_dslily"){
           
@@ -194,9 +204,6 @@ const EnemyHandler = {
         break;
 
     }
-  },
-
-  handleChangeCheckPoint: (enemy: Enemy) => {
   },
 
   handlePickUp: (enemy: Enemy, vehicle: Enemy) => {

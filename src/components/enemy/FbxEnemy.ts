@@ -10,8 +10,8 @@ import { getPixelSize } from "../utilities/utilities";
 class FbxEnemy extends Enemy{
   private fbxMesh: THREE.Mesh; 
 
-  constructor(action: ActionData, enemyData: EnemyData){
-    super(action, enemyData);
+  constructor(param: EnemyParam, enemyData: EnemyData){
+    super(param, enemyData);
   }
 
   public initMesh(){
