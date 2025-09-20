@@ -263,7 +263,6 @@ class WaveManager{
       const find = this.enemiesInMap.find(enemy => {
         return enemy && 
         !enemy.dontBlockWave && 
-        !enemy.isExtra && //额外波次不会阻挡正常波次
         !enemy.reborned   //模拟boss复活释放波次
       })
       //波次出怪结束，并且场上无敌人 就切换到下一波次
@@ -390,6 +389,7 @@ class WaveManager{
               if(action.isExtra){
                 //调整波次开始时间
                 enemy.fragmentTime = startTime;
+                enemy.dontBlockWave = true;
               }
               this.enemies.push(enemy);
             }else{

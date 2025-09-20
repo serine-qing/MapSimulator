@@ -37,6 +37,7 @@ const Handler = {
               branche.key = "enemy_1567_pope";
               //YJ乱填motionMode，还有人类吗，这游戏到底是怎么跑起来的
               extraRoutes[branche.routeIndex].motionMode = isFly? "FLY" : "WALK";
+
               isFly = !isFly;
 
               const key = `phase${index}`;
@@ -120,6 +121,7 @@ const Handler = {
   handleEnemyStart: (enemy: Enemy) => {
     switch (enemy.key) {
       case "enemy_1567_pope":
+        enemy.dontBlockWave = false;
         if(Global.gameManager.customData.popeIndex > 0){
           if(enemy.route.motionMode === "WALK"){
             enemy.motion = "WALK";

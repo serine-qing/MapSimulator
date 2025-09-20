@@ -793,7 +793,7 @@ class MapModel{
     })
 
     act41side.parseExtraWave(branches);
-    act42side.parseExtraWave(this.trapDatas, branches, this.sourceData.extraRoutes);
+    act42side.parseExtraWave(this.trapDatas, branches, this.extraRoutes);
     act45side.parseExtraWave(branches);
 
     if(this.extraWaves.length === 0){

@@ -14,7 +14,7 @@
       >
 
         <template #title>
-          波次&nbsp;<span class="info">{{i+1}}</span>，开始时间:&nbsp;<span class="info">{{ actionArr[0].actionTime }}</span>&nbsp;秒
+          波次&nbsp;<span class="info">{{i+1}}</span>，开始时间:&nbsp;<span class="info">{{ actionArr[0]?.actionTime }}</span>&nbsp;秒
         </template>
 
         <div class="cards">
