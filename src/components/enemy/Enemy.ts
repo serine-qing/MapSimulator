@@ -7,8 +7,12 @@ import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
-import { Vector2 } from "@/spine/Utils";
 import BattleObject from "./BattleObject";
+
+const ZERO = {
+  x: 0,
+  y: 0
+}
 
 const healthBarWidth = getPixelSize(5/7);
 const HealThBarGeometry = new THREE.PlaneGeometry(healthBarWidth, 0.4);
@@ -72,7 +76,7 @@ interface ChangeTileEvent{
 }
 
 interface AddCheckPointParam{
-  position?: Vec2 | Vector2,
+  position?: Vec2 | THREE.Vector2,
   time?: number,
   callback?: Function,
   index?: number,
@@ -161,6 +165,7 @@ class Enemy extends BattleObject{
   obstacleAvoidanceVector: THREE.Vector2;  //避障力向量
   obstacleAvoidanceCalCount: number = 0;  //避障力计算计数（每3帧算一次）
   unitVector: THREE.Vector2;              //给定方向向量
+  forceMoved: boolean;                    //本帧强制设置过位置
 
   shadowOffset: Vec2;   //足坐标偏移
   tilePosition: THREE.Vector2;     //中心地块坐标
@@ -652,6 +657,10 @@ class Enemy extends BattleObject{
 
   //计算避障力
   public handleObstacleAvoidance(){
+    if(this.unitVector.equals(ZERO)){
+      this.obstacleAvoidanceVector = new THREE.Vector2(0, 0);
+      return;
+    }
     const closePoints = this.getClosePoints();
     const roundTile = this.getRoundTile();
 
@@ -731,20 +740,37 @@ class Enemy extends BattleObject{
     if(this.isFinished) return;
 
     this.obstacleAvoidanceCalCount = Math.max(this.obstacleAvoidanceCalCount - 1, 0);
-
+    this.unitVector = new THREE.Vector2(0, 0);
+    this.forceMoved = false;
     if(!this.isDisappear){
       this.updatePositions();
       this.updateAttrs();
       this.updateAttackRange();
       this.updateAttack(delta);
-      
     }
     
     this.updateSkillSP(delta);
     if(!this.isDisappear) this.updateSkillState();
 
+    //todo 计算当前移速 需要简化流程
+    this.updateCurrentFrameSpeed();
     this.updateAction(delta);
+    this.move(delta);
+    this.updateCheckPoint();
     this.updateFaceToward();
+
+    if(this.hasMoved()){
+      const prevAnimate = this.animateState;
+      this.animateState = "move";
+
+      if(prevAnimate !== this.animateState){
+        this.changeAnimation();
+      }
+    }else{
+      this.idle();
+    }
+
+
     this.updateHP();
     this.updateSPBar();
 
@@ -798,6 +824,22 @@ class Enemy extends BattleObject{
     this.setZOffset( tile.height );
   }
 
+  protected getTargetPostion(): THREE.Vector2{
+
+    const checkPoint: CheckPoint = this.currentCheckPoint();
+    let {position, nextNode} = this.nextNode;
+    let targetPos = new THREE.Vector2(position.x,position.y);
+
+    //当前地块没有nextnode，意为当前就是该检查点终点
+    if(nextNode === null){
+      //nextNode为null时，目前为检查点终点，这时候就要考虑偏移(reachOffset)了
+      targetPos.x += checkPoint.reachOffset.x;
+      targetPos.y += checkPoint.reachOffset.y;
+    }
+
+    return targetPos;
+  }
+
   private updateAction(delta: number) {
     //模拟动画时间
     this.currentSecond += delta;
@@ -809,18 +851,12 @@ class Enemy extends BattleObject{
     const checkPoint: CheckPoint = this.currentCheckPoint();
     if( !checkPoint ) return;
 
-    const {type, time, reachOffset} = checkPoint;
+    const {type, time} = checkPoint;
 
     switch (type) {
       case "MOVE":  
-        if(this.isDisappear) return;
-        if(this.countdown.getCountdownTime("waiting") > 0) return;
-
-        //部分0移速的怪也有移动指令，例如GO活动的装备
-        if(this.waitAnimationTrans || this.unMoveable || this.attributes.moveSpeed <= 0){
-          return;
-        }
-        const currentPosition = this.position;
+        if(this.countdown.getCountdownTime("waiting") > 0 || this.waitAnimationTrans) return;
+        if(!this.canMove()) return;
 
         const currentNode = Global.SPFA.getPathNode(
           this.currentCheckPoint().position,
@@ -834,120 +870,26 @@ class Enemy extends BattleObject{
           this.setHighlandEnemy();
           return;
         }
-        
-        let {position, nextNode} = this.nextNode;
-        let targetPos = new THREE.Vector2(position.x,position.y);
 
-        //当前地块没有nextnode，意为当前就是该检查点终点
-        if(nextNode === null){
-          //nextNode为null时，目前为检查点终点，这时候就要考虑偏移(reachOffset)了
-          targetPos.x += reachOffset.x;
-          targetPos.y += reachOffset.y;
-        }
-        
-        // const roundX = Math.round(currentPosition.x)
-        // const roundY = Math.round(currentPosition.y)
-
-        // //光标距离最近地块中心的长度
-        // const distanceToCenter = currentPosition.distanceTo(new THREE.Vector2(roundX, roundY))
-        // console.log(distanceToCenter)
-
-        //给定方向向量
-        this.unitVector = new THREE.Vector2(
-          targetPos.x - currentPosition.x,
-          targetPos.y - currentPosition.y
-        ).normalize();
-
-        //计算当前移速
-        this.updateCurrentFrameSpeed();
         const actualSpeed = this.currentFrameSpeed * 0.5;
         if(actualSpeed <= 0) return;
 
-        //todo 重复代码
-        const simVelocity = this.unitVector.clone().multiplyScalar(actualSpeed * delta);
-        const simDistanceToTarget = currentPosition.distanceTo(targetPos);
-        if(simVelocity.length() >= simDistanceToTarget){
-          this.setPosition(targetPos.x, targetPos.y);
-          this.velocity = simVelocity;
-          this.nextNode = this.nextNode?.nextNode;
+        const targetPos = this.getTargetPostion();
 
-          //完成最后一个寻路点
-          if( this.nextNode === null || this.nextNode === undefined ){
-            this.nextCheckPoint();
-          }
-          this.changeTowardBySpeed();
-          this.updateShadowHeight();
+        //检查自身以理论移速移动时，光标坐标是否可在此帧内抵达这个目标，如果是，跳过后面所有步骤
+        const simDistanceToTarget = this.position.distanceTo(targetPos);
+        if(actualSpeed * delta >= simDistanceToTarget){
+          this.setPosition(targetPos.x, targetPos.y);
+          this.forceMoved = true;
           break;
         }
-        //end 重复代码
+        //end 
 
-        if(this.obstacleAvoidanceCalCount === 0){
-          //计算避障力
-          this.handleObstacleAvoidance();
-          this.obstacleAvoidanceCalCount = 2;
-        }
-
-        //实际避障力
-        const actualAvoidance = this.obstacleAvoidanceVector
-          .clone()
-          .multiplyScalar( 
-            Math.max(this.inertialVector.length() / actualSpeed, 0.5)
-          );
-
-        //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
-        //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
-        //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
-        // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
-        // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
-        const isWalk = this.motion === "WALK";
-        const steeringFactor = isWalk? 8 : 20;
-        const maxSteeringForce = isWalk? 10 : 100;
-        //加速度
-        this.acceleration = this.unitVector 
-          .clone()
-          .multiplyScalar(actualSpeed)
-          .addScaledVector(this.inertialVector, -1)
-          .multiplyScalar(steeringFactor)
-          .add(actualAvoidance)
-          .clampLength(0, maxSteeringForce)
-
-
-        //再根据加速度计算本帧的移动速度向量：
-        //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
-        //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
-        //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
-        const moveSpeedVec = this.acceleration
-          .clone()
-          .multiplyScalar(delta )
-          .add(this.inertialVector)
-          .clampLength(0, actualSpeed)
-        
-        this.inertialVector = moveSpeedVec;
-
-          
-        //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
-        const velocity = moveSpeedVec
-          .clone()
-          .multiplyScalar( delta);
-
-
-        // const velocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
-          
-        this.setVelocity(velocity);
-        this.move();
-          
-        const distanceToTarget = currentPosition.distanceTo(targetPos);
-        //到达检查点终点
-        if( distanceToTarget <= 0.05 &&
-          (!this.nextNode.nextNode)
-        ){
-          this.nextCheckPoint();
-        }
-
-        this.changeTowardBySpeed();
-        this.updateShadowHeight();
-
-        // console.log(actionEnemy.position)
+        //给定方向向量
+        this.unitVector = new THREE.Vector2(
+          targetPos.x - this.position.x,
+          targetPos.y - this.position.y
+        ).normalize();
         break;
 
       case "WAIT_FOR_SECONDS":               //等待一定时间
@@ -975,12 +917,6 @@ class Enemy extends BattleObject{
 
     }
 
-    if(this.velocity.x === 0 && this.velocity.y === 0){
-      this.idle();
-    }
-
-    this.velocity.x = 0;
-    this.velocity.y = 0; 
   }
 
   private updateNextNode(currentNode: PathNode){
@@ -1471,20 +1407,106 @@ class Enemy extends BattleObject{
       this.changeAnimation();
     }
   }
+  
+  //是否具有移动能力
+  protected canMove(): boolean{
+    //部分0移速的怪也有移动指令，例如GO活动的装备
+    if(this.isDisappear || this.unMoveable || this.attributes.moveSpeed <= 0){
+      return false;
+    }
 
-  protected move(){
+    return true;
+  }
+
+  protected move(delta: number){
+    if(this.forceMoved || !this.canMove()) return;
+    if(this.unitVector.equals(ZERO) && this.inertialVector.length() < 0.0001){
+      //惯性低于万分之一后已经没有计算价值了
+      return;
+    }
+
+    if(this.obstacleAvoidanceCalCount === 0){
+      //计算避障力
+      this.handleObstacleAvoidance();
+      this.obstacleAvoidanceCalCount = 2;
+    }
+    
+    const actualSpeed = this.currentFrameSpeed * 0.5;
+
+    //实际避障力
+    const actualAvoidance = this.obstacleAvoidanceVector
+      .clone()
+      .multiplyScalar( 
+        Math.max(this.inertialVector.length() / actualSpeed, 0.5)
+      );
+
+    //计算本帧位移需额外施加的加速度向量(也可以视为力，质量为1)：
+    //加速度 = ClampMagnitude((给定方向 * 理论移速 - 惯性向量) * steeringFactor + 实际避障力, maxSteeringForce)。
+    //ClampMagnitude会将向量的大小限制在给定数值内(此算式中将加速度向量的大小限制在maxSteeringForce以内)。
+    // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
+    // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
+    const isWalk = this.motion === "WALK";
+    const steeringFactor = isWalk? 8 : 20;
+    const maxSteeringForce = isWalk? 10 : 100;
+    //加速度
+    this.acceleration = this.unitVector 
+      .clone()
+      .multiplyScalar(actualSpeed)
+      .addScaledVector(this.inertialVector, -1)
+      .multiplyScalar(steeringFactor)
+      .add(actualAvoidance)
+      .clampLength(0, maxSteeringForce)
+
+    //再根据加速度计算本帧的移动速度向量：
+    //移动速度向量 = ClampMagnitude(加速度 * 帧间隔 + 惯性向量, 理论移速)。
+    //ClampMagnitude函数将移动速度向量的大小限制在了理论移速以下，因此理论移速是敌人自主移动时的移速上限。
+    //在得到移动速度向量后，将此向量储存至惯性向量，供下一轮计算使用。
+    const moveSpeedVec = this.acceleration
+      .clone()
+      .multiplyScalar(delta )
+      .add(this.inertialVector)
+      .clampLength(0, actualSpeed)
+    
+    this.inertialVector = moveSpeedVec;
+
+      
+    //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
+    const velocity = moveSpeedVec
+      .clone()
+      .multiplyScalar( delta);
+
+
+    // const velocity = this.unitVector.clone().multiplyScalar(actualSpeed * perFrame);
+      
+    this.setVelocity(velocity);
+
     this.setPosition(
       this.position.x + this.velocity.x,
       this.position.y + this.velocity.y
     );
 
-    const prevAnimate = this.animateState;
-    this.animateState = "move";
-
-    if(prevAnimate !== this.animateState){
-      this.changeAnimation();
-    }
+    this.changeTowardBySpeed();
+    this.updateShadowHeight();
     
+    this.velocity.x = 0;
+    this.velocity.y = 0; 
+  }
+
+  protected hasMoved(): boolean{
+    return this.forceMoved || !this.unitVector.equals(ZERO)
+  }
+
+  protected updateCheckPoint(){
+    if(!this.hasMoved()) return;
+    
+    const targetPos = this.getTargetPostion();
+    const distanceToTarget = this.position.distanceTo(targetPos);
+    //到达检查点终点
+    if( distanceToTarget <= 0.05 &&
+      (!this.nextNode.nextNode)
+    ){
+      this.nextCheckPoint();
+    }
   }
 
   public clearCheckPoint(){
