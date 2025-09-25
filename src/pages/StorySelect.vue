@@ -119,20 +119,22 @@ getStorys().then((res) => {
   //网址带有关卡id 就进行初始化
   const id = route.query.id as string;
 
-  const queue: any = [];
-  queue.push( {childNodes:storys.value} );
+  if(id){
+    const queue: any = [];
+    queue.push( {childNodes:storys.value} );
 
-  let item;
-  while(item = queue.shift()){
-    if(item.childNodes){
-      item.childNodes.forEach((j: any) => {
-        queue.push(j)
-      })
-    }else{
-      if(item.id === id){
-        stageId.value = id;
-        currentStage.value = item;
-        return;
+    let item;
+    while(item = queue.shift()){
+      if(item.childNodes){
+        item.childNodes.forEach((j: any) => {
+          queue.push(j)
+        })
+      }else{
+        if(item.id === id){
+          stageId.value = id;
+          currentStage.value = item;
+          return;
+        }
       }
     }
   }
@@ -155,7 +157,7 @@ const route = useRoute();
 const router = useRouter();
 
 const handleItemClick = (stage: Stage) => {
-  stageId.value = stage.id;
+  if(stage.id) stageId.value = stage.id;
   currentStage.value = stage;
   router.push("/?id=" + stage.id);
 }
