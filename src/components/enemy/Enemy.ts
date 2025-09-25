@@ -1446,7 +1446,8 @@ class Enemy extends BattleObject{
     // steeringFactor/maxSteeringForce为加速度相关的标量(即加速度为移速差的steeringFactor倍+实际避障力，
     // 但最多不大于maxSteeringForce)，根据敌人有所不同，对于地面敌人为8/10，对于飞行敌人为20/100，关卡未开启Steering时为100/100。
     const isWalk = this.motion === "WALK";
-    const steeringFactor = isWalk? 8 : 20;
+    let steeringFactor = isWalk? 8 : 20;
+
     const maxSteeringForce = isWalk? 10 : 100;
     //加速度
     this.acceleration = this.unitVector 
@@ -1468,7 +1469,6 @@ class Enemy extends BattleObject{
       .clampLength(0, actualSpeed)
     
     this.inertialVector = moveSpeedVec;
-
       
     //最后用移动速度向量 * 帧间隔即可得到本帧的位移向量。
     const velocity = moveSpeedVec

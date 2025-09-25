@@ -5,7 +5,7 @@ import Tile from "../game/Tile"
 declare global {
   interface Stage{
     operation: string,
-    cn_name: string,
+    name: string,
     description: string,
     episode: string,
     levelId: string,

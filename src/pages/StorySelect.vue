@@ -28,11 +28,11 @@
 
             <el-menu-item 
               v-for="(stage, index3) in episode.childNodes"
-              :index="stage.operation"
+              :index="stage.id"
               :key="index3"
               @click="handleItemClick(stage)"
             >
-              {{ stage.operation + " " + stage.cn_name }}
+              {{ stage.operation + " " + stage.name }}
             </el-menu-item>
 
           </el-sub-menu>
@@ -43,7 +43,7 @@
         >
           <el-menu-item 
             v-for="(stage, index3) in story.childNodes"
-            :index="stage.operation"
+            :index="stage.id"
             :key="index3"
             @click="handleItemClick(stage)"
           >
@@ -54,7 +54,7 @@
                 stage.operation.includes('险地')
               "
             ></span> -->
-            {{ stage.operation + " " + stage.cn_name }}
+            {{ stage.operation + " " + stage.name }}
           </el-menu-item>
 
         </template>
@@ -129,7 +129,7 @@ getStorys().then((res) => {
         queue.push(j)
       })
     }else{
-      if(item.operation === id){
+      if(item.id === id){
         stageId.value = id;
         currentStage.value = item;
         return;
@@ -140,8 +140,9 @@ getStorys().then((res) => {
 });
 
 interface Stage{
+  id: string,
   operation: string,
-  cn_name: string,
+  name: string,
   description: string,
   episode: string,
   levelId: string,
@@ -154,9 +155,9 @@ const route = useRoute();
 const router = useRouter();
 
 const handleItemClick = (stage: Stage) => {
-  stageId.value = stage.operation;
+  stageId.value = stage.id;
   currentStage.value = stage;
-  router.push("/?id=" + stage.operation);
+  router.push("/?id=" + stage.id);
 }
 
 //stage改变后修改当前关卡

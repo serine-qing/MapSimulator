@@ -6,7 +6,7 @@ interface CountdownOpitons{
   countdown?: number,                //后续执行倒计时, 如果是0代表每帧触发
   maxCount?: number,                 //最大执行次数
   callback?: Function,               //每次计时器归零的回调函数
-  trigger?: string,                  //auto：自动触发， manual：手动触发，默认自动
+  trigger?: "auto" | "manual",                  //auto：自动触发， manual：手动触发，默认自动
 }
 
 interface Timer{

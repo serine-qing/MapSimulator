@@ -8,6 +8,7 @@
       <template #reference> 
         <el-link type="danger">更新公告</el-link>
       </template>
+      <p style="color: red;">9.25更新：部分本地化文本</p>
       <p style="color: red;">9.19更新：添加PRTS.WIKI和少人wiki外链，完成追迹日落以西机制</p>
       <p style="color: red;">9.16更新：15章机制完成</p>
       <p style="color: red;">9.4更新：无忧梦呓资源加载</p>
@@ -39,10 +40,7 @@ const content = ref("");
 
 <style lang="scss" scoped>
 .notice{
-  z-index: 1000;
-  position: absolute;
-  left: 30px;
-  top: 35px;
+  padding-left: 20px;
 }
 
 </style>

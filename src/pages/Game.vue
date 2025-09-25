@@ -23,6 +23,7 @@ import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
 import ExternalLinks from "@/pages/ExternalLinks.vue"
 import Notice from "@/pages/Notice.vue"
+import Language from "@/pages/Language.vue"
 import Global from "@/components/utilities/Global";
 
 //#region 沙盘推演数据
@@ -222,15 +223,14 @@ const levelName = ref("");
 const generateStageInfo = () => {
   //额外关卡信息
   extraDescription = ref(mapModel.extraDescription);
-
-  const {levelId, operation, cn_name, challenge: _challenge, description:_description} = mapData;
+  const {levelId, operation, name, challenge: _challenge, description:_description} = mapData;
   console.log(levelId)
 
   levelCode.value = mapData.levelCode;
   levelFullCode.value = operation;
-  levelName.value = cn_name;
+  levelName.value = name;
 
-  title.value = `${operation} ${cn_name}`;
+  title.value = `${operation} ${name}`;
 
   challenge.value = _challenge?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
   description.value = _description?.replace(/<@[\s\S]*?>|<\/[\s\S]*?>|\\n/g, "");
@@ -409,8 +409,7 @@ defineExpose({
     @changeRunesData = "changeRunesData"
   />
   <div class="game">
-    <div class="toolbar" v-show="isStart">  
-      <Notice/>
+    <div class="toolbar">  
       <span class="lifepoint"> {{ finishedEnemyCount }} / {{maxEnemyCount}}</span>
       <div class="time-slider">
         <el-slider 
@@ -441,27 +440,35 @@ defineExpose({
       </div>
 
       <div class="checkboxs">
-        <el-checkbox
-          v-model="attackRangeCheckAll"
-          :indeterminate="attackRangeIndet"
-          @change = "attackRangeIndet = false"
-        >
-          显示攻击距离
-        </el-checkbox>
+        <div class="left">
+          <el-checkbox
+            v-model="attackRangeCheckAll"
+            :indeterminate="attackRangeIndet"
+            @change = "attackRangeIndet = false"
+          >
+            显示攻击距离
+          </el-checkbox>
 
-        <el-checkbox
-          v-model="countDownCheckAll"
-          :indeterminate="countDownIndet"
-          @change = "countDownIndet = false"
-        >
-          显示等待时间
-        </el-checkbox>
+          <el-checkbox
+            v-model="countDownCheckAll"
+            :indeterminate="countDownIndet"
+            @change = "countDownIndet = false"
+          >
+            显示等待时间
+          </el-checkbox>
 
-        <el-checkbox
-          v-model="showEnemyMenu"
-        >
-          点击敌人后显示菜单
-        </el-checkbox>
+          <el-checkbox
+            v-model="showEnemyMenu"
+          >
+            点击敌人后显示菜单
+          </el-checkbox>
+        </div>
+        <div class="right">
+          <span>Language:</span>
+          <Language></Language>
+        </div>
+
+
       </div>
     </div>
     <div class="content">
@@ -504,7 +511,7 @@ defineExpose({
   <div class="info">
     <h2>{{ title }}</h2>
     <p class="description">{{ description }}</p>
-
+    
     <ExternalLinks 
       :level-code="levelCode" 
       :level-name="levelName"
@@ -522,6 +529,8 @@ defineExpose({
     :enemyDatas = "enemyDatas"
   >
   </DataTable>
+
+  <Notice/>
 </div>
 
 
@@ -538,6 +547,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100vh;
+
   .toolbar{
     position: relative;
     display: flex;
@@ -597,9 +607,21 @@ defineExpose({
 }
 
 .checkboxs{
-  width: 160px;
+  width: 320px;
   background-color: white;
   padding-left: 10px;
+  display: flex;
+  .right{
+    padding-right: 5px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    span{
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #409eff;
+    }
+  }
   ::v-deep .el-checkbox{
     height: 20px;
   }

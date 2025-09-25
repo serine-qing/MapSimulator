@@ -1,13 +1,15 @@
 import request from "./request"
 
+const language = localStorage.currentLang || "CN";
+
 //获取菜单
 const getStorys = () => {
-  return request.get("/json/storys.json");
+  return request.get(`/json/story${language}.json`);
 }
 
 //根据levelId获取关卡信息
 const getStageInfo = (levelId: string) => {
-  return request.get( "/levels/" + levelId + ".json" );
+  return request.get( `/levels/${levelId}.json` );
 }
 
 const getEnemiesData = (enemyRefs: EnemyRef[]) => {
@@ -15,6 +17,7 @@ const getEnemiesData = (enemyRefs: EnemyRef[]) => {
     method: "post",
     url: "/enemy/data",
     data: {
+      language,
       enemyRefs
     }
   })
