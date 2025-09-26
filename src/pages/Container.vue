@@ -63,19 +63,19 @@
 
       <div>
         <span class="enemy-key">{{ label.key }}</span>
-        <span class="enemy-key">{{ `当前检查点：${
+        <span class="enemy-key">{{ `${$t("info.CurrentCheckpoint")}: ${
           Math.min(
             label.currentCheckPoint + 1, label.checkPointLength
           )
         } / ${label.checkPointLength}` }}</span>
-        <el-button @click="showDetail(label.id)">查看详情</el-button>
+        <el-button @click="showDetail(label.id)">{{$t('table.ViewDetails')}}</el-button>
         <el-checkbox 
           :disabled="!enemies[index].isRanged()" 
-          v-model="label.options.AttackRangeVisible" label="显示攻击范围" 
+          v-model="label.options.AttackRangeVisible" :label="$t('info.ShowAttackRange')" 
           @change = "handleAttackRangeCheck"
         />
         <el-checkbox 
-          v-model="label.options.CountDownVisible" label="显示等待时间"
+          v-model="label.options.CountDownVisible" :label="$t('info.ShowWaitingTime')" 
           @change = "handleCountDownCheck"
         />
       </div>

@@ -174,6 +174,12 @@ declare global {
     duration?: number
   }
 
+  interface BlackBoard{
+    key: string,
+    value: number,
+    valueStr: string | null,
+  }
+
   interface Array<T> {
     remove(T);
     equal(T);
@@ -182,6 +188,7 @@ declare global {
   interface Math{
     clamp(x: number, min: number, max: number);
   }
+  
 
 }
 

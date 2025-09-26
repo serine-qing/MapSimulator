@@ -6,17 +6,17 @@
     style="width: 100%"
     align="center"
   >
-    <el-table-column align="center" label="头像" width="70">
+    <el-table-column align="center" :label="$t('table.Avatar')" width="70">
       <template #default="scope">
         <div class="icon">
           <img :src="scope.row.icon" :alt="scope.row.name">
         </div>
       </template>
     </el-table-column> 
-    <el-table-column align="center" prop="name" label="名称"  width="100"/>
-    <el-table-column sortable align="center" prop="count" label="数量" width="60" />
+    <el-table-column align="center" prop="name" :label="$t('table.Name')"  width="100"/>
+    <el-table-column sortable align="center" prop="count" :label="$t('table.Quantity')" width="60" />
     
-    <el-table-column sortable align="center" prop="levelType" label="地位" width="60">
+    <el-table-column sortable align="center" prop="levelType" :label="$t('table.Type')" width="60">
       <template #default="scope">
         <div>
           {{ levelType[scope.row.levelType] }}
@@ -24,7 +24,7 @@
       </template>
     </el-table-column>
 
-    <el-table-column sortable align="center" prop="level" label="级别" width="60"/>
+    <el-table-column sortable align="center" prop="level" :label="$t('table.Level')" width="60"/>
 
     <el-table-column 
       v-for="(name, key) in attrColumns"
@@ -64,7 +64,7 @@
 
     <el-table-column 
       align="center" 
-      label="攻击间隔"
+      :label="$t('attr.AttackInterval')" 
       sortable
       :sort-method="attackSpeedSort"
       width="80"
@@ -93,13 +93,13 @@
       </template>
     </el-table-column>
 
-    <el-table-column sortable align="center" prop="lifePointReduce" label="目标价值" width="70"/>
-    <el-table-column sortable align="center" prop="lifePointReduce" label="查看详情">
+    <el-table-column sortable align="center" prop="lifePointReduce" :label="$t('attr.TargetValue')"  width="70"/>
+    <el-table-column sortable align="center" prop="lifePointReduce" :label="$t('table.ViewDetails')">
       <template #default="scope">
         <span 
           class="detail-link"
           @click="showDetail(scope.row)"
-        >详情</span>
+        >{{$t('table.Details')}}</span>
       </template>
     </el-table-column>
   </el-table>
@@ -109,7 +109,7 @@
   <template #header="{ close, titleId, titleClass }">
     <div>
       <span>{{dialogData.name}}</span >
-      <span class="title-level">{{ "级别" + dialogData.level}}</span>
+      <span class="title-level">{{ $t('table.Level') + dialogData.level}}</span>
     </div>
   </template>
   <el-descriptions
@@ -119,7 +119,7 @@
     <el-descriptions-item
       :rowspan="2"
       :width="140"
-      label="头像"
+      :label="$t('table.Avatar')"
       align="center"
     >
       <el-image
@@ -127,25 +127,25 @@
         :src="dialogData.icon"
       />
     </el-descriptions-item>
-    <el-descriptions-item label="生命值">{{ dialogData.attributes.maxHp }}</el-descriptions-item>
-    <el-descriptions-item label="攻击力">{{ dialogData.attributes.atk }}</el-descriptions-item>
-    <el-descriptions-item label="防御力">{{ dialogData.attributes.def }}</el-descriptions-item>
-    <el-descriptions-item label="法术抗性">{{ dialogData.attributes.magicResistance }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.HP')">{{ dialogData.attributes.maxHp }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.ATK')">{{ dialogData.attributes.atk }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.DEF')">{{ dialogData.attributes.def }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.RES')">{{ dialogData.attributes.magicResistance }}</el-descriptions-item>
   </el-descriptions>
 
   <el-descriptions
     direction="vertical"
     border
   >
-    <el-descriptions-item label="重量等级">{{ dialogData.attributes.massLevel }}</el-descriptions-item>
-    <el-descriptions-item label="移动速度">{{ dialogData.attributes.moveSpeed }}</el-descriptions-item>
-    <el-descriptions-item label="攻击范围">{{ dialogData.attributes.rangeRadius }}</el-descriptions-item>
-    <el-descriptions-item label="攻击间隔">{{ 
+    <el-descriptions-item :label="$t('attr.WeightClass')">{{ dialogData.attributes.massLevel }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.Speed')">{{ dialogData.attributes.moveSpeed }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.AttackRange')">{{ dialogData.attributes.rangeRadius }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('attr.AttackInterval')">{{ 
       accuracyNum(dialogData.attributes['baseAttackTime'] * 100 /  dialogData.attributes['attackSpeed'])  
     }}</el-descriptions-item>
-    <el-descriptions-item label="目标价值">{{ dialogData.lifePointReduce }}</el-descriptions-item>
-    <el-descriptions-item label="地位">{{ levelType[dialogData.levelType] }}</el-descriptions-item>
-    <el-descriptions-item label="能力">
+    <el-descriptions-item :label="$t('attr.TargetValue')">{{ dialogData.lifePointReduce }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('table.Type')">{{ levelType[dialogData.levelType] }}</el-descriptions-item>
+    <el-descriptions-item :label="$t('table.Ability')">
       <div v-if="dialogData.abilityList?.length > 0">
         <p class="ability-line" v-for="(ability, index) in dialogData.abilityList">
           <span class="pre" v-if="ability.textFormat === 'NORMAL'">·</span>
@@ -156,7 +156,7 @@
         </p>
       </div>
       <div v-else>
-        无
+        {{$t('info.None')}}
       </div>
       
     </el-descriptions-item>
@@ -166,7 +166,7 @@
     direction="vertical"
     border
   >
-    <el-descriptions-item label="异常抗性">
+    <el-descriptions-item :label="$t('attr.StatusRES')">
       <div v-if="dialogData.immunes.length > 0">
         <el-tag 
           v-for="(immune, index) in dialogData.immunes"
@@ -176,11 +176,11 @@
         >{{immuneTable[immune]}}</el-tag>
       </div>
 
-      <div v-else>无</div>
+      <div v-else>{{$t('info.None')}}</div>
     </el-descriptions-item>
   </el-descriptions>
 
-  <h3>内部参数</h3>
+  <h3>{{$t('table.Parameters')}}</h3>
   <JsonViewer :value="jsonShow" copyable expanded boxed theme="light" :expandDepth="4"/>
 </el-dialog>
 </template>
@@ -190,22 +190,25 @@ import eventBus from '@/components/utilities/EventBus';
 import { immuneTable } from '@/components/utilities/Interface';
 import { accuracyNum } from '@/components/utilities/utilities';
 import { ref, shallowRef } from 'vue';
+
 import {JsonViewer} from "vue3-json-viewer"
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 
 const levelType = {
-  NORMAL: "普通",
-  ELITE: "精英",
-  BOSS: "领袖",
+  NORMAL: t("table.Normal"),
+  ELITE: t("table.Elite"),
+  BOSS: t("table.BOSS"),
 }
 
 const attrColumns = {
-  maxHp: "生命值",
-  atk: "攻击力",
-  def: "防御力",
-  magicResistance: "法术抗性",
-  massLevel: "重量等级",
-  moveSpeed: "移动速度",
-  rangeRadius: "攻击范围"
+  maxHp: t("attr.HP"),
+  atk: t("attr.ATK"),
+  def: t("attr.DEF"),
+  magicResistance: t("attr.RES"),
+  massLevel: t("attr.WeightClass"),
+  moveSpeed: t("attr.Speed"),
+  rangeRadius: t("attr.AttackRange")
 }
 
 const {enemyDatas} = defineProps(["enemyDatas"]);
@@ -217,14 +220,14 @@ const getAttrChange = (name, attrChange): string => {
   attrChange?.forEach(item => {
     const {value, calMethod} = item;
 
-    let updown = value >= 1 || calMethod === "addmul" ? "提升" : "降低";
+    let updown = value >= 1 || calMethod === "addmul" ? t("info.Increase") : t("info.Decrease");
     const color = value >= 1 || calMethod === "addmul" ? "red" : "blue";
     let val;
 
     if( calMethod === "add"){
       val = value;
     }else if(calMethod === "mul"){
-      updown += "至";
+      updown += t("info.to");
       val = accuracyNum(value * 100) + "%";
     }else if(calMethod === "addmul"){
       val = accuracyNum(value * 100) + "%";

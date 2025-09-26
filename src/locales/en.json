@@ -1,0 +1,51 @@
+{
+  "info": {
+    "ShowAttackRange": "Show Attack Range",
+    "ShowWaitingTime": "Show Waiting Time",
+    "ShowMenu": "Show Menu After Clicking Enemy",
+    "DeploymentLimit": "Deployment Limit",
+    "SquadSize": "Squad Size",
+    "ChallengeCondition": "Challenge Condition",
+    "StatBonus": "Stat Bonus",
+    "None": "None",
+    "CurrentEvent": "Current Event",
+    "PRTSWIKI": "Visit PRTS.WIKI",
+    "Arkrec": "Visit Arknights Record Wiki",
+    "Increase": "increase",
+    "Decrease": "decrease",
+    "to": " to",
+    "CurrentCheckpoint": "Current Checkpoint",
+    "UpdateNotice": "Update Notice"
+  },
+  "table": {
+    "Avatar": "Avatar",
+    "Name": "Name",
+    "Quantity": "Quantity",
+    "Type": "Type",
+    "Level": "Level",
+    "ViewDetails": "View Details",
+    "Details": "Details",
+    "Normal": "Normal",
+    "Elite": "Elite",
+    "BOSS": "BOSS",
+    "Ability": "Ability",
+    "Parameters": "Internal Parameters"
+  },
+  "attr": {
+    "HP": "HP",
+    "ATK": "ATK",
+    "DEF": "DEF",
+    "RES": "RES",
+    "WeightClass": "Weight Class",
+    "Speed": "Speed",
+    "AttackRange": "Attack Range",
+    "AttackInterval": "Attack Interval",
+    "TargetValue": "Target Value",
+    "StatusRES": "Status RES"
+  },
+  "game": {
+    "Wave": "Wave",
+    "StartTime": "Start Time",
+    "Second": "s"
+  }
+}

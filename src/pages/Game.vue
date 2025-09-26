@@ -440,13 +440,13 @@ defineExpose({
       </div>
 
       <div class="checkboxs">
-        <div class="left">
+
           <el-checkbox
             v-model="attackRangeCheckAll"
             :indeterminate="attackRangeIndet"
             @change = "attackRangeIndet = false"
           >
-            显示攻击距离
+            {{$t("info.ShowAttackRange")}}
           </el-checkbox>
 
           <el-checkbox
@@ -454,22 +454,18 @@ defineExpose({
             :indeterminate="countDownIndet"
             @change = "countDownIndet = false"
           >
-            显示等待时间
+            {{$t("info.ShowWaitingTime")}}
           </el-checkbox>
 
           <el-checkbox
             v-model="showEnemyMenu"
           >
-            点击敌人后显示菜单
+            {{$t("info.ShowMenu")}}
           </el-checkbox>
-        </div>
-        <div class="right">
-          <span>Language:</span>
+          
           <Language></Language>
-        </div>
-
-
       </div>
+
     </div>
     <div class="content">
       <div class="game-wrapper" ref="wrapperRef">
@@ -518,9 +514,9 @@ defineExpose({
       :level-full-code="levelFullCode"
     ></ExternalLinks>
     <p v-for="desc in extraDescription" :style="{color: desc.color?desc.color:'black'}">{{ desc.text }}</p>
-    <p>部署上限：{{ characterLimit }}，可携带干员数：{{ squadNum }}</p>
-    <p v-if="challenge"><span class="challenge">突袭条件：</span>{{ challenge }}</p>
-    <p v-if="stageAttrInfo"><span class="challenge">属性加成：</span>
+    <p>{{$t("info.DeploymentLimit")}}:{{ characterLimit }}，{{$t("info.SquadSize")}}:{{ squadNum }}</p>
+    <p v-if="challenge"><span class="challenge">{{$t("info.ChallengeCondition")}}:</span>{{ challenge }}</p>
+    <p v-if="stageAttrInfo"><span class="challenge">{{$t("info.StatBonus")}}:</span>
       <span v-html="stageAttrInfo"></span>
     </p>
   </div>
@@ -607,21 +603,11 @@ defineExpose({
 }
 
 .checkboxs{
-  width: 320px;
+  width: 260px;
   background-color: white;
   padding-left: 10px;
   display: flex;
-  .right{
-    padding-right: 5px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    span{
-      font-size: 14px;
-      margin-bottom: 6px;
-      color: #409eff;
-    }
-  }
+  flex-direction: column;
   ::v-deep .el-checkbox{
     height: 20px;
   }

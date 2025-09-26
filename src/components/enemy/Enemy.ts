@@ -855,6 +855,7 @@ class Enemy extends BattleObject{
 
     switch (type) {
       case "MOVE":  
+      case "PATROL_MOVE":  
         if(this.countdown.getCountdownTime("waiting") > 0 || this.waitAnimationTrans) return;
         if(!this.canMove()) return;
 
@@ -1383,7 +1384,7 @@ class Enemy extends BattleObject{
       for(let i = this.checkPointIndex; i < checkPoints.length; i++){
         const current = checkPoints[i];
         if(current.type === "DISAPPEAR") break;
-        else if(current.type !== "MOVE") continue;
+        else if(current.type !== "MOVE" && current.type !== "PATROL_MOVE") continue;
         const targetPos = current.position;
         const reachOffsetX = current.reachOffset.x;
         

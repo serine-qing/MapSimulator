@@ -569,24 +569,37 @@ class MapModel{
 
     //波次中会出现的敌人对应的enemyDbRef数组
     //使用Set防止重复
-    const enemies: Set<EnemyRef>  = new Set();
+    const enemies: EnemyRef[] = [];
     //波次中会出现的魔改后的额外敌人
     const extraEnemies: EnemyRef[] = [];
 
     enemyDbRefs.forEach((enemyRef: EnemyRef) => {
       const prefabKey = enemyRef.overwrittenData?.prefabKey;
       let toAdd: EnemyRef = enemyRef;
-
       if(prefabKey?.m_defined){
+        
         toAdd = enemyDbRefs.find(ref => ref.id === prefabKey.m_value);
         extraEnemies.push(enemyRef);
+
+        //没有添加关卡魔改过的怪物的原数据引用的情况，就手动加个引用
+        if(!toAdd){
+          toAdd = {
+            id: prefabKey.m_value,
+            level: enemyRef.level,
+            overwrittenData: null,
+            useDb: false
+          }
+        }
       }
 
-      enemies.add(toAdd)
-      
+      const findIndex = enemies.findIndex(enemyRef => enemyRef.id === toAdd.id);
+      if(findIndex === -1) enemies.push(toAdd)
+
     })
 
     const enemyRefReq = Array.from(enemies);
+    
+
     const res: any = await getEnemiesData( enemyRefReq );
     const enemyDatas = res.data.EnemyDatas;
 
@@ -791,7 +804,7 @@ class MapModel{
 
       }
     })
-
+    
     act41side.parseExtraWave(branches);
     act42side.parseExtraWave(this.trapDatas, branches, this.extraRoutes);
     act45side.parseExtraWave(branches);

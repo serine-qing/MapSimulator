@@ -1,5 +1,6 @@
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
+import act1vhalfidle from "../entityHandler/次生预案";
 import main15 from "./15章";
 import Tile from "../game/Tile";
 
@@ -8,6 +9,7 @@ const GameHandler = {
   afterGameInit: () => {
     act42side.afterGameInit();
     act45side.afterGameInit();
+    act1vhalfidle.afterGameInit();
   },
 
   beforeGameInit: () => {

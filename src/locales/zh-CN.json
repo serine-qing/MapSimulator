@@ -1,0 +1,51 @@
+{
+  "info": {
+    "ShowAttackRange": "显示攻击范围",
+    "ShowWaitingTime": "显示等待时间",
+    "ShowMenu": "点击敌人后显示菜单",
+    "DeploymentLimit": "部署上限",
+    "SquadSize": "可携带干员数",
+    "ChallengeCondition": "突袭条件",
+    "StatBonus": "属性加成",
+    "None": "无",
+    "CurrentEvent": "当前活动",
+    "PRTSWIKI": "查看PRTS.WIKI",
+    "Arkrec": "查看少人WIKI",
+    "Increase": "提升",
+    "Decrease": "降低",
+    "to": "至",
+    "CurrentCheckpoint": "当前检查点",
+    "UpdateNotice": "更新公告"
+  },
+  "table": {
+    "Avatar": "头像",
+    "Name": "名称",
+    "Quantity": "数量",
+    "Type": "地位",
+    "Level": "级别",
+    "ViewDetails": "查看详情",
+    "Details": "详情",
+    "Normal": "普通",
+    "Elite": "精英",
+    "BOSS": "领袖",
+    "Ability": "能力",
+    "Parameters": "内部参数"
+  },
+  "attr": {
+    "HP": "生命值",
+    "ATK": "攻击力",
+    "DEF": "防御力",
+    "RES": "法术抗性",
+    "WeightClass": "重量等级",
+    "Speed": "移动速度",
+    "AttackRange": "攻击范围",
+    "AttackInterval": "攻击间隔",
+    "TargetValue": "目标价值",
+    "StatusRES": "异常抗性"
+  },
+  "game": {
+    "Wave": "波次",
+    "StartTime": "开始时间",
+    "Second": "秒"
+  }
+}

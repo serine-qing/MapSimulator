@@ -1,0 +1,51 @@
+{
+  "info": {
+    "ShowAttackRange": "攻撃範囲を表示",
+    "ShowWaitingTime": "待機時間を表示",
+    "ShowMenu": "敵をクリック後、メニューを表示",
+    "DeploymentLimit": "配置上限",
+    "SquadSize": "編成可能オペレーター数",
+    "ChallengeCondition": "強襲条件",
+    "StatBonus": "ステータスボーナス",
+    "None": "なし",
+    "CurrentEvent": "開催中イベント",
+    "PRTSWIKI": "PRTS.WIKIを開く",
+    "Arkrec": "アークナイツ少人数Wikiを開く",
+    "Increase": "increase",
+    "Decrease": "decrease",
+    "to": " to",
+    "CurrentCheckpoint": "現在のチェックポイント",
+    "UpdateNotice": "更新のお知らせ"
+  },
+  "table": {
+    "Avatar": "アイコン",
+    "Name": "名称",
+    "Quantity": "数量",
+    "Type": "タイプ",
+    "Level": "レベル",
+    "ViewDetails": "詳細を表示",
+    "Details": "詳細",
+    "Normal": "ノーマル",
+    "Elite": "エリート",
+    "BOSS": "ボス",
+    "Ability": "アビリティ",
+    "Parameters": "内部パラメータ"
+  },
+  "attr": {
+    "HP": "体力",
+    "ATK": "攻撃力",
+    "DEF": "防御力",
+    "RES": "術耐性",
+    "WeightClass": "重量レベル",
+    "Speed": "移動速度",
+    "AttackRange": "攻撃範囲",
+    "AttackInterval": "攻撃間隔",
+    "TargetValue": "目標価値",
+    "StatusRES": "状態異常耐性"
+  },
+  "game": {
+    "Wave": "ウェーブ",
+    "StartTime": "開始時間",
+    "Second": "秒"
+  }
+}

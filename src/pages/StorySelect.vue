@@ -69,6 +69,8 @@
 import { ref, watch } from "vue";
 import {getStorys, getStageInfo} from "@/api/stages"
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: 'changeStage', map: any): void
@@ -76,7 +78,7 @@ const emit = defineEmits<{
 
 //3级关卡菜单
 
-const activeEpisode = "追迹日落以西";
+const activeEpisode = "act1halfidle";
 
 const storys = ref([]);
 const stageId = ref();   //当前关卡id
@@ -90,9 +92,9 @@ const initActiveEpisode = (storys) => {
 
       for(let i = 0; i < story.childNodes.length; i++){
         const episode = story.childNodes[i];
-        if(episode.episode === activeEpisode){
+        if(episode.id === activeEpisode){
           story.childNodes.splice(i, 1);
-          episode.type = "当前活动：" + episode.episode;
+          episode.type = t("info.CurrentEvent") +": " + episode.episode;
           episode.stage = true;
           storys.unshift(episode);
           return;

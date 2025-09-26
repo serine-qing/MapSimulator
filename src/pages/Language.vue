@@ -1,15 +1,20 @@
 <template>
-  <el-select  
-    v-model="currentLang"
-    style="width: 150px"
-  >
-    <el-option
-      v-for="item in language"
-      :key="item.key"
-      :label="item.name"
-      :value="item.key"
-    />
-  </el-select>
+  <div class="language">
+    <span>Language:</span>
+    <el-select  
+      v-model="currentLang"
+      style="width: 150px"
+      size="small"
+    >
+      <el-option
+        v-for="item in language"
+        :key="item.key"
+        :label="item.name"
+        :value="item.key"
+      />
+    </el-select>  
+  </div>
+  
 </template>
 
 <script setup lang="ts">
@@ -49,5 +54,11 @@ watch(currentLang, () => {
 </script>
 
 <style lang="scss" scoped>
-  
+.language{
+  span{
+    font-size: 14px;
+    color: #409eff;
+  }
+  padding-bottom: 10px;
+}
 </style>

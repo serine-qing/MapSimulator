@@ -106,6 +106,7 @@ class WaveManager{
       const { position, reachOffset, type, time } = checkpoint;
       switch (type) {
         case "MOVE":
+        case "PATROL_MOVE":
           let node = Global.SPFA.getPathNode(
             position,
             route.motionMode,
