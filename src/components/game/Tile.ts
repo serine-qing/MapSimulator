@@ -116,7 +116,6 @@ class Tile extends DataObject{
 
     const tileTexture = getTile(this.tileKey, this.buildableType, this.heightType);
     let {top : topMaterial, side : sideMaterial} = tileTexture;
-    
     this.object = new Object3D();
     this.object.add(this.textures);
     
@@ -132,7 +131,7 @@ class Tile extends DataObject{
         const groundGe0 = this.getBoxGeo(this.width, 0, 0);
         const { ground } = tileTexture;
         const groundMesh = new Mesh( groundGe0, [
-          null, null, null, null, ground, ground
+          sideMaterial, sideMaterial, sideMaterial, sideMaterial, ground, ground
         ]); 
         groundMesh.position.z = getPixelSize(- this.height / 2)
         this.object.add(groundMesh);
@@ -182,8 +181,6 @@ class Tile extends DataObject{
         huiming.position.z = getPixelSize(this.height/2) + 0.1;
         this.object.add(huiming);
         break;
-      default:
-        break;
       case "tile_hole":
         const hole = tileTexture.hole;
         const size = getPixelSize(hole.scale * this.width);
@@ -192,6 +189,9 @@ class Tile extends DataObject{
         holeMesh.position.z = 0.1;
         this.object.add(holeMesh);
         break;
+      default:
+        break;
+      
     }
 
     const geometry = this.getBoxGeo(this.width, this.height, this.margin);

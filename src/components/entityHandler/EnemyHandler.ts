@@ -146,11 +146,9 @@ const EnemyHandler = {
           enemy.key === "enemy_1080_sotidp_2" ||
           enemy.key === "enemy_1506_patrt"
         ){
-          //todo 无法覆盖到敌人 需要修改
-          Global.gameBuff.addBuff({
+          Global.buffManager.addAura({
             id: "strength" + enemy.id,
             key: "strength",
-            applyType: "all",
             enemy: ["enemy_1078_sotisc","enemy_1078_sotisc_2"],
             effect:[{
               attrKey: "moveSpeed",
@@ -227,7 +225,7 @@ const EnemyHandler = {
             enemy.key === "enemy_1080_sotidp_2" ||
             enemy.key === "enemy_1506_patrt"
           ){
-            Global.gameBuff.removeBuff("strength" + enemy.id);
+            Global.buffManager.removeAura("strength" + enemy.id);
           }
           break;
       }

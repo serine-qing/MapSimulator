@@ -1,6 +1,6 @@
 import WaveManager from "../enemy/WaveManager";
 import { CountdownManager } from "../game/CountdownManager";
-import GameBuff from "../game/GameBuff";
+import BuffManager from "../game/BuffManager";
 import GameManager from "../game/GameManager";
 import GameView from "../game/GameView";
 import MapModel from "../game/MapModel";
@@ -16,7 +16,7 @@ interface Global_Type{
   trapManager: TrapManager,
   countdownManager: CountdownManager,
   SPFA: SPFA,
-  gameBuff: GameBuff,
+  buffManager: BuffManager,
   tileManager: TileManager,
   gameView: GameView,
   seededRandom: SeededRandom,
@@ -30,7 +30,7 @@ const Global: Global_Type = {
   trapManager: null,
   countdownManager: null,
   SPFA: null,
-  gameBuff: null,
+  buffManager: null,
   tileManager: null,
   gameView: null,
   seededRandom: null,
@@ -42,7 +42,7 @@ const Global: Global_Type = {
     Global.trapManager = null;
     Global.countdownManager = null;
     Global.SPFA = null;
-    Global.gameBuff = null;
+    Global.buffManager = null;
     Global.tileManager = null;
     Global.gameView = null;
     Global.seededRandom = null;

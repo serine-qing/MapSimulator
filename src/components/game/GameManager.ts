@@ -17,7 +17,7 @@ import SPFA from "./SPFA";
 import TrapManager from "./TrapManager";
 import { ElMessage } from 'element-plus'
 import { Countdown, CountdownManager } from "./CountdownManager";
-import GameBuff from "./GameBuff";
+import BuffManager from "./BuffManager";
 import Global from "../utilities/Global";
 import GameHandler from "../entityHandler/GameHandler";
 import Gractrl from "../entityHandler/Gractrl";
@@ -36,7 +36,7 @@ class GameManager extends DataObject{
 
   public mapModel: MapModel;
   public isCampaign: boolean = false;
-  public gameBuff: GameBuff;
+  public buffManager: BuffManager;
   public SPFA: SPFA;
   public tileManager: TileManager;
   private simulateData: any;
@@ -75,7 +75,7 @@ class GameManager extends DataObject{
     //不需要考虑先后顺序的可以放这里
     this.countdownManager = new CountdownManager();
     this.countdown = this.countdownManager.getCountdownInst();
-    this.gameBuff = new GameBuff();
+    this.buffManager = new BuffManager();
     this.gameView = new GameView();
     this.seededRandom = new SeededRandom(Math.random() * 1000000);
   }
@@ -258,15 +258,18 @@ class GameManager extends DataObject{
       }
     }
 
-    //todo 更新后出bug
-    // 检测与tile的交点
-    // const tileIntersects = gameCanvas.raycaster.intersectObjects(tileObjects.children);
-    // if (tileIntersects.length > 0) {
-    //   const firstIntersect = tileIntersects[0];
-    //   const tile: Tile = firstIntersect.object?.parent?.userData?.tile;
-      
-    //   if(tile) return tile;
-    // }
+    //可放置箱子的图才进行检测
+    const hasCrate = this.tokenCards.find(card => card.characterKey === "trap_001_crate");
+    if(hasCrate){
+      // 检测与tile的交点
+      const tileIntersects = gameCanvas.raycaster.intersectObjects(tileObjects.children);
+      if (tileIntersects.length > 0) {
+        const firstIntersect = tileIntersects[0];
+        const tile: Tile = firstIntersect.object?.parent?.userData?.tile;
+        if(tile) return tile;
+      }
+    }
+
 
     return null;
   } 
@@ -456,6 +459,7 @@ class GameManager extends DataObject{
       trapState: this.trapManager.get(),
       tileState: this.tileManager.get(),
       eManagerState: this.waveManager.get(),
+      buffState: this.buffManager.get(),
       countdownState: this.countdownManager.get(),
       tokenCardState: this.tokenCards.map(tc => tc.get()),
       SeededRandomState: this.seededRandom.get(),
@@ -480,6 +484,7 @@ class GameManager extends DataObject{
       trapState, 
       tileState, 
       eManagerState, 
+      buffState,
       countdownState, 
       tokenCardState,
       gractrlState,
@@ -507,6 +512,7 @@ class GameManager extends DataObject{
     }
     
     this.waveManager.set(eManagerState);
+    this.buffManager.set(buffState),
     this.countdownManager.set(countdownState);
     this.seededRandom.set(SeededRandomState);
 
@@ -539,7 +545,6 @@ class GameManager extends DataObject{
       return;
     }
 
-    this.isSimulate = true;
     const simData = {
       byAction: [],
       byTime: [],
@@ -588,6 +593,7 @@ class GameManager extends DataObject{
   //获取模拟数据
   private startSimulate(){
     
+    this.isSimulate = true;
     const simData = this.simulation();
     this.setSimulateData(simData);
 
@@ -602,7 +608,6 @@ class GameManager extends DataObject{
     const currentState = this.get();
     const startTime = Math.ceil(this.gameSecond);
     const simData = this.simulation(startTime);
-    this.isSimulate = false;
 
     const prevStatesByTime =  this.simulateData.byTime.slice(0, startTime);
 

@@ -37,6 +37,7 @@ linux 启动后端：
 ss -tlpn | grep 3000 查看进程pid
 kill 杀死刚刚找到的进程
 cd ../arknights/backend
+git pull
 nohup npm run dev &  重新启动
 
 

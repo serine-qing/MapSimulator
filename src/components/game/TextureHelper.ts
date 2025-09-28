@@ -2,6 +2,15 @@ import * as THREE from "three"
 import GameConfig from "@/components/utilities/GameConfig"
 //编译静态的纹理材料数据
 
+interface TileTexture{
+  top?: THREE.MeshBasicMaterial,
+  side?: THREE.MeshBasicMaterial,
+  ground?: THREE.MeshBasicMaterial,
+  fenceTop?: THREE.MeshBasicMaterial,
+  hole?: any,
+  yin?: THREE.MeshBasicMaterial,
+  yang?: THREE.MeshBasicMaterial,
+}
 //静态数据
 const sea = new THREE.MeshBasicMaterial( {color: "#086e8d"} );
 const gray = new THREE.MeshBasicMaterial( {color: "#747474"} ); //淡灰
@@ -15,9 +24,13 @@ const pureWhite = new THREE.MeshBasicMaterial( {color: "#ffffff"} );
 const pureBlack = new THREE.MeshBasicMaterial( {color: "#000000"} );
 
 const darkYellow = new THREE.MeshBasicMaterial( {color: "#B8860B"} );
+const transparent = new THREE.MeshBasicMaterial({
+  transparent: true,
+  opacity: 0,
+  depthWrite: false   //不设置depthWrite，还是会把其他东西挡住
+});
 
-const tileTextures = {
-
+const tileTextures: {[key: string]: TileTexture} = {
   //wall、road、floor、forbidden是高台地面默认的材质，很多tile都会用到
   tile_wall:{
     top: white,
@@ -73,6 +86,13 @@ const tileTextures = {
     yang: pureWhite
   },
 }
+
+//不需要的材质设置为透明，防止射线检测出错
+Object.values(tileTextures).forEach(data => {
+  if(!data.top) data.top = transparent;
+  if(!data.side) data.side = transparent;
+})
+
 tileTextures["tile_passable_wall"] = tileTextures["tile_wall"];
 tileTextures["tile_fence_bound"] = tileTextures["tile_fence"];
 

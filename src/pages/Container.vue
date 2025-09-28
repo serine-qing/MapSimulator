@@ -207,7 +207,7 @@ const updateEnemyPosAndSize = () => {
   scale =  canvasHeight / GameConfig.OBJECT_SCALE;
 
   waveManager.enemiesInMap.forEach(enemy => {
-    if(!enemy.object) return;
+    if(!enemy.object || !enemy.mesh) return;
     let {meshSize, meshOffset} = enemy;
     
     let centerPos;

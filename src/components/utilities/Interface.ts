@@ -158,7 +158,6 @@ declare global {
   interface BuffParam{
     id: string,                         //唯一标识，单个enemy上不可重复
     key: string,                        //buff的key值
-    applyType: string,                 //all:全部，类似于光环技能 enemiesInMap：当前地图上激活的敌人
     overlay?: boolean,                  //是否可叠加，默认否
     enemy?: string[],                  //包括哪些敌人
     enemyExclude?: string[],           //不包括哪些敌人

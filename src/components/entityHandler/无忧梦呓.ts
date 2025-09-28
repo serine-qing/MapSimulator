@@ -559,7 +559,6 @@ const Handler = {
   },
 
   handleSkill: (enemy: Enemy, skill: any) => {
-    //todo 代码太长了 看能不能优化下
     switch (skill.prefabKey) {
       case "wakeup":
         if( canSleep(enemy) ){
@@ -655,8 +654,7 @@ const Handler = {
         break;
       case "getchar":
         if(enemy.key.includes("enemy_10107_mjcdog")){   //安眠伴随兽
-          //todo 随机数也需要存缓存，后面再做
-          // enemy.dropOffRandomOffset = 0.4;
+          enemy.dropOffRandomOffset = 0.4;
           enemy.maxPickUpCount = 1;
           const getenmey = enemy.getTalent("getenmey");
           let { range_radius, move_speed, duration, cooldown } = getenmey;

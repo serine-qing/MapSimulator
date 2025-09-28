@@ -333,6 +333,7 @@ class Enemy extends BattleObject{
     this.isStarted = true;
     this.show();
     this.handleStart();
+    Global.buffManager.applyAuraBuff(this);
 
     //入场动画
     if(this.isAirborne && this.startAnimate){
@@ -752,7 +753,6 @@ class Enemy extends BattleObject{
     this.updateSkillSP(delta);
     if(!this.isDisappear) this.updateSkillState();
 
-    //todo 计算当前移速 需要简化流程
     this.updateCurrentFrameSpeed();
     this.updateAction(delta);
     this.move(delta);
@@ -1171,11 +1171,25 @@ class Enemy extends BattleObject{
   }
 
   public addBuff(buff: Buff){
-    Global.gameBuff.addEnemyBuff(this, buff);
+    this.removeBuff(buff.id);
+    this.buffs.push(buff);
+
+    if(buff.duration){
+      this.countdown.addCountdown({
+        name: buff.id,
+        initCountdown: buff.duration,
+        callback: () => {
+          this.removeBuff(buff.id)
+        }
+      })
+    }
   }
 
   public removeBuff(id: string){
-    Global.gameBuff.removeEnemyBuff(this, id);
+    const findIndex = this.buffs.findIndex(buff => buff.id === id);
+    if(findIndex > -1) {
+      this.buffs.splice(findIndex, 1);
+    }
   }
 
   public updateCurrentFrameSpeed(){
@@ -1296,9 +1310,11 @@ class Enemy extends BattleObject{
       let dropPos: Vec2;
       const randomOffset = this.dropOffRandomOffset;
       if(randomOffset){
+        const randomX = Global.seededRandom.nextFloat(0, randomOffset);
+        const randomY = Global.seededRandom.nextFloat(0, randomOffset);
         dropPos = {
-          x: this.position.x + Math.random() * randomOffset - randomOffset / 2,
-          y: this.position.y + Math.random() * randomOffset - randomOffset / 2
+          x: this.position.x + randomX - randomOffset / 2,
+          y: this.position.y + randomY - randomOffset / 2
         };
       }else{
         dropPos = this.position;
@@ -1651,8 +1667,7 @@ class Enemy extends BattleObject{
   }
 
   public spawnExtraEnemy(key: string){
-    //todo 死亡召唤如果是自主移动到了检查点，召唤的token会跳过此检查点。反之亦然
-    //todo 常规召唤时，如果处于检查点，视为已通过此检查点
+    //如果是自主移动到了检查点，召唤的token会跳过此检查点。反之亦然
     let enemy: Enemy;
     if(Global.gameManager.isSimulate){
       const waveManager = Global.waveManager;
@@ -1683,7 +1698,10 @@ class Enemy extends BattleObject{
     enemy.start();
 
     enemy.setPosition(this.position.x, this.position.y);
-    if(this.currentCheckPoint().type === "WAIT_FOR_SECONDS"){
+    if(
+      this.currentCheckPoint().type === "WAIT_FOR_SECONDS" &&
+      !this.position.equals(this.route.startPosition)  //没移动过，token不会跳过当前wait检查点
+    ){
       //只跳过WAIT_FOR_SECONDS
       enemy.changeCheckPoint(this.checkPointIndex + 1);
     }else{
@@ -1863,7 +1881,7 @@ class Enemy extends BattleObject{
       }
 
       this.setZOffset(ZOffset);
-
+      if(!this.shadow) console.log(this)
       if(this.hasShadow) this.shadow.position.z = this.shadowHeight;
       this.visible? this.show() : this.hide();
       if(this.tilePosition){
