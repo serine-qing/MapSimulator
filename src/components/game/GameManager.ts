@@ -552,9 +552,9 @@ class GameManager extends DataObject{
     };
     
 
-    let needUpdateAction = false;
+    let needUpdateActionNum = 0;
     const fuc = () => {
-      needUpdateAction = true;
+      needUpdateActionNum ++;
     };
     
     eventBus.on("action_index_change", fuc);
@@ -572,9 +572,12 @@ class GameManager extends DataObject{
         simData.byTime.push(this.get());
         time += this.simStep;
       }
-      if(needUpdateAction){
-        simData.byAction.push(this.get());
-        needUpdateAction = false;
+      if(needUpdateActionNum > 0){
+        const actionSimData = this.get();
+        for(let i = 0; i< needUpdateActionNum; i++){
+          simData.byAction.push(actionSimData);
+        }
+        needUpdateActionNum = 0;
       }
       this.update();
     }

@@ -440,10 +440,11 @@ class WaveManager{
             }
           break;
         }
-        
-        !isExtra && eventBus.emit("action_index_change", this.currentActionIndex, this.waveIndex);
 
         currentObj.currentActionIndex ++;
+
+        !isExtra && eventBus.emit("action_index_change", this.currentActionIndex - 1, this.waveIndex);
+
       }
     }
 
@@ -617,7 +618,7 @@ class WaveManager{
       return {...extra};
     })
 
-    eventBus.emit("action_index_change", currentActionIndex, waveIndex);
+    eventBus.emit("action_index_change", this.currentActionIndex - 1, waveIndex);
     eventBus.emit("setData", {
       finishedEnemyCount: this.finishedEnemyCount
     });

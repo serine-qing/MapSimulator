@@ -62,6 +62,7 @@ const { active } = defineProps(['active']);
 import {
   CaretRight,
 } from '@element-plus/icons-vue'
+import Global from '@/components/utilities/Global';
 
 const actions = ref([]);
 const actionIndex = ref(0);
@@ -88,12 +89,11 @@ eventBus.on("actions_init", (acts) => {
 });
 
 eventBus.on("action_index_change", (aIndex, wIndex) => {
-
+  if(Global.gameManager.isSimulate) return;
   if(actions.value.length > 0){
     actionIndex.value = aIndex;
     waveIndex.value = wIndex;
   }
-
 });
 
 const jumpToEnemyIndex = (index: number) => {
