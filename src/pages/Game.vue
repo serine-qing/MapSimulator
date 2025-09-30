@@ -21,9 +21,8 @@ import btnSpeed1x from '@/assets/images/btn_speed_1x.png';
 import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
 import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 
-import ExternalLinks from "@/pages/ExternalLinks.vue"
+import StageInfo from '@/pages/StageInfo.vue';
 import Notice from "@/pages/Notice.vue"
-import Language from "@/pages/Language.vue"
 import Global from "@/components/utilities/Global";
 
 //#region 沙盘推演数据
@@ -211,7 +210,7 @@ const newGame = async (map) => {
 const title = ref("");
 const challenge = ref("");
 const description = ref("");
-let extraDescription;
+const extraDescription = ref([]);
 const stageAttrInfo = ref("");
 const characterLimit = ref(0);
 const squadNum = ref(13);
@@ -222,7 +221,7 @@ const levelName = ref("");
 //生成关卡详情
 const generateStageInfo = () => {
   //额外关卡信息
-  extraDescription = ref(mapModel.extraDescription);
+  extraDescription.value = mapModel.extraDescription;
   const {levelId, operation, name, challenge: _challenge, description:_description} = mapData;
   console.log(levelId)
 
@@ -384,12 +383,6 @@ document.addEventListener("keydown", (event) => {
   }
 })
 
-const attackRangeCheckAll = ref(false);
-const attackRangeIndet = ref(false);
-const countDownCheckAll = ref(true);
-const countDownIndet = ref(false);
-const showEnemyMenu = ref(false);
-
 defineExpose({
   newGame
 })
@@ -408,8 +401,8 @@ defineExpose({
     :sandTableData = "sandTableData"
     @changeRunesData = "changeRunesData"
   />
-  <div class="game">
-    <div class="toolbar">  
+  <div class="game" >
+    <div class="toolbar" v-show="isStart">  
       <span class="lifepoint"> {{ finishedEnemyCount }} / {{maxEnemyCount}}</span>
       <div class="time-slider">
         <el-slider 
@@ -439,33 +432,6 @@ defineExpose({
         </div>
       </div>
 
-      <div class="checkboxs">
-
-          <el-checkbox
-            v-model="attackRangeCheckAll"
-            :indeterminate="attackRangeIndet"
-            @change = "attackRangeIndet = false"
-          >
-            {{$t("info.ShowAttackRange")}}
-          </el-checkbox>
-
-          <el-checkbox
-            v-model="countDownCheckAll"
-            :indeterminate="countDownIndet"
-            @change = "countDownIndet = false"
-          >
-            {{$t("info.ShowWaitingTime")}}
-          </el-checkbox>
-
-          <el-checkbox
-            v-model="showEnemyMenu"
-          >
-            {{$t("info.ShowMenu")}}
-          </el-checkbox>
-          
-          <Language></Language>
-      </div>
-
     </div>
     <div class="content">
       <div class="game-wrapper" ref="wrapperRef">
@@ -473,11 +439,6 @@ defineExpose({
         <Container 
           ref = "containerRef"
           @pause = "pause = true"
-          :attackRangeCheckAll = "attackRangeCheckAll"
-          :countDownCheckAll = "countDownCheckAll"
-          :showEnemyMenu = "showEnemyMenu"
-          @update:attackRangeIndet = "val => attackRangeIndet = val"
-          @update:countDownIndet = "val => countDownIndet = val"
           :gameManager = "gameManagerRef"
         ></Container>
 
@@ -503,24 +464,18 @@ defineExpose({
 
 
   </div>
-
-  <div class="info">
-    <h2>{{ title }}</h2>
-    <p class="description">{{ description }}</p>
-    
-    <ExternalLinks 
-      :level-code="levelCode" 
-      :level-name="levelName"
-      :level-full-code="levelFullCode"
-    ></ExternalLinks>
-    <p v-for="desc in extraDescription" :style="{color: desc.color?desc.color:'black'}">{{ desc.text }}</p>
-    <p>{{$t("info.DeploymentLimit")}}:{{ characterLimit }}，{{$t("info.SquadSize")}}:{{ squadNum }}</p>
-    <p v-if="challenge"><span class="challenge">{{$t("info.ChallengeCondition")}}:</span>{{ challenge }}</p>
-    <p v-if="stageAttrInfo"><span class="challenge">{{$t("info.StatBonus")}}:</span>
-      <span v-html="stageAttrInfo"></span>
-    </p>
-  </div>
-
+  <StageInfo
+    :title = "title"
+    :challenge="challenge"
+    :character-limit="characterLimit"
+    :description="description"
+    :extra-description="extraDescription"
+    :level-code="levelCode"
+    :level-full-code="levelFullCode"
+    :level-name="levelName"
+    :squad-num="squadNum"
+    :stage-attr-info="stageAttrInfo"
+  ></StageInfo>
   <DataTable
     :enemyDatas = "enemyDatas"
   >
@@ -542,24 +497,27 @@ defineExpose({
 .game{
   display: flex;
   flex-direction: column;
-  height: 100vh;
-
+  height: calc(100vh - 60px);
+  background-color: #AAAAAA;
   .toolbar{
-    position: relative;
+    left: 0;
+    right: 0;
+    top: 0;
+    position: absolute;
     display: flex;
     align-items: center;
     justify-content: center;
     height: 80px;
-    background-color: black;
-    padding-top: 10px;
+    background-color: transparent;
+    z-index: 1000;
     .lifepoint{
       font-size: 18px;
       margin-left: 20px;
-      width: 60px;
+      width: 80px;
       color: white;
     }
     .time-slider{
-      width: 400px;
+      width: 600px;
       margin-left: 40px;
     }
   }
@@ -594,22 +552,10 @@ defineExpose({
     user-select: none;
     cursor: pointer;
     height: 60px;
-    overflow: hidden;
     text-align: center;
     img{
       height: 74px;
     }
-  }
-}
-
-.checkboxs{
-  width: 260px;
-  background-color: white;
-  padding-left: 10px;
-  display: flex;
-  flex-direction: column;
-  ::v-deep .el-checkbox{
-    height: 20px;
   }
 }
 
@@ -623,28 +569,9 @@ canvas{
 }
 
 select {
-    -moz-appearance: none;    /* Firefox */
-    -webkit-appearance: none; /* Safari 和 Chrome */
-    appearance: none;         /* 标准属性 */
+  -moz-appearance: none;    /* Firefox */
+  -webkit-appearance: none; /* Safari 和 Chrome */
+  appearance: none;         /* 标准属性 */
 }
 
-.info{
-  margin-left: 10px;
-  h1,h2{
-    text-align: center;
-    margin: 10 0;
-  }
-  .description{
-    text-align: center;
-    font-size: 15px;
-    color: #555555;
-  }
-  ::v-deep .bluename{
-    color: #0645ad;
-  }
-  ::v-deep .challenge{
-    color: #d22d2dcc;
-    font-weight: bolder;
-  }
-}
 </style>

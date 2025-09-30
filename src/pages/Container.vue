@@ -152,11 +152,11 @@ import GameView from '@/components/game/GameView';
 import AnimationFrame from '../components/utilities/AnimationFrame';
 import { getPixelSize } from '@/components/utilities/utilities';
 
-const { gameManager, attackRangeCheckAll, countDownCheckAll, showEnemyMenu } = defineProps(
-  ["gameManager","attackRangeCheckAll", "countDownCheckAll", "showEnemyMenu"]
+const { gameManager } = defineProps(
+  ["gameManager"]
 );
-
 const emit = defineEmits(["pause","update:attackRangeIndet","update:countDownIndet"]);
+
 const enemyLabels = ref([]);
 
 let waveManager: WaveManager;
@@ -290,19 +290,25 @@ const handleLabelClick = (label) => {
   pauseGame();
 }
 
+const showEnemyMenu = ref(false);
+
+eventBus.on("update:showEnemyMenu", (value) => {
+  showEnemyMenu.value = value;
+})
+
 const pauseGame = () => {
-  if(showEnemyMenu){
+  if(showEnemyMenu.value){
     emit('pause');
   }
 }
 
 //全选显示攻击范围
-watch(() => attackRangeCheckAll, () => {
+eventBus.on("update:attackRangeCheckAll", (value) => {
   enemyLabels.value.forEach((label, index) => {
     const enemy = enemies[index];
 
     if(enemy.isRanged()){
-      label.options.AttackRangeVisible = attackRangeCheckAll;
+      label.options.AttackRangeVisible = value;
     }
     
   })
@@ -327,7 +333,7 @@ const handleAttackRangeCheck = () => {
   })
 
   const isIndeterminate = count > 0 && count < labels.length;
-  emit("update:attackRangeIndet",isIndeterminate);
+  eventBus.emit("update:attackRangeIndet",isIndeterminate);
 }
 
 
@@ -342,7 +348,7 @@ const handleCountDownCheck = () => {
   })
 
   const isIndeterminate = count > 0 && count < labels.length;
-  emit("update:countDownIndet", isIndeterminate);
+  eventBus.emit("update:countDownIndet", isIndeterminate);
 }
 
 const showDetail = (enemyId: number) => {
@@ -351,16 +357,16 @@ const showDetail = (enemyId: number) => {
 }
 
 //全选显示等待时间
-watch(() => countDownCheckAll, () => {
+eventBus.on("update:countDownCheckAll", (value) => {
   enemyLabels.value.forEach(label => {
 
-    label.options.CountDownVisible = countDownCheckAll;
+    label.options.CountDownVisible = value;
     
   })
 
   trapLabels.value.forEach(label => {
 
-    label.options.CountDownVisible = countDownCheckAll;
+    label.options.CountDownVisible = value;
     
   })
 })

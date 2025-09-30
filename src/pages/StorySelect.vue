@@ -3,7 +3,6 @@
     <el-menu
       active-text-color="#ffd04b"
       background-color="#545c64"
-
       text-color="#fff"
       :default-active = "stageId"
     >
@@ -183,5 +182,6 @@ watch( currentStage , () => {
   flex: 1;
   overflow-y: scroll;
   overflow-x: hidden;
+  background-color: #545c64;
 }
 </style>

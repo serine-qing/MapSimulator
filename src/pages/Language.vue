@@ -1,18 +1,11 @@
 <template>
   <div class="language">
-    <span>Language:</span>
-    <el-select  
-      v-model="currentLang"
-      style="width: 150px"
-      size="small"
-    >
-      <el-option
-        v-for="item in language"
-        :key="item.key"
-        :label="item.name"
-        :value="item.key"
-      />
-    </el-select>  
+    <div 
+      v-for="language in languages"
+      :class="{active: currentLang === language.key}"
+      class="language-button"
+      @click="currentLang = language.key"
+    >{{language.name}}</div>
   </div>
   
 </template>
@@ -20,7 +13,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 
-const language = [
+const languages = [
   {
     key: "CN",
     name: "简体中文"
@@ -50,15 +43,37 @@ watch(currentLang, () => {
   window.location.reload();
 })
 
-
 </script>
 
 <style lang="scss" scoped>
 .language{
-  span{
-    font-size: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  .title{
+    font-size: 18px;
     color: #409eff;
+    margin: 4px 0;
   }
-  padding-bottom: 10px;
+}
+
+.language-button {
+  background: var(--primary-light);
+  border: 1px solid var(--border);
+  color: var(--primary);
+  padding: 8px 15px;
+  border-radius: 6px;
+  margin-right: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 14px;
+  &.active, &:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+  }
 }
 </style>

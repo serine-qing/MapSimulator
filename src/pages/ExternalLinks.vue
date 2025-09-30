@@ -1,7 +1,13 @@
 <template>
   <div class="external-links">
-    <a target="_blank" class="prts" :href="prtsLink">{{$t('info.PRTSWIKI')}}</a>
-    <a target="_blank" class="arkrec" :href="arkrecLink">{{$t('info.Arkrec')}}</a>
+    <a target="_blank" class="prts" :href="prtsLink">
+      <img src="/prtswiki.png"></img>
+      {{$t('info.PRTSWIKI')}}
+    </a>
+    <a target="_blank" class="arkrec" :href="arkrecLink">
+      <img src="/shaorenwiki.png"></img>
+      {{$t('info.Arkrec')}}
+    </a>
   </div>
 
 </template>
@@ -47,12 +53,22 @@ watch(() => levelCode, () => {
   align-items: center;
   justify-content: center;
   a{
+    display: flex;
+    align-items: center;
     text-decoration: none;
+    color: var(--primary);
+    font-size: 15px;
+    margin-right: 5px;
+    height: 15px;
+    line-height: 15px;
+    img{
+      vertical-align: middle;
+      height: 15px;
+      margin-right: 4px;
+    }
   }
 }
-.prts{
-  
-}
+
 .arkrec{
   margin-left: 20px;
 }

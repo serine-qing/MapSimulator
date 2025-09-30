@@ -13,6 +13,8 @@ import { SkeletonMesh } from "@/spine/SkeletonMesh";
 import Enemy from "../enemy/Enemy";
 import GameHandler from "../entityHandler/GameHandler";
 
+const blackTexture = new THREE.Texture();
+
 class GameView{
   
   public mapContainer: THREE.Object3D;
@@ -31,6 +33,7 @@ class GameView{
     this.initMap();
     this.initTraps();
     this.initEnemys();
+    this.setBgImage(blackTexture);   //给tile下面加一个默认黑色背景
 
     GameHandler.afterGameViewInit();
   }
@@ -98,6 +101,7 @@ class GameView{
   }
 
   public setBgImage(texture: THREE.Texture){
+    if(texture === blackTexture && this.tileBgImage) return;
     const materia = new THREE.MeshBasicMaterial({
       map: texture
     });
@@ -108,7 +112,7 @@ class GameView{
     this.tileBgImage = new THREE.Mesh(geometry, materia);
     
     this.tileBgImage.position.x = width / 2 - GameConfig.TILE_SIZE / 2;
-    this.tileBgImage.position.y = height / 2 - GameConfig.TILE_SIZE / 2 + 0.1;
+    this.tileBgImage.position.y = height / 2 - GameConfig.TILE_SIZE / 2;
     this.tileBgImage.position.z = -0.1;
 
     if( this.mapContainer ){

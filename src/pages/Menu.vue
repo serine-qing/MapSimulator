@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="menu-wrapper">
 
     <el-button 
       type="info" 
@@ -10,6 +10,7 @@
       <el-icon >
         <View />
       </el-icon>
+      <span class="icon-text">显示</span>
     </el-button>
 
     <transition> 
@@ -23,12 +24,14 @@
           <el-icon >
             <Hide />
           </el-icon>
+          <span class="icon-text">隐藏</span>
         </el-button>
         
         <el-button type="info" @click="toggle = !toggle">
           <el-icon >
             <Menu />
           </el-icon>
+          <span class="icon-text">{{toggle? "波次" : "菜单"}}</span>
         </el-button>
         
       </div>  
@@ -65,16 +68,32 @@ const toggle = ref(true);
 </script>
 
 <style scoped lang="scss">
+.menu-wrapper{
+  position: relative;
+}
 .menu{
   overflow: hidden;
   position: relative;
-  z-index: 100;
+  z-index: 1002;
   height: 100%;
   width: 350px;
   display: flex;
   flex-direction: column;
+  ::-webkit-scrollbar {
+    width: 6px;
+    background-color: #545C64;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #9BAAF0;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+  }
   .icons{
-    padding-top: 6px;
+    padding-top: 12px;
     padding-bottom: 4px;
     display: flex;
     align-items: center;
@@ -84,14 +103,18 @@ const toggle = ref(true);
       font-size: 24px;
     }
   }
+
+  ::v-deep .el-menu{
+    border-right: none;
+  }
 }
 
 .fixed-icon{
   top: 6px;
   left: 2px;
-  z-index: 10;
+  z-index: 1001;
   font-size: 24px;
-  position: fixed;
+  position: absolute;
 }
 
 .v-enter-from,
@@ -107,5 +130,9 @@ const toggle = ref(true);
 .v-enter-active,
 .v-leave-active{
   transition: all 0.4s;
+}
+
+.icon-text{
+  font-size: 16px;
 }
 </style>
