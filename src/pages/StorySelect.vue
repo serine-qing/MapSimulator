@@ -81,7 +81,7 @@ const activeEpisode = "act1halfidle";
 
 const storys = ref([]);
 const stageId = ref();   //当前关卡id
-const currentStage:any = ref();   //当前关卡
+const currentStage = ref();   //当前关卡
 
 const initActiveEpisode = (storys) => {
   for(let n = 0; n < storys.length; n++){

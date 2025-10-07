@@ -17,6 +17,7 @@ import { computed, onMounted, ref, shallowRef, toRaw, watch } from 'vue';
 
 import btnPause from '@/assets/images/btn_pause.png';
 import btnPlay from '@/assets/images/btn_play.png';
+import btnBase from '@/assets/images/btn_base.png';
 import btnSpeed1x from '@/assets/images/btn_speed_1x.png';
 import btnSpeed2x from '@/assets/images/btn_speed_2x.png';
 import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
@@ -54,6 +55,7 @@ const levelId = ref("");
 const gameManagerRef = shallowRef();
 
 const gameSpeed = ref();
+const timeStop = ref(false);
 const maxSecond = ref(0);
 const currentSecond = ref();
 const pause = ref(false);
@@ -86,6 +88,7 @@ const reset = () => {
   runesData = [];
   matrixRunes = [];
   sandTableData.value = null;
+  timeStop.value = false;
 }
 reset();
 
@@ -117,10 +120,26 @@ const formatTooltip = (val: number) => {
 const changeGameSpeed = () => {
   gameSpeed.value = gameSpeed.value === 4? 1 : gameSpeed.value * 2;
   gameManager.changeGameSpeed(gameSpeed.value);
+  timeStop.value = false;
 }
 
+//更改游戏倍速
 const changePause = () => {
   pause.value = !pause.value;
+}
+
+//开启/关闭时停模式（0.1倍速）
+const changeTimeStop = () => {
+  if(timeStop.value){
+    gameSpeed.value = 1;
+    gameManager.changeGameSpeed(1);
+    timeStop.value = false;
+  }else{
+    gameSpeed.value = 1;
+    gameManager.changeGameSpeed(0.2);
+    timeStop.value = true;
+  }
+  
 }
 
 const changeSecond = (val: number) => {
@@ -430,6 +449,13 @@ defineExpose({
           <img style="height: 80px;" v-show="!pause" :src="btnPause">
           <img style="height: 80px;" v-show="pause" :src="btnPlay">
         </div>
+        <div 
+          @click="changeTimeStop()"
+          class="button time-stop"
+        >
+          <img style="height: 80px;" :src="btnBase"></img>
+          <span>{{timeStop? "关闭":"开启"}}0.2倍速</span>
+        </div>
       </div>
 
     </div>
@@ -481,7 +507,7 @@ defineExpose({
   >
   </DataTable>
 
-  <Notice/>
+  <!-- <Notice/> -->
 </div>
 
 
@@ -499,6 +525,7 @@ defineExpose({
   flex-direction: column;
   height: calc(100vh - 60px);
   background-color: #AAAAAA;
+  position: relative;
   .toolbar{
     left: 0;
     right: 0;
@@ -572,6 +599,18 @@ select {
   -moz-appearance: none;    /* Firefox */
   -webkit-appearance: none; /* Safari 和 Chrome */
   appearance: none;         /* 标准属性 */
+}
+
+.time-stop{
+  position: relative;
+  span{
+    top: 8px;
+    left: 16px;
+    font-size: 15px;
+    position: absolute;
+    color: #fff;
+    width: 60px;
+  }
 }
 
 </style>

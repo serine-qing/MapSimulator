@@ -52,7 +52,7 @@ class GameManager extends DataObject{
   public gameSpeed: number = GameConfig.GAME_SPEED;
   public pause: boolean = false;
 
-  private gameSpeedOneCanUpdate: boolean = false;
+  private updateCountdown: number = 2;  //多少次animate才执行一次update
   private updateInterval = 1 / 30;    //游戏内一帧时间（固定三十分之一秒）
   private delta = 0;                  //view渲染用
 
@@ -145,18 +145,18 @@ class GameManager extends DataObject{
     this.delta = 0;
     this.mouseMoveProcessing = false;
 
-    if(this.gameSpeed === 1){
+    if(this.gameSpeed <= 1){
       //一倍速2帧执行一次
-      if(this.gameSpeedOneCanUpdate){
-        this.gameSpeedOneCanUpdate = false;
+      if(this.updateCountdown === 1){
+        this.resetUpdateCountdown();
 
         this.update();
         
       }else{
-        this.gameSpeedOneCanUpdate = true;
+        this.updateCountdown --;
       }
     }else{
-      this.gameSpeedOneCanUpdate = false;
+      this.resetUpdateCountdown();
 
       for(let i = 0; i < this.gameSpeed / 2; i++){
         this.update();
@@ -441,6 +441,11 @@ class GameManager extends DataObject{
 
   public changeGameSpeed(gameSpeed: number){
     this.gameSpeed = gameSpeed;
+    this.resetUpdateCountdown();
+  }
+
+  private resetUpdateCountdown(){
+    this.updateCountdown = 1 / this.gameSpeed * 2;
   }
 
   public restart(){
@@ -564,7 +569,7 @@ class GameManager extends DataObject{
     this.pause = false;
 
     //剿灭太长 特殊处理
-    const maxTime = this.isCampaign ? 3600 : 1200;
+    const maxTime = this.isCampaign ? 3600 : 1500;
 
 
     while( !this.isFinished && this.gameSecond < maxTime ){
