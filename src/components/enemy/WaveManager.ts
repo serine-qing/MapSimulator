@@ -9,6 +9,7 @@ import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
 import { Mesh } from "three";
+import GameHandler from "../entityHandler/GameHandler";
 
 interface activeExtraAction{
   time: number,
@@ -55,7 +56,8 @@ class WaveManager{
   public finishedEnemyCount: number = 0;
   private isFinished: boolean = false;
   private needUpdateSPFA: boolean = false;
-
+  public cameraViewCount: number = 1;         //地图有多少面
+  public currentCameraView: number = 0;         //当前在哪一面
   public visualRoutes = [];
   constructor(){
     Global.waveManager = this;
@@ -67,11 +69,13 @@ class WaveManager{
 
     this.initActions();
     this.initExtraWave();
-    
+
     this.allActions = [
       ...this.actions.flat()
     ];
     
+    this.initCameraViews();   //多面地图数据
+
     Object.values(this.extraWaves).forEach(fragments => {
       fragments.forEach(fragment => {
         this.allActions.push(...fragment.actions)
@@ -181,6 +185,7 @@ class WaveManager{
       this.actions.push(this.createActions(datas));
     })
     this.maxEnemyCount = this.actions.flat().length;
+
   }
 
 
@@ -202,6 +207,14 @@ class WaveManager{
       
     })
 
+  }
+
+  private initCameraViews(){
+    this.allActions.forEach(action => {
+      if(action.key === "move_camera"){
+        this.cameraViewCount ++;
+      }
+    })
   }
 
   public createActions(actionDatas: ActionData[]){
@@ -439,6 +452,12 @@ class WaveManager{
               break;
             }
           break;
+          case "PLAY_OPERA":
+            if(action.actionData.key === "move_camera"){
+              this.currentCameraView ++;
+              GameHandler.afterMoveCamera();
+            }
+            break;
         }
 
         currentObj.currentActionIndex ++;
@@ -549,7 +568,8 @@ class WaveManager{
       waveSecond: this.waveSecond,
       finishedEnemyCount: this.finishedEnemyCount,
       extraActionStates,
-      isFinished: this.isFinished
+      isFinished: this.isFinished,
+      currentCameraView: this.currentCameraView
     }
 
     return state;
@@ -567,7 +587,8 @@ class WaveManager{
       actionStates,
       enemyStates,
       extraActionStates,
-      isFinished
+      isFinished,
+      currentCameraView
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
@@ -578,6 +599,7 @@ class WaveManager{
     this.waveSecond = waveSecond;
     this.finishedEnemyCount = finishedEnemyCount;
     this.isFinished = isFinished;
+    this.currentCameraView = currentCameraView;
     
     for(let i = 0; i < this.allActions.length; i++){
       const aState = actionStates[i];

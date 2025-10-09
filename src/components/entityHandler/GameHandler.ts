@@ -2,6 +2,7 @@ import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import act1vhalfidle from "../entityHandler/次生预案";
 import main15 from "./15章";
+import main16 from "./16章";
 import Tile from "../game/Tile";
 
 const GameHandler = {
@@ -26,7 +27,12 @@ const GameHandler = {
 
   afterGameViewInit: () => {
     main15.afterGameViewInit();
+  },
+
+  afterMoveCamera: () => {
+    main16.afterMoveCamera();
   }
+
 }
 
 export default GameHandler;

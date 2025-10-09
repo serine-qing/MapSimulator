@@ -9,6 +9,7 @@ import act44side from "./墟";
 import act45side from "./无忧梦呓";
 import main11 from "./11章";
 import main15 from "./15章";
+import main16 from "./16章";
 
 const EnemyHandler = {
   checkActionDatas: (actionDatas: ActionData[]) => {
@@ -31,6 +32,7 @@ const EnemyHandler = {
     act45side.handleEnemyStart(enemy);
     main11.handleEnemyStart(enemy);
     main15.handleEnemyStart(enemy);
+    main16.handleEnemyStart(enemy);
 
     switch (enemy.key) {
       case "enemy_1334_ristar":   //行星碎屑

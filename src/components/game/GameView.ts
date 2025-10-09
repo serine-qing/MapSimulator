@@ -40,6 +40,7 @@ class GameView{
 
   //初始化地图tiles
   private initMap(){
+
     this.mapContainer = new THREE.Object3D();
     
     Global.tileManager.tiles.flat().forEach((tile: Tile)=>{
@@ -56,11 +57,18 @@ class GameView{
     this.mapContainer.add(this.tileObjects);
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
-    this.mapContainer.position.x = - Global.tileManager.width / 2 * GameConfig.TILE_SIZE;
+    this.updateCameraView();
     this.mapContainer.position.y = - Global.tileManager.height / 2 * GameConfig.TILE_SIZE + 7;
 
     Global.tileManager.initPreviewTextures();
     gameCanvas.scene.add(this.mapContainer);
+  }
+
+  public updateCameraView(){
+    const width = Math.floor(Global.tileManager.width / Global.waveManager.cameraViewCount);
+    
+    this.mapContainer.position.x = - (width * Global.waveManager.currentCameraView + width / 2) 
+      * GameConfig.TILE_SIZE;
   }
 
   private initTraps(){
@@ -147,6 +155,7 @@ class GameView{
   public render(delta: number){
 
     if(Global.gameManager.isSimulate) return;
+    this.updateCameraView();
     
     gameCanvas.render();
 

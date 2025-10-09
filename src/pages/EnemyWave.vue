@@ -40,7 +40,10 @@
               <el-image class="head-image" :src="action.enemys[0]?.icon" fit="fill" />
               <div class="name">
                 <span class="index">#{{action.id + 1}}</span>
-                {{action.enemys[0] ?action.enemys[0].name : "装置出现"}}
+                {{
+                  action.enemys[0] ? action.enemys[0].name : 
+                  action.actionData.key === "move_camera" ? "移动地图" : "装置出现"
+                }}
               </div>
             </div>
           </div>

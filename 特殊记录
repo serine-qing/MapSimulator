@@ -39,7 +39,7 @@ kill 杀死刚刚找到的进程
 cd ../arknights/backend
 git pull
 nohup npm run dev &  重新启动
-
+非正常退出终端：如直接关闭窗口，属于异常断开，更容易导致进程被清理。而先输入exit命令退出，属于正常注销
 
 太阳甩在身后结晶：
 gems_type: 1 浅色结晶 2 深色结晶
@@ -53,7 +53,7 @@ spritepack/icon_enemies.ab 敌人头像
 地图tile贴图在arts里面 可能是map开头的资源 大海捞针
 合约tag：arts\ui\[uc]crisisv2.ab
 
-
+zone_table.json
 enemy_database.json
 stage_table.json
 enemy_handbook_table.json

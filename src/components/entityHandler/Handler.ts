@@ -44,6 +44,8 @@ abstract class Handler{
 
   abstract handleEnemySet(enemy: Enemy, state);
 
+  abstract afterMoveCamera();
+
   abstract afterGameUpdate();
 
   abstract afterGameViewInit();

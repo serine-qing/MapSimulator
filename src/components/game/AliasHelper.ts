@@ -4,6 +4,7 @@ const AliasMap = {
     1: "NORMAL",
     2: "FOUR_STAR",
     3: "ALL",
+    8: "SIX_STAR",
   },
   checkPointType: {
     0: "MOVE",
@@ -43,7 +44,8 @@ const AliasMap = {
   },
   actionType:{
     0: "SPAWN",
-    6: "ACTIVATE_PREDEFINED"
+    6: "ACTIVATE_PREDEFINED",
+    7: "PLAY_OPERA",
   },
   levelType:{
     0: "NORMAL",

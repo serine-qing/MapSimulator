@@ -381,7 +381,7 @@ class MapModel{
       //todo postDelay实际上没应用
       currentTime += wave.postDelay;
     });
-    
+
   }
 
   private parseActions(fragments: any[], currentTime: number, isExtra: boolean): ActionData[][]{
@@ -416,6 +416,11 @@ class MapModel{
             case "ACTIVATE_PREDEFINED": //激活装置
             case "TRIGGER_PREDEFINED": //激活实体技能（装置等）
               actionKey = action.key;
+              break;
+            case "PLAY_OPERA":              //移动相机
+              if(action.key === "move_camera"){
+                actionKey = action.key;
+              }
               break;
           }
           

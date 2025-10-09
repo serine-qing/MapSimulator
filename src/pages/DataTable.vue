@@ -151,7 +151,7 @@
           <span class="pre" v-if="ability.textFormat === 'NORMAL'">·</span>
           <span class="pre" v-else-if="ability.textFormat === 'SILENCE'">※</span>
           <span :class="{ title : ability.textFormat === 'TITLE' }">
-            {{ ability.text.replace(/<\$[\s\S]*?\/?>|<\/>/g, '') }}
+            {{ ability.text.replace(/<[\$\@][\s\S\@]*?\/?>|<\/>/g, '') }}
           </span>
         </p>
       </div>

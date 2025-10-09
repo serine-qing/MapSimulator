@@ -77,7 +77,7 @@ const emit = defineEmits<{
 
 //3级关卡菜单
 
-const activeEpisode = "act1halfidle";
+const activeEpisode = "main_16";
 
 const storys = ref([]);
 const stageId = ref();   //当前关卡id

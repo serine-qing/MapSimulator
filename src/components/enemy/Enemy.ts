@@ -1355,6 +1355,7 @@ class Enemy extends BattleObject{
 
   //渐变退出，用exitCountDown时间控制（不同的子类有不同的实现方法）
   public disappear(countDown?: number){
+
     this.isDisappear = true;
     
     if(!this.isSimulate()) {
@@ -1365,11 +1366,13 @@ class Enemy extends BattleObject{
   }
 
   public appearAt(position: Vec2){
+    
     this.setPosition(
       position.x,
       position.y
     )
 
+    this.exitCountDown = 0;
     this.isDisappear = false;
     this.show();
   } 
