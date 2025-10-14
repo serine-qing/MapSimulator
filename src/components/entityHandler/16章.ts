@@ -17,7 +17,6 @@ const Handler = {
       case "enemy_1571_mirbst":  //狂躁异质裂兽
         const m0crazybonus = enemy.getTalent("m0crazybonus");
         if(m0crazybonus){ 
-          enemy.moveAnimate = "Move_2"
           enemy.addBuff({
             id: "m0crazybonus",
             key: "m0crazybonus",

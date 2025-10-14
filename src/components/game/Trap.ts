@@ -207,6 +207,7 @@ class Trap extends BattleObject{
       case "trap_163_foolcrate":
       case "trap_405_xbroadblock":
       case "trap_480_roadblockxb":
+      case "trap_270_spawnp":
         blockRoute = true;
         break;
     }

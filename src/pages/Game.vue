@@ -271,7 +271,13 @@ const generateStageInfo = () => {
 
   Object.values(mapModel.runesHelper.attrChanges).forEach(attrChanges => {
     attrChanges.forEach(attrChange => {
-      const { enemy, enemyExclude, calMethod } = attrChange;
+      let { enemy, enemyExclude, calMethod } = attrChange;
+      if(enemy?.length > 10){
+        enemy = null;
+      }
+      if(enemyExclude?.length > 10){
+        enemyExclude = null;
+      }
       let includeEnemy;
       let excludeEnemy;
       if(enemy){
@@ -507,7 +513,7 @@ defineExpose({
   >
   </DataTable>
 
-  <!-- <Notice/> -->
+  <Notice/>
 </div>
 
 

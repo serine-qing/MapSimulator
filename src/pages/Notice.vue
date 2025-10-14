@@ -8,6 +8,7 @@
       <template #reference> 
         <el-link type="danger">{{$t('info.UpdateNotice')}}</el-link>
       </template>
+      <p style="color: red;">10.14更新：修复主线Sub关卡不显示的bug</p>
       <p style="color: red;">10.3更新：添加0.2倍速、修复全息作战矩阵UI位置异常bug</p>
       <p style="color: red;">9.25更新：部分本地化文本、次生预案资源加载</p>
       <p style="color: red;">9.19更新：添加PRTS.WIKI和少人wiki外链，完成追迹日落以西机制</p>

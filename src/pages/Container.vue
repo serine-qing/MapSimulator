@@ -167,7 +167,7 @@ let scale: number;
 let canvasHeight: number;
 let canvasWidth: number;
 
-//#region  敌人label数据绑定                         
+//#region  label数据绑定                         
 const initEnemyLabels = () => {
   enemies.forEach(enemy => {
     initLabel(enemy)

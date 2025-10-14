@@ -301,6 +301,7 @@ class RunesHelper{
   }
 
   public checkEnemyGroup(group: string): boolean{
+    //todo rune冲突时候的优先级
     return !group || this.enemyGroupEnable.includes(group) && !this.enemyGroupDisable.includes(group);
   }
 

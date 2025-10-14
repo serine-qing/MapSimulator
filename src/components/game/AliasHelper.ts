@@ -5,6 +5,7 @@ const AliasMap = {
     2: "FOUR_STAR",
     3: "ALL",
     8: "SIX_STAR",
+    15: "ALL",
   },
   checkPointType: {
     0: "MOVE",
