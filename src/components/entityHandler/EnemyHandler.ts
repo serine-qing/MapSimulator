@@ -45,13 +45,38 @@ const EnemyHandler = {
       case "enemy_1367_dseed":  //血泊
         enemy.unMoveable = true;
         enemy.notCountInTotal = true;
+        break;
+      case "enemy_1432_lrccon":  //茧缚
+      case "enemy_1432_lrccon_2":
+        enemy.dontBlockWave = true;
+        break;
+      case "enemy_1554_lrtsia":  //特雷西娅
+        enemy.notCountInTotal = true;
+        enemy.dontBlockWave = true;
+        enemy.unMoveable = true;
+        break
     }
 
     //判断是否是近地悬浮
     const abilityList = enemy.enemyData.abilityList;
-    if(abilityList){
+
+    let roadFly = "近地悬浮"
+    switch (localStorage.currentLang) {
+      case "JP":
+        roadFly = "低空浮揚"
+        break;
+      case "EN":
+        roadFly = "Low-Altitude Hovering";
+        break;
+      case "KR":
+        roadFly = "공중 부양";
+        break;
+    }
+
+    if(abilityList && Array.isArray(abilityList)){
+      //YJ数据里面的空abilityList 有的是数组 有的是对象
       const find = abilityList.find(ability => {
-        return ability.text?.replace(/[^\u4e00-\u9fa5]/g, "") === "近地悬浮";
+        return ability.text?.replace(/<[^>]*>/g, "") === roadFly;
       });
 
       if(find){
@@ -186,6 +211,7 @@ const EnemyHandler = {
     switch (skill.prefabKey) {
       case "doom":
       case "suicide":
+        if(enemy.key === "enemy_1554_lrtsia") return; //特蕾西娅
         let cd = initCooldown;
         if(enemy.key === "enemy_1521_dslily"){
           

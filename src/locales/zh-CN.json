@@ -15,7 +15,16 @@
     "Decrease": "降低",
     "to": "至",
     "CurrentCheckpoint": "当前检查点",
-    "UpdateNotice": "更新公告"
+    "UpdateNotice": "更新公告",
+    "ChooseSimulation": "选择沙盘推演假设",
+    "EnemyStatsUp": "敌人属性将逐级提升",
+    "Confirm": "确定",
+    "Or": "或是",
+    "SimulationComplete": "模拟结束",
+    "Restart": "重新开始",
+    "02xSpeed": "0.2倍速",
+    "Enable": "开启",
+    "Disable": "关闭"
   },
   "table": {
     "Avatar": "头像",

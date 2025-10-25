@@ -76,8 +76,17 @@ const emit = defineEmits<{
 }>()
 
 //3级关卡菜单
+let activeEpisode = "main_16";
 
-const activeEpisode = "main_16";
+switch (localStorage.currentLang) {
+  case "EN":
+  case "JP":
+  case "KR":
+    activeEpisode = "act42side";
+    break;
+
+}
+
 
 const storys = ref([]);
 const stageId = ref();   //当前关卡id

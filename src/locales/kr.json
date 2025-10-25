@@ -15,7 +15,16 @@
     "Decrease": "decrease",
     "to": " to",
     "CurrentCheckpoint": "현재 체크포인트",
-    "UpdateNotice": "업데이트 공지"
+    "UpdateNotice": "업데이트 공지",
+    "ChooseSimulation": "모의 훈련 가설 선택",
+    "EnemyStatsUp": "적의 능력치 상승",
+    "Confirm": "확인하다",
+    "Or": "OR",
+    "SimulationComplete": "시뮬레이션 종료",
+    "Restart": "재시작",
+    "02xSpeed": "0.2x Speed",
+    "Enable": "Enable",
+    "Disable": "Disable"
   },
   "table": {
     "Avatar": "아바타",

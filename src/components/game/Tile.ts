@@ -310,7 +310,7 @@ class Tile extends DataObject{
 
   public initPreviewTexture(){
     //没有装置、并且没有ban格子的话，就生成一个占位符texture
-    if(!this.trap && !this.isBanned && this.buildableType === "MELEE"){
+    if(!this.trap && !this.isBanned && (this.buildableType === "MELEE" || this.buildableType === "ALL")){
       const textureSize = getPixelSize(this.width * 0.9);
       const textureGeo = new THREE.PlaneGeometry( textureSize, textureSize );
       const textureMat = new THREE.MeshBasicMaterial({

@@ -1,12 +1,12 @@
 <template>
   <div class="game-over-mask">
     <div class="message">
-      模拟结束
+      {{$t('info.SimulationComplete')}}
       <el-button 
         class="restart-button" 
         type="primary"
         @click= "emit('restart')"
-      >重新开始</el-button>
+      >{{$t('info.Restart')}}</el-button>
     </div>
     
   </div>

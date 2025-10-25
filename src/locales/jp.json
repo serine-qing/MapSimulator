@@ -15,7 +15,16 @@
     "Decrease": "decrease",
     "to": " to",
     "CurrentCheckpoint": "現在のチェックポイント",
-    "UpdateNotice": "更新のお知らせ"
+    "UpdateNotice": "更新のお知らせ",
+    "ChooseSimulation": "適用する仮説を選択してください",
+    "EnemyStatsUp": "適用する仮説のレベルに応じて敵のステータスも強化されます",
+    "Confirm": "確認する",
+    "Or": "OR",
+    "SimulationComplete": "シミュレーション終了",
+    "Restart": "リスタート",
+    "02xSpeed": "0.2x Speed",
+    "Enable": "Enable",
+    "Disable": "Disable"
   },
   "table": {
     "Avatar": "アイコン",

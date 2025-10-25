@@ -184,8 +184,15 @@ class WaveManager{
     this.mapModel.actionDatas.forEach(datas => {
       this.actions.push(this.createActions(datas));
     })
-    this.maxEnemyCount = this.actions.flat().length;
 
+    let maxEnemyCount = 0;
+    this.actions.flat().forEach(action => {
+      if(action.actionType === "SPAWN" && !(action?.actionData?.enemyData?.notCountInTotal)){
+        maxEnemyCount ++;
+      }
+    });
+
+    this.maxEnemyCount = maxEnemyCount;
   }
 
 
@@ -237,7 +244,7 @@ class WaveManager{
       if(enemy.isFinished){
         this.enemiesInMap.splice(i, 1);
         this.removedEnemyIds.push(enemy.id);
-        if(!enemy.isExtra) this.finishedEnemyCount++;
+        if(!enemy.isExtra && !enemy.notCountInTotal) this.finishedEnemyCount++;
         
         eventBus.emit("setData", {
           finishedEnemyCount: this.finishedEnemyCount
@@ -427,31 +434,31 @@ class WaveManager{
             }
             switch (action.actionType) {
               case "ACTIVATE_PREDEFINED":
-              if(action.trap){
-                action.trap.tile.bindTrap(action.trap);
-                action.trap.show();
+                if(action.trap){
+                  action.trap.tile.bindTrap(action.trap);
+                  action.trap.show();
 
-                if(action.trap.canBlockRoute()){
-                  this.needUpdateSPFA = true;
+                  if(action.trap.canBlockRoute()){
+                    this.needUpdateSPFA = true;
+                  }
+
+                  //模拟data set的时候会手动添加
+                  if(!Global.gameManager.isSimulate){
+                    Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
+                  }
                 }
 
-                //模拟data set的时候会手动添加
-                if(!Global.gameManager.isSimulate){
-                  Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
+                break;
+              case "TRIGGER_PREDEFINED":
+                const regex = /:([^:]+)$/;
+                const match = action.key.match(regex);
+                if(match){
+                  const eventName = match[1];
+                  action.trap.applyEvent(eventName);
                 }
-              }
-
-              break;
-            case "TRIGGER_PREDEFINED":
-              const regex = /:([^:]+)$/;
-              const match = action.key.match(regex);
-              if(match){
-                const eventName = match[1];
-                action.trap.applyEvent(eventName);
-              }
-              break;
+                break;
             }
-          break;
+            break;
           case "PLAY_OPERA":
             if(action.actionData.key === "move_camera"){
               this.currentCameraView ++;

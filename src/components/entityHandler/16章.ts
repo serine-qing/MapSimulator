@@ -32,10 +32,16 @@ const Handler = {
         break;
       case "enemy_1572_folchr":  //圣愚
         const waveManager = Global.waveManager;
-        if(waveManager.currentCameraView === 0) return;
-
+        if(waveManager.currentCameraView === 0){
+          //一阶段boss不计入击杀
+          enemy.notCountInTotal = true;
+          return;
+        }
+        enemy.isExtra = false;
         const summonfearpj = enemy.getSkill("summonfearpj");
         const branch_id = summonfearpj.blackboard.branch_id;
+        const summonLength = waveManager.getExtraWave(branch_id)?.length;
+        enemy.customData.summonIndex = 0;
         enemy.addSkill({
           name: "summonfearpj",
           cooldown: summonfearpj.cooldown,
@@ -44,9 +50,13 @@ const Handler = {
             transAnimation: "Skill_1",
             isWaitTrans: true,
             callback: () => {
+              enemy.customData.summonIndex = enemy.customData.summonIndex % summonLength;
+
               waveManager.startExtraAction({
-                key: branch_id
+                key: branch_id,
+                fragmentIndex: enemy.customData.summonIndex
               })
+              enemy.customData.summonIndex ++;
             }
           },
         })

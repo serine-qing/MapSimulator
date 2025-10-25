@@ -460,7 +460,7 @@ defineExpose({
           class="button time-stop"
         >
           <img style="height: 80px;" :src="btnBase"></img>
-          <span>{{timeStop? "关闭":"开启"}}0.2倍速</span>
+          <span class="Speed02" style="font-size: 11px;">{{timeStop? $t('info.Disable'): $t('info.Enable')}} {{$t('info.02xSpeed')}}</span>
         </div>
       </div>
 
@@ -513,7 +513,7 @@ defineExpose({
   >
   </DataTable>
 
-  <Notice/>
+  <!-- <Notice/> -->
 </div>
 
 
@@ -617,6 +617,10 @@ select {
     color: #fff;
     width: 60px;
   }
+}
+
+.Speed02{
+  margin-top: 5px;
 }
 
 </style>

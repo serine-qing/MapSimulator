@@ -15,7 +15,16 @@
     "Decrease": "decrease",
     "to": " to",
     "CurrentCheckpoint": "Current Checkpoint",
-    "UpdateNotice": "Update Notice"
+    "UpdateNotice": "Update Notice",
+    "ChooseSimulation": "Choose Simulation Conditions",
+    "EnemyStatsUp": "Enemy stats will increase each level",
+    "Confirm": "Confirm",
+    "Or": "OR",
+    "SimulationComplete": "Simulation Complete",
+    "Restart": "Restart",
+    "02xSpeed": "0.2x Speed",
+    "Enable": "Enable",
+    "Disable": "Disable"
   },
   "table": {
     "Avatar": "Avatar",

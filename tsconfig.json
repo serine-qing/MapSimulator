@@ -12,7 +12,7 @@
     "resolveJsonModule": true,    //允许导入json
     "allowSyntheticDefaultImports": true,         
     "esModuleInterop": true,
-    "isolatedModules": true,
+    "isolatedModules": true
   },
   "exclude": ["node_modules", "dist"]
 }

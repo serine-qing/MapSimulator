@@ -2,7 +2,7 @@
 <template>
   <div class="wrapper">
     <div class="sand-table">
-      <p class="title">选择沙盘推演假设 <span>敌人属性将逐级提升</span></p>
+      <p class="title">{{$t('info.ChooseSimulation')}} <span>{{$t('info.EnemyStatsUp')}}</span></p>
       <div class="tags">
 
         <div 
@@ -26,7 +26,7 @@
                 v-if="index < runes1.length - 1"
                 v-show="rune1Selected === -1"
                 class="icon"
-              >或是</div>
+              >{{$t('info.Or')}}</div>
               <span class="tag-info">{{rune.runeDesc}}</span>
             </div>
 
@@ -55,7 +55,7 @@
                 v-if="index < runes2.length - 1"
                 v-show="rune2Selected === -1"
                 class="icon"
-              >或是</div>
+              >{{$t('info.Or')}}</div>
               <span class="tag-info">{{rune.runeDesc}}</span>
             </div>
 
@@ -67,7 +67,7 @@
         class="submit"
         @click="handleSubmit"
         :class="{disabled: !hasChanged()}"
-      >确定</div>
+      >{{$t('info.Confirm')}}</div>
     </div>
   </div>
   
