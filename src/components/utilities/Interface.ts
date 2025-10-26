@@ -1,6 +1,4 @@
-import Enemy from "@/components/enemy/Enemy"
-import Trap from "../game/Trap"
-import Tile from "../game/Tile"
+import * as THREE from "three";
 
 declare global {
   interface Stage{
@@ -139,6 +137,7 @@ declare global {
     alias: string,          //地图里的装置id
     direction: string,
     position: Vec2,
+    skills: KeyValue[],
     mainSkillLvl: number,   //技能等级
     hidden: boolean,        //是否隐藏
     idleAnimate?: string,   //idle动画
@@ -146,7 +145,6 @@ declare global {
     skeletonData?: any,     //spine数据有skeletonData
     textureMat?: THREE.MeshBasicMaterial  //texture数据才有
     extraWaveKey?: string,      //额外波次key
-    customData: {[key: string]: any},            //自定义数据
   }
 
   interface Effect{
@@ -177,6 +175,11 @@ declare global {
     key: string,
     value: number,
     valueStr: string | null,
+  }
+
+  interface KeyValue{
+    key: string,
+    value: any,
   }
 
   interface Array<T> {

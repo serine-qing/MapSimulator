@@ -53,6 +53,7 @@ spritepack/icon_enemies.ab 敌人头像
 地图tile贴图在arts里面 可能是map开头的资源 大海捞针
 合约tag：arts\ui\[uc]crisisv2.ab
 
+activity_table.json
 zone_table.json
 enemy_database.json
 stage_table.json

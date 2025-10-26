@@ -42,7 +42,7 @@
                 <span class="index">#{{action.id + 1}}</span>
                 {{
                   action.enemys[0] ? action.enemys[0].name : 
-                  action.actionData.key === "move_camera" ? "移动地图" : "装置出现"
+                  action.actionData.actionType === "PLAY_OPERA" ? "移动地图" : "装置出现"
                 }}
               </div>
             </div>
@@ -87,8 +87,8 @@ watch(waveIndex, () => {
   
 })
 
-eventBus.on("actions_init", (acts) => {
-  actions.value = acts;
+eventBus.on("actions_init", (waves) => {
+  actions.value = waves.map(wave => wave.actions);
 });
 
 eventBus.on("action_index_change", (aIndex, wIndex) => {

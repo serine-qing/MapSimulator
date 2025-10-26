@@ -47,6 +47,7 @@ const AliasMap = {
     0: "SPAWN",
     6: "ACTIVATE_PREDEFINED",
     7: "PLAY_OPERA",
+    8: "TRIGGER_PREDEFINED"
   },
   levelType:{
     0: "NORMAL",

@@ -25,6 +25,8 @@ class GameView{
 
   public enemyMeshs: {[key: string]: THREE.Object3D} = {};           //每种敌人对应的mesh
 
+  public bossRushAreaData: any[];
+
   constructor(){
     Global.gameView = this;
   }
@@ -56,19 +58,29 @@ class GameView{
 
     this.mapContainer.add(this.tileObjects);
 
+    this.bossRushAreaData = Global.mapModel.bossRushAreaData;   //引航者试炼的相机位置数据
+
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
     this.updateCameraView();
     this.mapContainer.position.y = - Global.tileManager.height / 2 * GameConfig.TILE_SIZE + 7;
 
     Global.tileManager.initPreviewTextures();
     gameCanvas.scene.add(this.mapContainer);
+
   }
 
   public updateCameraView(){
-    const width = Math.floor(Global.tileManager.width / Global.waveManager.cameraViewCount);
-    
-    this.mapContainer.position.x = - (width * Global.waveManager.currentCameraView + width / 2) 
+    if(this.bossRushAreaData && this.bossRushAreaData.length > 0 ){
+      const currentCameraView = Global.waveManager.currentCameraView;
+      const {start, end} = this.bossRushAreaData[currentCameraView];
+      const currentOffset = (end - start) / 2 + start;
+      this.mapContainer.position.x =  - GameConfig.TILE_SIZE * currentOffset;
+    }else{
+      const width = Math.floor(Global.tileManager.width / Global.waveManager.cameraViewCount);
+      this.mapContainer.position.x = - (width * Global.waveManager.currentCameraView + width / 2) 
       * GameConfig.TILE_SIZE;
+    }
+
   }
 
   private initTraps(){

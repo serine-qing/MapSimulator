@@ -8,7 +8,7 @@ const Handler = {
       //压力舒缓帮手
       case "trap_253_boxnma":
       case "trap_254_boxmac":
-        const duration = trap.customData.skillBlackboard.find(data => data.key === "born_duration")?.value;
+        const duration = trap.getSkillBoard("born_duration");
 
         trap.countdown.addCountdown({
           name: "waiting",

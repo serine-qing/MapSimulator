@@ -15,13 +15,14 @@ class Trap extends BattleObject{
   iconUrl: string; 
 
   key: string;
-  alias: string;            //地图内装置id
+  alias: string;            //地图内装置名
+  id: number;               //地图内装置id
   direction: string;
   position: Vec2;
   idleAnimate: string;
   mainSkillLvl: number;    //技能等级
   visible: boolean;         //是否可见
-  
+  skills: KeyValue[] = [];
   fbxMesh: THREE.Mesh;
 
   skeletonData: any;
@@ -48,11 +49,12 @@ class Trap extends BattleObject{
     this.isTokenCard = data.isTokenCard;
     this.key = data.key;
     this.alias = data.alias;
+    this.id = parseInt(this.alias?.split('#')[1]);
     this.direction = data.direction;
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;
     this.visible = !data.hidden;
-    this.customData = data.customData;
+    this.skills = data.skills;
 
     this.extraWaveKey = data.extraWaveKey;
 
@@ -177,7 +179,7 @@ class Trap extends BattleObject{
 
   //获取skillBlackboard
   getSkillBoard(key: string){
-    return this.customData?.skillBlackboard?.find(item => item.key === key)?.value;
+    return this.skills.find(item => item.key === key)?.value;
   }
 
   bindTile(tile: Tile){

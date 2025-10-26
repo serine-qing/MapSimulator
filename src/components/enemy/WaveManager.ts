@@ -11,6 +11,11 @@ import EnemyHandler from "../entityHandler/EnemyHandler";
 import { Mesh } from "three";
 import GameHandler from "../entityHandler/GameHandler";
 
+interface Wave{
+  advancedWaveTag?: string,
+  actions: Action[]
+}
+
 interface activeExtraAction{
   time: number,
   startTime: number,            //该波次开始时间
@@ -27,17 +32,14 @@ interface startExtraActionOptions{
   actionIndex?: number        //指定执行的currentActionIndex，数组只有一个元素
 }
 
-interface Fragment{
-  actions: Action[]
-}
 
 //敌人状态管理
 class WaveManager{
   public mapModel: MapModel;
 
-  public actions: Action[][] = [];  
-  public extraWaves: {[key: string]: Fragment[]} = {};  
-  private allActions: Action[];                           //全部action的数组，用于存取数据
+  public waves: Wave[] = [];  
+  public extraWaves: {[key: string]: Wave[]} = {};  
+  public allActions: Action[];                           //全部action的数组，用于存取数据
   private activeExtraActions: activeExtraAction[] = [];  
 
   public enemies: Enemy[] = []; //敌人对象数组
@@ -71,9 +73,9 @@ class WaveManager{
     this.initExtraWave();
 
     this.allActions = [
-      ...this.actions.flat()
+      ...this.waves.map(fragment => fragment.actions).flat()
     ];
-    
+
     this.initCameraViews();   //多面地图数据
 
     Object.values(this.extraWaves).forEach(fragments => {
@@ -86,7 +88,7 @@ class WaveManager{
     this.generateVisualRoutes();  //生成模拟显示路线
 
     if(!Global.gameManager.isSimulate){
-      eventBus.emit("actions_init", this.actions);
+      eventBus.emit("actions_init", this.waves);
     }
   }
   
@@ -181,15 +183,21 @@ class WaveManager{
 
   public initActions(){
 
-    this.mapModel.actionDatas.forEach(datas => {
-      this.actions.push(this.createActions(datas));
+    this.mapModel.waveDatas.forEach(wave => {
+      this.waves.push({
+        advancedWaveTag: wave.advancedWaveTag,
+        actions: this.createActions(wave.actionDatas)
+      });
     })
 
     let maxEnemyCount = 0;
-    this.actions.flat().forEach(action => {
-      if(action.actionType === "SPAWN" && !(action?.actionData?.enemyData?.notCountInTotal)){
-        maxEnemyCount ++;
-      }
+    this.waves.forEach(fragment => {
+      fragment.actions.forEach(action => {
+        if(action.actionType === "SPAWN" && !(action?.actionData?.enemyData?.notCountInTotal)){
+          maxEnemyCount ++;
+        }
+      })
+
     });
 
     this.maxEnemyCount = maxEnemyCount;
@@ -203,13 +211,13 @@ class WaveManager{
       const extraWave = this.extraWaves[extraWaveData.key];
 
       extraWaveData.actionDatas.forEach(actionDatas => {
-        const fragment: Fragment = {
+        const wave: Wave = {
           actions: this.createActions(actionDatas)
         }
 
-        fragment.actions.forEach(action => action.isExtra = true);
+        wave.actions.forEach(action => action.isExtra = true);
 
-        extraWave.push(fragment)
+        extraWave.push(wave)
       })
       
     })
@@ -254,17 +262,15 @@ class WaveManager{
 
   }
 
-  public currentActions(): Action[]{
-    return this.actions[this.waveIndex];
-  }
-
-
   public getActionsByWaveIndex(waveIndex: number): Action[]{
-    const actions = this.actions[waveIndex];
-    return actions;
+    return this.waves[waveIndex]?.actions;
   }
 
-  private currentWaveActions(): Action[]{
+  public currentWave(): Wave{
+    return this.waves[this.waveIndex];
+  }
+
+  public currentActions(): Action[]{
     return this.getActionsByWaveIndex(this.waveIndex);
   }
 
@@ -318,7 +324,7 @@ class WaveManager{
 
   //是否主要波次出怪全部完毕
   private isSpawnFinished(){
-    const currentActions = this.currentWaveActions();
+    const currentActions = this.currentActions();
     let spawnFinished = false;
     if(currentActions){
       
@@ -446,6 +452,15 @@ class WaveManager{
                   if(!Global.gameManager.isSimulate){
                     Global.gameManager.gameView?.trapObjects?.add(action.trap.object);
                   }
+
+                  switch (action.trap.key) {
+                    case "trap_091_brctrl":
+                      //引航者试炼装置激活 清空前面区域，并移动相机
+                      //老版本引航者还有MoveCamera的触发事件，为了兼容统一使用ACTIVATE_PREDEFINED
+                      this.changeCameraCount(action.trap.id - 1);
+                      break;
+                  
+                  }
                 }
 
                 break;
@@ -461,8 +476,7 @@ class WaveManager{
             break;
           case "PLAY_OPERA":
             if(action.actionData.key === "move_camera"){
-              this.currentCameraView ++;
-              GameHandler.afterMoveCamera();
+              this.addCameraCount();
             }
             break;
         }
@@ -498,11 +512,11 @@ class WaveManager{
     this.gameSecond = Global.gameManager.gameSecond;
     this.waveSecond += delta;
 
-    const currentActions = this.actions[this.waveIndex];
+    const currentWave: Wave = this.currentWave();
 
-    currentActions && this.handleAction({
+    currentWave && currentWave.actions.length > 0 && this.handleAction({
       isExtra: false,
-      actions: currentActions,
+      actions: currentWave.actions,
       waveSecond: this.waveSecond,
       currentObj: this
     });
@@ -545,6 +559,16 @@ class WaveManager{
     this.removeEnemies();
     this.checkWaveFinished();
     this.checkFinished();
+  }
+
+  private changeCameraCount(count: number){
+    this.currentCameraView = count;
+    GameHandler.afterMoveCamera();
+  }
+
+  private addCameraCount(){
+    this.currentCameraView ++;
+    GameHandler.afterMoveCamera();
   }
 
   public get(){

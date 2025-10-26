@@ -136,9 +136,14 @@ const getCoordinate = (x:number | Vec2 | THREE.Vector2, y?:number): Vec2 => {
 
 
 const getBlackBoardItem = (key: string, blackboards: BlackBoard[]): any => {
-  const find = blackboards.find(bb => bb.key === key);
+  const find = blackboards?.find(bb => bb.key === key);
   return find ? (find.valueStr? find.valueStr: find.value) : null;
 }
 
+const getValue = (key: string, keyValue: KeyValue[]): any => {
+  const find = keyValue?.find(item => item.key === key);
+  return find ? find.value : null;
+}
+
 export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, 
-  timeFormat, accuracyNum, getPixelSize, getCoordinate, getBlackBoardItem}
+  timeFormat, accuracyNum, getPixelSize, getCoordinate, getBlackBoardItem, getValue}

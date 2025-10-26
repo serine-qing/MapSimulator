@@ -1,4 +1,4 @@
-import {RowColToVec2} from "@/components/utilities/utilities"
+import {getValue, RowColToVec2} from "@/components/utilities/utilities"
 import RunesHelper from "./RunesHelper";
 import TileManager from "./TileManager"
 import {getEnemiesData} from "@/api/stages"
@@ -20,6 +20,11 @@ import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
 import EnemyHandler from "../entityHandler/EnemyHandler";
+
+interface WaveData{
+  advancedWaveTag?: string,
+  actionDatas: ActionData[]
+}
 
 interface ExtraWaveData{
   key: string,
@@ -46,8 +51,9 @@ class MapModel{
   public tileManager: TileManager; //地图tiles
   public tokenCards: any[] = [];
   public trapDatas: trapData[] = [];
+  public bossRushAreaData: any[] = [];
 
-  public actionDatas: ActionData[][] = [];
+  public waveDatas: WaveData[] = [];
   public extraWaves: ExtraWaveData[] = [];
 
   public enemyDatas: EnemyData[] = [];
@@ -84,6 +90,8 @@ class MapModel{
     await this.getTokenCards();
     //获取trap数据
     await this.getTrapDatas();
+
+    this.getBossRushData();
 
     await this.initEnemyData(enemyDbRefs);
 
@@ -207,14 +215,12 @@ class MapModel{
           direction: AliasHelper(direction, "predefDirection"),
           position: RowColToVec2(position),
           mainSkillLvl,
-          customData:{
-            skillBlackboard
-          }
-        });
+          skills: skillBlackboard
+        }); 
 
         trapKeys.add(key);
       })
-
+      
       this.tokenCards.forEach(tokenCard => {
         const trapData = {
           isTokenCard: true,
@@ -224,7 +230,7 @@ class MapModel{
           direction: "UP",
           position: null,
           mainSkillLvl: tokenCard.mainSkillLvl,
-          customData: {}
+          skills: []
         };
         this.trapDatas.push(trapData);
 
@@ -325,6 +331,19 @@ class MapModel{
 
   }
 
+  private getBossRushData(){
+    this.trapDatas.forEach(trapData => {
+      const tile_col_begin = getValue("tile_col_begin", trapData.skills);
+      const tile_col_end = getValue("tile_col_end_2", trapData.skills);
+      if(typeof(tile_col_begin) === "number" && typeof(tile_col_end) === "number"){
+        this.bossRushAreaData.push({
+          start: tile_col_begin,
+          end: tile_col_end
+        })
+      }
+    })
+  }
+
   private getRunes(){
     //NORMAL是普通  FOUR_STAR突袭  ALL全部生效 SIX_STAR沙盘推演
     let challengeRuneName = "FOUR_STAR";
@@ -371,12 +390,14 @@ class MapModel{
 
       //有时候会有空的wave 例如圣徒boss战
       if(wave.fragments.length === 0) return;
-
       let currentTime = wave.preDelay;
       
       const innerFragments = this.parseActions(wave.fragments, currentTime, false)
 
-      this.actionDatas.push(innerFragments.flat());
+      this.waveDatas.push({
+        advancedWaveTag: wave.advancedWaveTag,
+        actionDatas: innerFragments.flat()
+      });
       
       //todo postDelay实际上没应用
       currentTime += wave.postDelay;
@@ -775,8 +796,8 @@ class MapModel{
     if(!branches) return;
     
     this.trapDatas.forEach(trapData => {
-      const actionIndex = trapData.customData.skillBlackboard?.find(item => item.key === "action_index")?.value;
-      let branchId = trapData.customData.skillBlackboard?.find(item => item.key === "branch_id")?.value;
+      const actionIndex = trapData.skills?.find(item => item.key === "action_index")?.value;
+      let branchId = trapData.skills?.find(item => item.key === "branch_id")?.value;
       
       if(actionIndex!== undefined && !branchId){
         switch (trapData.key) {
@@ -871,10 +892,12 @@ class MapModel{
 
   private initSPFA(){
     const extraBlocks = [];
-    this.actionDatas.flat().forEach(action => {
-      if(action.key === "enemy_1334_ristar"){
-        extraBlocks.push(action.route.startPosition);
-      }
+    this.waveDatas.forEach(wave => {
+      wave.actionDatas.forEach(action => {
+        if(action.key === "enemy_1334_ristar"){
+          extraBlocks.push(action.route.startPosition);
+        }
+      })
     });
     this.SPFA = new SPFA(
       [...this.routes, ...this.extraRoutes], 

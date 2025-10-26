@@ -424,7 +424,7 @@ class GameManager extends DataObject{
   public setSimulateData(simulateData: any){
     this.simulateData = simulateData;
 
-    this.waveManager.actions.flat().forEach((action, index) => {
+    this.waveManager.allActions.forEach((action, index) => {
       action.actionTime = parseFloat(simulateData.byAction[index]?.gameSecond?.toFixed(1));
     })
 
@@ -569,7 +569,7 @@ class GameManager extends DataObject{
     this.pause = false;
 
     //剿灭太长 特殊处理
-    const maxTime = this.isCampaign ? 3600 : 1500;
+    const maxTime = this.isCampaign ? 3600 : 1800;
 
 
     while( !this.isFinished && this.gameSecond < maxTime ){
@@ -639,7 +639,7 @@ class GameManager extends DataObject{
 
     this.isDynamicsSimulate = true;
 
-    this.waveManager.actions.flat().forEach((action, index) => {
+    this.waveManager.allActions.forEach((action, index) => {
       action.actionTime = parseFloat(this.simulateData.byAction[index]?.gameSecond?.toFixed(1));
     })
   }
