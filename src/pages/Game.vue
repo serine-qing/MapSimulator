@@ -513,7 +513,7 @@ defineExpose({
   >
   </DataTable>
 
-  <!-- <Notice/> -->
+  <Notice/>
 </div>
 
 
