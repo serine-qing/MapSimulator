@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import eventBus from "../utilities/EventBus";
+import Global from "../utilities/Global";
 
 class GameCanvas{
   public wrapper: HTMLDivElement;
@@ -94,11 +95,18 @@ class GameCanvas{
       this.width,
       this.height
     ); //设置宽高
-
+    const aspect = this.width / this.height;
     //重设相机宽高比
-    this.camera.aspect = this.width / this.height;
+    this.camera.aspect = aspect;
     //更新相机投影矩阵
     this.camera.updateProjectionMatrix();
+    if(aspect < 1.6){
+      //当渲染器高度不变时，只改变宽度不会影响3D物体在垂直方向上的视觉尺寸
+      //所以调整宽度的时候，宽高比低于一定比例时，需要手动调整mapContainer的scale进行缩放
+      Global.gameView.setScale(aspect / 1.6)
+    }else{
+      Global.gameView.setScale(1)
+    }
     this.render();
     
     eventBus.emit("resize");

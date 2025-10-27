@@ -18,6 +18,7 @@ const blackTexture = new THREE.Texture();
 class GameView{
   
   public mapContainer: THREE.Object3D;
+  private scale: number = 1;                                          //地图缩放
   public tileObjects = new THREE.Group();
   public trapObjects = new THREE.Group();
   public enemyObjects = new THREE.Group();
@@ -62,11 +63,22 @@ class GameView{
 
     this.mapContainer.rotation.x = - GameConfig.MAP_ROTATION;
     this.updateCameraView();
-    this.mapContainer.position.y = - Global.tileManager.height / 2 * GameConfig.TILE_SIZE + 7;
+    this.setScale(1);
+    gameCanvas.resize();
 
     Global.tileManager.initPreviewTextures();
     gameCanvas.scene.add(this.mapContainer);
 
+  }
+
+  public setScale(scale: number){
+    this.scale = scale;
+    this.mapContainer.scale.set(scale,scale,scale);
+    this.mapContainer.position.y = (- Global.tileManager.height / 2 * GameConfig.TILE_SIZE + 7) * scale;
+  }
+
+  public getScale(){
+    return this.scale ? this.scale : 1;
   }
 
   public updateCameraView(){
@@ -74,11 +86,11 @@ class GameView{
       const currentCameraView = Global.waveManager.currentCameraView;
       const {start, end} = this.bossRushAreaData[currentCameraView];
       const currentOffset = (end - start) / 2 + start;
-      this.mapContainer.position.x =  - GameConfig.TILE_SIZE * currentOffset;
+      this.mapContainer.position.x =  - GameConfig.TILE_SIZE * currentOffset * this.scale;
     }else{
       const width = Math.floor(Global.tileManager.width / Global.waveManager.cameraViewCount);
       this.mapContainer.position.x = - (width * Global.waveManager.currentCameraView + width / 2) 
-      * GameConfig.TILE_SIZE;
+      * GameConfig.TILE_SIZE * this.scale;
     }
 
   }

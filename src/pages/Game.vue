@@ -551,7 +551,7 @@ defineExpose({
     }
     .time-slider{
       width: 600px;
-      margin-left: 40px;
+      margin-left: 20px;
     }
   }
   .content{
@@ -576,7 +576,7 @@ defineExpose({
 }
 
 .buttons{
-  width: 180px;
+  width: 270px;
   display: flex;
   margin-left: 20px;
   margin-right: 20px;

@@ -151,6 +151,7 @@ import eventBus from '@/components/utilities/EventBus';
 import GameView from '@/components/game/GameView';
 import AnimationFrame from '../components/utilities/AnimationFrame';
 import { getPixelSize } from '@/components/utilities/utilities';
+import Global from '@/components/utilities/Global';
 
 const { gameManager } = defineProps(
   ["gameManager"]
@@ -204,7 +205,7 @@ const updateEnemyVisible = () => {
 }
 
 const updateEnemyPosAndSize = () => {
-  scale =  canvasHeight / GameConfig.OBJECT_SCALE;
+  scale =  canvasHeight / GameConfig.OBJECT_SCALE * Global.gameView.getScale();
 
   waveManager.enemiesInMap.forEach(enemy => {
     if(!enemy.object || !enemy.mesh) return;
@@ -428,7 +429,7 @@ const initTrapLabels = () => {
 }
 
 const updateTrapSize = () => {
-  const scale = canvasHeight / GameConfig.OBJECT_SCALE;
+  const scale = canvasHeight / GameConfig.OBJECT_SCALE * Global.gameView.getScale();
   traps.forEach(trap => {
     if(!trap.object) return;
     const {x, y} = gameView.localToScreen(trap.object.position);
