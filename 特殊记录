@@ -36,7 +36,6 @@ fire_jiejing 能量聚合体
 linux 启动后端：
 ss -tlpn | grep 3000 查看进程pid
 kill 杀死刚刚找到的进程
-cd ../arknights/backend
 git pull
 nohup npm run dev &  重新启动
 非正常退出终端：如直接关闭窗口，属于异常断开，更容易导致进程被清理。而先输入exit命令退出，属于正常注销

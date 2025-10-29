@@ -91,6 +91,7 @@ class GameCanvas{
   }
 
   public resize(){
+    if(!Global.gameView) return;
     this.renderer.setSize(
       this.width,
       this.height

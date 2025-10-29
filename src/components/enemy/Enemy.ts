@@ -549,6 +549,7 @@ class Enemy extends BattleObject{
   }
 
   private drawAttackRangeCircle(rangeRadius: number){
+
     //0.25为地块半径0.5减去干员碰撞半径0.25得出的
     const radius = getPixelSize(rangeRadius - 0.25);
     const curve = new THREE.EllipseCurve(
