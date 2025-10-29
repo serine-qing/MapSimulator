@@ -97,7 +97,7 @@ class BattleObject extends DataObject{
   protected spBarUsing: Mesh;
   protected skillStates: SkillStates[] = []; //技能数据
   protected animations: any[];
-
+  protected unBalance: boolean = false;    //是否失衡
   public canUseSkill: boolean = true;   //当前是否可用技能
   constructor(){
     super();
@@ -260,7 +260,7 @@ class BattleObject extends DataObject{
   }
 
   protected updateSkillState(){
-    if( this.skillStates.length > 0 && this.canUseSkill){
+    if( this.skillStates.length > 0 && this.canUseSkill && !this.unBalance){
       for(let i = 0; i < this.skillStates.length; i++){
         const skill = this.skillStates[i];
         const {name, autoTrigger} = skill;
@@ -410,6 +410,7 @@ class BattleObject extends DataObject{
 
     const states = {
       canUseSkill: this.canUseSkill,
+      unBalance: this.unBalance,
       skillStates: [...this.skillStates],
       skillStatesDynamicData: this.skillStates.map(state => {
         return {
@@ -431,11 +432,13 @@ class BattleObject extends DataObject{
 
     const { 
       canUseSkill,
+      unBalance,
       skillStates,
       skillStatesDynamicData,
     } = states;
 
     this.canUseSkill = canUseSkill;
+    this.unBalance = unBalance;
     this.skillStates = [...skillStates];
 
     for(let i = 0; i < this.skillStates.length; i++){

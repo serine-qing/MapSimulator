@@ -250,6 +250,9 @@ class Enemy extends BattleObject{
   public spawnedEnemies: Enemy[] = [];      //（会召唤技能的敌人）召唤的敌人数组
   public spawnIndex: number = 0;            //当前应该spawn的敌人id
 
+  protected unBalanceSpeed: number;         //当前失衡移动速度
+  protected unBalanceVector: THREE.Vector2; //失衡移动方向
+
   constructor(param: EnemyParam, enemyData: EnemyData){
     super();
     this.enemyData = enemyData;
@@ -753,12 +756,18 @@ class Enemy extends BattleObject{
     
     this.updateSkillSP(delta);
     if(!this.isDisappear) this.updateSkillState();
+    
+    if(this.unBalance){
+      //失衡位移状态
+      this.unBalanceMove(delta);
+    }else{
+      this.updateCurrentFrameSpeed();
+      this.updateAction(delta);
+      this.move(delta);
+      this.updateCheckPoint();
+      this.updateFaceToward();
+    }
 
-    this.updateCurrentFrameSpeed();
-    this.updateAction(delta);
-    this.move(delta);
-    this.updateCheckPoint();
-    this.updateFaceToward();
 
     if(this.hasMoved()){
       const prevAnimate = this.animateState;
@@ -1162,7 +1171,7 @@ class Enemy extends BattleObject{
     if(this.attackCountdown > 0){
       this.attackCountdown = Math.max(this.attackCountdown - delta, 0);
     }
-    if(!this.canAttack || this.attackCountdown > 0) return;
+    if(!this.canAttack || this.unBalance || this.attackCountdown > 0) return;
     this.attack();
     this.attackCountdown = this.getAttr("attackTime");
   }
@@ -1432,7 +1441,7 @@ class Enemy extends BattleObject{
   //是否具有移动能力
   protected canMove(): boolean{
     //部分0移速的怪也有移动指令，例如GO活动的装备
-    if(this.isDisappear || this.unMoveable || this.attributes.moveSpeed <= 0){
+    if(this.isDisappear || this.unMoveable || this.unBalance || this.attributes.moveSpeed <= 0){
       return false;
     }
 
@@ -1714,6 +1723,62 @@ class Enemy extends BattleObject{
 
   }
 
+  //推动、失衡移动
+  public push(force: number, direction: THREE.Vector2){
+    this.unBalance = true;
+    this.unBalanceSpeed = force;
+    this.unBalanceVector = direction.normalize();
+  }
+
+  protected unBalanceMove(delta: number){
+    const deltaSpeed = 4.905 * delta; //4.905为 (摩擦力参数 0.5 * 重力常量g 9.81)
+    this.unBalanceSpeed = Math.max(this.unBalanceSpeed - deltaSpeed, 0);
+    if(this.unBalanceSpeed <= 0){
+      this.unBalance = false;
+      this.unBalanceVector = null;
+    }else{
+      const tileManager = Global.tileManager;
+      
+      const {x,y} = this.getIntPosition();
+      const distance = this.unBalanceSpeed * delta
+      const velocity = this.unBalanceVector.clone().multiplyScalar(distance);
+      
+      if(this.unBalanceVector.x !== 0){
+        const prefix = this.unBalanceVector.x > 0 ? 1 : -1;
+        const aroundX = x + prefix;
+        //判断在x方向上周围的格子是不是不可通过的格子
+        if(!tileManager.isTilePassable(aroundX, y)){
+          const edgeX = aroundX - (0.5 + 0.1) * prefix;    //0.1为敌人刚体碰撞半径 0.5是tile边界补正
+          const offsetX = (edgeX - this.position.x - velocity.x) * prefix;
+          if(offsetX < 0){
+            velocity.x = velocity.x + offsetX * prefix; 
+          }
+        }
+      }
+
+      if(this.unBalanceVector.y !== 0){
+        const prefix = this.unBalanceVector.y > 0 ? 1 : -1;
+        const aroundY = y + prefix;
+        //判断在y方向上周围的格子是不是不可通过的格子
+        if(!tileManager.isTilePassable(x, aroundY)){
+          const edgeY = aroundY - (0.5 + 0.1) * prefix;
+          const offsetY = (edgeY - this.position.y - velocity.y) * prefix;
+          
+          if(offsetY < 0){
+            velocity.y = velocity.y + offsetY * prefix; 
+          }
+        }
+      }
+      
+      this.setPosition(
+        this.position.x + velocity.x,
+        this.position.y + velocity.y
+      )
+      
+    }
+    
+  }
+
   public get(){
     const superStates = super.get();
 
@@ -1765,6 +1830,8 @@ class Enemy extends BattleObject{
       carriedEnemyKey: this.carriedEnemyKey,
       carryOffset: this.carryOffset,
       spawnIndex: this.spawnIndex,
+      unBalanceSpeed: this.unBalanceSpeed,
+      unBalanceVector: this.unBalanceVector,
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
@@ -1822,6 +1889,8 @@ class Enemy extends BattleObject{
       carriedEnemyKey,
       carryOffset,
       spawnIndex,
+      unBalanceSpeed,
+      unBalanceVector,
       attributes,
       passengers,
       changeTileEvents,
@@ -1867,6 +1936,8 @@ class Enemy extends BattleObject{
     this.attackCountdown = attackCountdown;
     this.carriedEnemyKey = carriedEnemyKey;
     this.spawnIndex = spawnIndex;
+    this.unBalanceSpeed = unBalanceSpeed;
+    this.unBalanceVector = unBalanceVector;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.passengers = [...passengers];
     this.changeTileEvents = [...changeTileEvents],
