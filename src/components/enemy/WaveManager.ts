@@ -571,6 +571,23 @@ class WaveManager{
     GameHandler.afterMoveCamera();
   }
 
+  //获取矩形区域内的所有敌人
+  public getEnemysInRect(x1, x2, y1, y2){
+    const minX = Math.min(x1, x2) - 0.5;
+    const maxX = Math.max(x1, x2) + 0.5;
+    const minY = Math.min(y1, y2) - 0.5;
+    const maxY = Math.max(y1, y2) + 0.5;
+
+    return this.enemiesInMap.filter(enemy => {
+      return (
+        enemy.position.x > minX &&
+        enemy.position.x < maxX &&
+        enemy.position.y > minY &&
+        enemy.position.y < maxY
+      )
+    })
+  }
+
   public get(){
     const actionStates = [];
     const enemyStates = [];

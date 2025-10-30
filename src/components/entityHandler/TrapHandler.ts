@@ -4,12 +4,14 @@ import Global from "../utilities/Global";
 import act42side from "./众生行记";
 import act44side from "./墟";
 import act45side from "./无忧梦呓";
+import act46side from "./雪山降临1101";
 import main15 from "./15章";
 
 const start = (trap: Trap) => {
   act42side.handleTrapStart(trap);
   act44side.handleTrapStart(trap);
   act45side.handleTrapStart(trap);
+  act46side.handleTrapStart(trap);
   main15.handleTrapStart(trap);
 }
 

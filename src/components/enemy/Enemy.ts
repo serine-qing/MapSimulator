@@ -1723,11 +1723,32 @@ class Enemy extends BattleObject{
 
   }
 
+  private getForce(forceLevel: number){
+    if(forceLevel <= -3) return 0;
+    else if(forceLevel >= 3) return 5.8;
+    else{
+      switch (forceLevel) {
+        case -2:
+          return 1;
+        case -1:
+          return 2;
+        case 0:
+          return 4;
+        case 1:
+          return 4.5;
+        case 2:
+          return 5.3;
+      }
+    }
+  }
+
   //推动、失衡移动
-  public push(force: number, direction: THREE.Vector2){
-    this.unBalance = true;
-    this.unBalanceSpeed = force;
-    this.unBalanceVector = direction.normalize();
+  public push(forceLevel: number, direction: THREE.Vector2){
+    this.unBalanceSpeed = this.getForce(forceLevel - this.attributes.massLevel);
+    if(this.unBalanceSpeed > 0){
+      this.unBalance = true;
+      this.unBalanceVector = direction.normalize();
+    }
   }
 
   protected unBalanceMove(delta: number){

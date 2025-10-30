@@ -84,8 +84,8 @@ interface SkillParam{
   cooldownStop?: boolean,       //是否有技能阻回条，默认是
   eternal?: boolean,           //永久性技能（结束后不会被删除，占用内存更多）
 
-  initSp?: number,
-  spSpeed?: number,
+  initSp?: number,              //默认0
+  spSpeed?: number,             //默认1
   spPlusBySecond?: boolean,     //sp是否是在整数秒时刻增加
   spCost?: number, 
   showSPBar?: boolean

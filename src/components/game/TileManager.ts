@@ -31,6 +31,20 @@ interface TileEventOption{
   callback: Function
 }
 
+//矩形区域添加事件
+interface RectEventsOption{
+  key: string,
+  type: string,      // in:入 out:出
+  x1: number,
+  x2: number,
+  y1: number,
+  y2: number,
+  enemy?: string[],
+  trap?: string[],
+  isMerge?: boolean,
+  callback: Function
+}
+
 class TileManager{
   public tiles: Tile[][] = [];
   public flatTiles: Tile[] = [];
@@ -300,6 +314,23 @@ class TileManager{
       
       this.events.splice(findIndex, 1);
     }
+  }
+
+  //给某个矩形区域添加事件，默认是组合事件(isMerge)
+  addRectEvents(option: RectEventsOption){
+    const rect = this.getRect(option.x1, option.x2, option.y1, option.y2);
+    rect.forEach(tile => {
+      this.addEvent({
+        key: option.key,
+        type: option.type,
+        x: tile.position.x,
+        y: tile.position.y,
+        enemy: option.enemy,
+        trap: option.trap,
+        isMerge: option.isMerge === undefined? true : option.isMerge,
+        callback: option.callback
+      })
+    })
   }
 
   changeTile(outPos: Vector2, inPos: Vector2, enemy: Enemy){

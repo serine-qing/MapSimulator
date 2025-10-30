@@ -28,6 +28,7 @@ class GameView{
 
   public bossRushAreaData: any[];
 
+  private drawObjectArray: THREE.Object3D[] = [];
   constructor(){
     Global.gameView = this;
   }
@@ -37,7 +38,7 @@ class GameView{
     this.initTraps();
     this.initEnemys();
     this.setBgImage(blackTexture);   //给tile下面加一个默认黑色背景
-
+    this.drawObjects();
     GameHandler.afterGameViewInit();
   }
 
@@ -153,6 +154,12 @@ class GameView{
     }
   }
 
+  private drawObjects(){
+    this.drawObjectArray.forEach(object => {
+      this.mapContainer.add(object);
+    })
+  }
+
   public localToScreen(position){
     const tempV = new THREE.Vector3(
       position.x,
@@ -174,6 +181,15 @@ class GameView{
     const y = (vec.y * -.5 + .5) * gameCanvas.canvas.clientHeight;
 
     return {x, y};
+  }
+
+  public addDrawObject(obj: THREE.Object3D){
+    if(this.mapContainer){
+      this.mapContainer.add(obj);
+    }else{
+      //如果还没有生成mapContainer，就加进待添加数组里
+      this.drawObjectArray.push(obj);
+    }
   }
 
   public render(delta: number){
