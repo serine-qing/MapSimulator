@@ -175,6 +175,7 @@ const Handler = {
       case "foreverenhance":
         const skilltrigger = enemy.getTalent("skilltrigger");
         const move_speed_add = skill.blackboard.move_speed_add;
+        console.log(skill)
         const atk_add = skill.blackboard.atk_add;
         enemy.addSkill({
           name: "foreverenhance",

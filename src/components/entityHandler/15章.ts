@@ -5,139 +5,140 @@ import Global from "../utilities/Global";
 import Trap from "../game/Trap";
 import BattleObject from "../enemy/BattleObject";
 import { Vector3 } from "three";
+import type Handler from "./Handler";
 
-const addMpweakSkill = (obj: BattleObject) => {
-  obj.addSkill({
-    name: "mpweak",
-    initSp: 0,
-    spCost: 30,
-    spSpeed: 1,
-    duration: 30,
-    autoTrigger: false,
-    showSPBar: true,
-  })
+class main15 implements Handler{
+  private addMpweakSkill (obj: BattleObject) {
+    obj.addSkill({
+      name: "mpweak",
+      initSp: 0,
+      spCost: 30,
+      spSpeed: 1,
+      duration: 30,
+      autoTrigger: false,
+      showSPBar: true,
+    })
 
-  if(!Global.gameManager.deepCopyData.mpweaks){
-    Global.gameManager.deepCopyData.mpweaks = [];
-  }
-  Global.gameManager.deepCopyData.mpweaks.push(obj)
-}
-
-const enemyToSpawn = (_enemy: BattleObject) => {
-  const enemy = _enemy as Enemy;
-
-  const gameManager = Global.gameManager;
-  const prtsPoint: Enemy = gameManager.customData.prtsPoint;
-
-  const spawnPosition: Vector2 = gameManager.staticData.prtsSpawnPosition;
-
-  //各敌人抓取位置不一样
-  let offset;
-  switch (enemy.key) {
-    case "enemy_1565_mpprme":
-      offset = new Vector3(-1, 0, -3);
-      break;
-    case "enemy_10078_mprein":
-    case "enemy_10078_mprein_2":
-      offset = new Vector3(0, 0, -3);
-      break;
-    case "enemy_10079_mpmage":
-    case "enemy_10079_mpmage_2":
-      offset = new Vector3(0, 0, -4);
-      break;
-    case "enemy_10076_mpgrou":
-    case "enemy_10076_mpgrou_2":
-      offset = new Vector3(0, 0, 0);
-      break;
-    case "enemy_10077_mpbarr":
-    case "enemy_10077_mpbarr_2":
-      offset = new Vector3(0, 0, 0);
-      break;
-    default:
-      offset = new Vector3(0, 0, 3);
-      break;
+    if(!Global.gameManager.deepCopyData.mpweaks){
+      Global.gameManager.deepCopyData.mpweaks = [];
+    }
+    Global.gameManager.deepCopyData.mpweaks.push(obj)
   }
 
-  prtsPoint.addMoveCheckPoint({
-    position: spawnPosition, 
-    callback: () => {
-      prtsPoint.animationStateTransition({
-        idleAnimate: "Grab_Loop",
-        moveAnimate: "Grab_Loop",
-        transAnimation: "Grab_Begin",
-        isWaitTrans: true
-      })
-      prtsPoint.countdown.addCountdown({
-        name: "grabDelay",
-        initCountdown: 1.1,
-        callback: () => {
-          prtsPoint.setCarryOffset(offset);          //设置抓取物体的偏移
-          prtsPoint.addCarryEnemy(enemy.key);
-        }
-      })
+  private enemyToSpawn(_enemy: BattleObject) {
+    const enemy = _enemy as Enemy;
+
+    const gameManager = Global.gameManager;
+    const prtsPoint: Enemy = gameManager.customData.prtsPoint;
+
+    const spawnPosition: Vector2 = gameManager.staticData.prtsSpawnPosition;
+
+    //各敌人抓取位置不一样
+    let offset;
+    switch (enemy.key) {
+      case "enemy_1565_mpprme":
+        offset = new Vector3(-1, 0, -3);
+        break;
+      case "enemy_10078_mprein":
+      case "enemy_10078_mprein_2":
+        offset = new Vector3(0, 0, -3);
+        break;
+      case "enemy_10079_mpmage":
+      case "enemy_10079_mpmage_2":
+        offset = new Vector3(0, 0, -4);
+        break;
+      case "enemy_10076_mpgrou":
+      case "enemy_10076_mpgrou_2":
+        offset = new Vector3(0, 0, 0);
+        break;
+      case "enemy_10077_mpbarr":
+      case "enemy_10077_mpbarr_2":
+        offset = new Vector3(0, 0, 0);
+        break;
+      default:
+        offset = new Vector3(0, 0, 3);
+        break;
     }
-  });
 
-  prtsPoint.addMoveCheckPoint({
-    position: enemy.route.startPosition, 
-    callback: () => {
-      
-      prtsPoint.animationStateTransition({
-        idleAnimate: "Idle",
-        moveAnimate: "Idle",
-        transAnimation: "Grab_End",
-        animationScale: 1.5,
-        isWaitTrans: true
-      });
+    prtsPoint.addMoveCheckPoint({
+      position: spawnPosition, 
+      callback: () => {
+        prtsPoint.animationStateTransition({
+          idleAnimate: "Grab_Loop",
+          moveAnimate: "Grab_Loop",
+          transAnimation: "Grab_Begin",
+          isWaitTrans: true
+        })
+        prtsPoint.countdown.addCountdown({
+          name: "grabDelay",
+          initCountdown: 1.1,
+          callback: () => {
+            prtsPoint.setCarryOffset(offset);          //设置抓取物体的偏移
+            prtsPoint.addCarryEnemy(enemy.key);
+          }
+        })
+      }
+    });
 
-      prtsPoint.countdown.addCountdown({
-        name: "loosenDelay",
-        initCountdown: 0.8,
-        callback: () => {
-          prtsPoint.removeCarryEnemy();
-          enemy.start();
-        }
-      })
-      
-    }
-  });
-}
+    prtsPoint.addMoveCheckPoint({
+      position: enemy.route.startPosition, 
+      callback: () => {
+        
+        prtsPoint.animationStateTransition({
+          idleAnimate: "Idle",
+          moveAnimate: "Idle",
+          transAnimation: "Grab_End",
+          animationScale: 1.5,
+          isWaitTrans: true
+        });
 
-const mpweakToClick = (mpweak: BattleObject) => {
-  const gameManager = Global.gameManager;
-  const prtsPoint: Enemy = gameManager.customData.prtsPoint;
+        prtsPoint.countdown.addCountdown({
+          name: "loosenDelay",
+          initCountdown: 0.8,
+          callback: () => {
+            prtsPoint.removeCarryEnemy();
+            enemy.start();
+          }
+        })
+        
+      }
+    });
+  }
 
-  let position;
-  if("tilePosition" in mpweak) position = mpweak.tilePosition;
-  else if("position" in mpweak) position = mpweak.position;
+  private mpweakToClick(mpweak: BattleObject) {
+    const gameManager = Global.gameManager;
+    const prtsPoint: Enemy = gameManager.customData.prtsPoint;
 
-  prtsPoint.addMoveCheckPoint({
-    position,
-    index: prtsPoint.checkPointIndex + 1,
-    callback: () => {
+    let position;
+    if("tilePosition" in mpweak) position = mpweak.tilePosition;
+    else if("position" in mpweak) position = mpweak.position;
 
-      prtsPoint.animationStateTransition({
-        transAnimation: "Click",
-        animationScale: 1.5,
-        isWaitTrans: true
-      })
-      
-      prtsPoint.countdown.addCountdown({
-        name: "clickDelay",
-        initCountdown: 0.8,
-        callback: () => {
-          mpweak.triggerSkill("mpweak");
-          mpweak.customData.needClick = false;
-        }
-      })
+    prtsPoint.addMoveCheckPoint({
+      position,
+      index: prtsPoint.checkPointIndex + 1,
+      callback: () => {
 
-    }
-  });
-}
+        prtsPoint.animationStateTransition({
+          transAnimation: "Click",
+          animationScale: 1.5,
+          isWaitTrans: true
+        })
+        
+        prtsPoint.countdown.addCountdown({
+          name: "clickDelay",
+          initCountdown: 0.8,
+          callback: () => {
+            mpweak.triggerSkill("mpweak");
+            mpweak.customData.needClick = false;
+          }
+        })
 
-const Handler = {
+      }
+    });
+  }
+
   //删除多余的侵入式调用
-  checkActionDatas: (actionDatas: ActionData[]) => {
+  public checkActionDatas (actionDatas: ActionData[]) {
     
     const staticData = Global.gameManager.staticData;
 
@@ -158,22 +159,22 @@ const Handler = {
       }
     }
 
-  },
+  }
 
-  handleTileInit: (tile: Tile) => {
+  public handleTileInit (tile: Tile) {
     //prts抓怪点
     if(tile.tileKey === "tile_mpprts_enemy_born"){
       Global.gameManager.staticData.prtsSpawnPosition = tile.position;
     }
-  },
+  }
 
-  handleTrapStart: (trap: Trap) => {
+  public handleTrapStart (trap: Trap) {
     if(trap.key === "trap_227_mpweak"){
-      addMpweakSkill(trap);
+      this.addMpweakSkill(trap);
     }
-  },
+  }
 
-  handleSpawnEnemy: (enemy: Enemy): boolean => {
+  public handleSpawnEnemy (enemy: Enemy): boolean {
     const gameManager = Global.gameManager;
     const prtsPoint: Enemy = gameManager.customData.prtsPoint;
 
@@ -187,9 +188,9 @@ const Handler = {
     }
 
     return false;
-  },
+  }
 
-  handleEnemyStart: (enemy: Enemy) => {
+  public handleEnemyStart (enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_10072_mpprhd":   //侵入式调用
         Global.gameManager.customData.prtsPoint = enemy;
@@ -204,7 +205,7 @@ const Handler = {
 
         break;
       case "enemy_10082_mpweak":   //弱化节点
-        addMpweakSkill(enemy);
+        this.addMpweakSkill(enemy);
         break;
     }
 
@@ -229,9 +230,9 @@ const Handler = {
         }
       })
     }      
-  },
+  }
 
-  handleSkill: (enemy: Enemy, skill: any) => {
+  public handleSkill (enemy: Enemy, skill: any) {
     switch (skill.prefabKey) {
       case "stopcost": 
         enemy.addSkill({
@@ -258,9 +259,9 @@ const Handler = {
         })
         break;
     }
-  },
+  }
 
-  afterGameUpdate: () => {
+  public afterGameUpdate () {
     const prtsPoint: Enemy = Global.gameManager.customData.prtsPoint;
     if(!prtsPoint) return;
     const commands: string[] = prtsPoint.deepCopyData.commands;
@@ -290,9 +291,9 @@ const Handler = {
     if(battleObject){
 
       if(command === "click"){ //弱化节点
-        mpweakToClick(battleObject);
+        this.mpweakToClick(battleObject);
       }else{
-        enemyToSpawn(battleObject);
+        this.enemyToSpawn(battleObject);
       }
     }else{
       //无事可干
@@ -306,13 +307,13 @@ const Handler = {
       }
     }
 
-  },  
+  }
 
-  afterGameViewInit: () => {
+  public afterGameViewInit () {
     if(Global.gameManager.staticData.hasPrtsPoint)
       Global.gameView.initEnemyCloneMeshs();
   }
 
 };
 
-export default Handler;
+export default main15;

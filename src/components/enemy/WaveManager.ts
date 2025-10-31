@@ -7,9 +7,7 @@ import eventBus from "@/components/utilities/EventBus";
 import SpineEnemy from "./SpineEnemy";
 import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
-import EnemyHandler from "../entityHandler/EnemyHandler";
 import { Mesh } from "three";
-import GameHandler from "../entityHandler/GameHandler";
 
 interface Wave{
   advancedWaveTag?: string,
@@ -425,7 +423,7 @@ class WaveManager{
 
             action.applyId++;
 
-            const isHandle = EnemyHandler.handleSpawnEnemy(enemy);
+            const isHandle = Global.gameHandler.handleSpawnEnemy(enemy);
             if(!isHandle){
               enemy.start();
             }
@@ -563,12 +561,12 @@ class WaveManager{
 
   private changeCameraCount(count: number){
     this.currentCameraView = count;
-    GameHandler.afterMoveCamera();
+    Global.gameHandler.afterMoveCamera();
   }
 
   private addCameraCount(){
     this.currentCameraView ++;
-    GameHandler.afterMoveCamera();
+    Global.gameHandler.afterMoveCamera();
   }
 
   //获取矩形区域内的所有敌人

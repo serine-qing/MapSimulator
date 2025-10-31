@@ -11,7 +11,6 @@ import Global from "../utilities/Global"
 import { getPixelSize } from "../utilities/utilities";
 import { SkeletonMesh } from "@/spine/SkeletonMesh";
 import Enemy from "../enemy/Enemy";
-import GameHandler from "../entityHandler/GameHandler";
 
 const blackTexture = new THREE.Texture();
 
@@ -39,7 +38,7 @@ class GameView{
     this.initEnemys();
     this.setBgImage(blackTexture);   //给tile下面加一个默认黑色背景
     this.drawObjects();
-    GameHandler.afterGameViewInit();
+    Global.gameHandler.afterGameViewInit();
   }
 
   //初始化地图tiles

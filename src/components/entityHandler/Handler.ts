@@ -3,52 +3,52 @@ import RunesHelper from "../game/RunesHelper";
 import Tile from "../game/Tile"
 import Trap from "../game/Trap"
 
-abstract class Handler{
-  abstract parseRunes(runesHelper: RunesHelper);
+interface Handler{
+  parseRunes?(runesHelper: RunesHelper);
 
-  abstract checkActionDatas(actionDatas: ActionData[]);
+  checkActionDatas?(actionDatas: ActionData[]);
 
-  abstract parseExtraWave(trapDatas: trapData[], branches: any, extraRoutes);
+  parseExtraWave?(trapDatas: trapData[], branches: any, extraRoutes);
 
-  abstract handleTileInit(tile: Tile);
+  handleTileInit?(tile: Tile);
   
-  abstract initTileEvents(tile: Tile);
+  initTileEvents?(tile: Tile);
 
-  abstract afterGameInit();
+  afterGameInit?();
 
-  abstract beforeEnemyStart(enemyData: EnemyData);
+  beforeEnemyStart?(enemyData: EnemyData);
   
-  abstract handleEnemyConstructor(enemy: Enemy);
+  handleEnemyConstructor?(enemy: Enemy);
 
-  abstract handleSpawnEnemy(enemy: Enemy): boolean;
+  handleSpawnEnemy?(enemy: Enemy): boolean;
 
-  abstract handleEnemyStart(enemy: Enemy);
+  handleEnemyStart?(enemy: Enemy);
 
-  abstract handleTrapStart(trap: Trap);
+  handleTrapStart?(trap: Trap);
 
-  abstract handleTalent(enemy: Enemy, talent: any);
+  handleTalent?(enemy: Enemy, talent: any);
 
-  abstract handleSkill(enemy: Enemy, skill: any);
+  handleSkill?(enemy: Enemy, skill: any);
 
-  abstract handleChangeCheckPoint(enemy: Enemy);
+  handleChangeCheckPoint?(enemy: Enemy);
 
-  abstract handlePickUp(enemy: Enemy, vehicle: Enemy);   //vehicle载具
+  handlePickUp?(enemy: Enemy, vehicle: Enemy);   //vehicle载具
 
-  abstract handleDropOff(enemy: Enemy, vehicle: Enemy);
+  handleDropOff?(enemy: Enemy, vehicle: Enemy);
 
-  abstract handleAttack(enemy: Enemy);
+  handleAttack?(enemy: Enemy);
   
-  abstract handleReborn(enemy: Enemy);
+  handleReborn?(enemy: Enemy);
 
-  abstract handleDie(enemy: Enemy);
+  handleDie?(enemy: Enemy);
 
-  abstract handleEnemySet(enemy: Enemy, state);
+  handleEnemySet?(enemy: Enemy, state);
 
-  abstract afterMoveCamera();
+  afterMoveCamera?();
 
-  abstract afterGameUpdate();
+  afterGameUpdate?();
 
-  abstract afterGameViewInit();
+  afterGameViewInit?();
 }
 
 export default Handler;

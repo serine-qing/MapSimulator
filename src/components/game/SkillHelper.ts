@@ -62,11 +62,7 @@ const parseSkill = (enemyData: EnemyData) => {
     if(skill.blackboard){
       skill.blackboard.forEach((item: any) => {
         const {key, value, valueStr} = item;
-        if(valueStr === null){
-          parsedBlackboard[key] = value;
-        }else{
-          parsedBlackboard[key] = valueStr;
-        }
+        parsedBlackboard[key] = valueStr? valueStr : value;
       })
 
       skillClone.blackboard = parsedBlackboard;

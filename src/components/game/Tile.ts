@@ -7,7 +7,6 @@ import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "../enemy/DataObject";
-import GameHandler from "../entityHandler/GameHandler";
 
 interface DynamicTexture{
   key: string,
@@ -75,7 +74,7 @@ class Tile extends DataObject{
 
     this.initSize();
 
-    GameHandler.handleTileInit(this);
+    Global.gameHandler.handleTileInit(this);
   }
 
   public initMeshs(){

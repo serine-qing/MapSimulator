@@ -1,8 +1,8 @@
 import Enemy from "../enemy/Enemy";
-import Global from "../utilities/Global";
+import type Handler from "./Handler";
 
-const Handler = {
-  handleEnemyStart: (enemy: Enemy) => {
+class main11 implements Handler{
+  handleEnemyStart (enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_1533_stmkgt":                            //最后的蒸汽骑士
         const bornweak = enemy.getTalent("bornweak");
@@ -70,8 +70,7 @@ const Handler = {
         break;
     }
 
-  },
+  }
+}
 
-};
-
-export default Handler;
+export default main11;

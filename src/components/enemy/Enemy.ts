@@ -5,7 +5,6 @@ import Action from "../game/Action";
 import Tile from "../game/Tile";
 import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
-import EnemyHandler from "../entityHandler/EnemyHandler";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "./BattleObject";
 
@@ -318,7 +317,7 @@ class Enemy extends BattleObject{
     this.carryContainer.visible = false;
     this.object.add(this.carryContainer);
 
-    EnemyHandler.handleEnemyConstructor(this);
+    Global.gameHandler.handleEnemyConstructor(this);
   }
 
   public start(){
@@ -436,7 +435,7 @@ class Enemy extends BattleObject{
     if( this.cantFinished ) return;
     this.isFinished = true;
     this.countdown.clearCountdown();
-    EnemyHandler.finishedMap(this);
+    Global.gameHandler.finishedMap(this);
     this.dropOff();
     
     if(!this.isSimulate()){
@@ -995,7 +994,7 @@ class Enemy extends BattleObject{
   //复活处理，一般是boss
   private reborn(){
     this.reborned = true;
-    EnemyHandler.handleReborn(this);
+    Global.gameHandler.handleReborn(this);
   }
 
   private updateHPBar(){
@@ -1177,7 +1176,7 @@ class Enemy extends BattleObject{
   }
 
   public attack(){
-    EnemyHandler.handleAttack(this);
+    Global.gameHandler.handleAttack(this);
   }
 
   public addBuff(buff: Buff){
@@ -1217,12 +1216,12 @@ class Enemy extends BattleObject{
 
 
   private handleStart(){
-    EnemyHandler.handleStart(this);
+    Global.gameHandler.handleEnemyStart(this);
   }
 
   private handleTalents(){
     this.talents?.forEach(talent => {
-      EnemyHandler.handleTalent(this, talent);
+      Global.gameHandler.handleTalent(this, talent);
     })
   }
 
@@ -1230,12 +1229,12 @@ class Enemy extends BattleObject{
     // if(this.skills.length > 0) console.log(this.skills)
     
     this.skills?.forEach(skill => {
-      EnemyHandler.handleSkill(this, skill);
+      Global.gameHandler.handleSkill(this, skill);
     });
   }
 
   private handleDie(){
-    EnemyHandler.handleDie(this);
+    Global.gameHandler.handleDie(this);
   }
 
   public getTalent(key: string){
@@ -1308,7 +1307,7 @@ class Enemy extends BattleObject{
     if(!this.isFullyLoaded()){
       this.passengers.push(enemy);
       enemy.disappear();
-      EnemyHandler.handlePickUp(enemy, this);
+      Global.gameHandler.handlePickUp(enemy, this);
     }
   }
 
@@ -1336,7 +1335,7 @@ class Enemy extends BattleObject{
       enemy.nextNode = this.nextNode;
       enemy.visualRoutes = this.visualRoutes;
       enemy.appearAt(dropPos);
-      EnemyHandler.handleDropOff(enemy, this);
+      Global.gameHandler.handleDropOff(enemy, this);
 
     }
   }
@@ -1997,7 +1996,7 @@ class Enemy extends BattleObject{
       }
     }
     
-    EnemyHandler.handleEnemySet(this, state);
+    Global.gameHandler.handleEnemySet(this, state);
   }
 
   public destroy(){

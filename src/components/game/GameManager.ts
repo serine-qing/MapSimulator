@@ -67,6 +67,7 @@ class GameManager extends DataObject{
   private mouseMoveProcessing: boolean = false;
 
   public gractrl: Gractrl;  //重力控制
+  public gameHandler: GameHandler;
 
   constructor(){
     super();
@@ -78,6 +79,8 @@ class GameManager extends DataObject{
     this.buffManager = new BuffManager();
     this.gameView = new GameView();
     this.seededRandom = new SeededRandom(Math.random() * 1000000);
+    this.gameHandler = new GameHandler();
+    Global.gameHandler = this.gameHandler;
   }
 
   public init(mapModel: MapModel){
@@ -89,7 +92,7 @@ class GameManager extends DataObject{
     this.isCampaign = this.mapModel.sourceData.levelId.includes("campaign");
     this.simStep = this.isCampaign? 5 : GameConfig.SIMULATE_STEP;
     
-    GameHandler.beforeGameInit();
+    this.gameHandler.beforeGameInit();
     this.SPFA = mapModel.SPFA;
     this.tileManager = mapModel.tileManager;
 
@@ -105,7 +108,7 @@ class GameManager extends DataObject{
       this.gractrl = new Gractrl();
     } 
 
-    GameHandler.afterGameInit();
+    Global.gameHandler.afterGameInit();
 
     this.startSimulate();
     
@@ -197,7 +200,7 @@ class GameManager extends DataObject{
       this.waveManager.update(delta);
       this.trapManager.update(delta);
 
-      GameHandler.afterGameUpdate();
+      Global.gameHandler.afterGameUpdate();
       
       if(!this.isSimulate ) eventBus.emit("second_change", this.gameSecond);
 

@@ -19,7 +19,6 @@ import act41side from "../entityHandler/挽歌燃烧殆尽";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
-import EnemyHandler from "../entityHandler/EnemyHandler";
 
 interface WaveData{
   advancedWaveTag?: string,
@@ -471,7 +470,7 @@ class MapModel{
 
       currentTime = lastTime;
 
-      EnemyHandler.checkActionDatas(innerActions);  //排序之前调用，有些解析需要按照顺序
+      Global.gameHandler.checkActionDatas(innerActions);  //排序之前调用，有些解析需要按照顺序
 
       innerActions.sort((a, b)=>{
         return a.startTime - b.startTime;

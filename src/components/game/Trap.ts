@@ -4,7 +4,6 @@ import * as spine  from "@/spine";
 import { GC_Add } from "./GC";
 import Tile from "./Tile";
 import { Countdown } from "./CountdownManager";
-import TrapHandler from "../entityHandler/TrapHandler";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "../enemy/BattleObject";
@@ -174,7 +173,7 @@ class Trap extends BattleObject{
   }
 
   initSkill(){
-    TrapHandler.initSkill(this);
+    Global.gameHandler.handleInitTrapSkill(this);
   }
 
   //获取skillBlackboard
@@ -234,7 +233,7 @@ class Trap extends BattleObject{
   }
 
   public start(){
-    TrapHandler.start(this);
+    Global.gameHandler.handleTrapStart(this);
   }
 
   public update(delta: number){

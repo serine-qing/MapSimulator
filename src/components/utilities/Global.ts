@@ -8,10 +8,12 @@ import SPFA from "../game/SPFA";
 import TileManager from "../game/TileManager";
 import TrapManager from "../game/TrapManager";
 import SeededRandom from "./Random";
+import GameHandler from "../entityHandler/GameHandler";
 
 interface Global_Type{
   mapModel: MapModel,
   gameManager: GameManager,
+  gameHandler: GameHandler,
   waveManager: WaveManager,
   trapManager: TrapManager,
   countdownManager: CountdownManager,
@@ -26,6 +28,7 @@ interface Global_Type{
 const Global: Global_Type = {
   mapModel: null,
   gameManager: null,
+  gameHandler: null,
   waveManager: null,
   trapManager: null,
   countdownManager: null,
@@ -38,6 +41,7 @@ const Global: Global_Type = {
   reset: () => {
     Global.mapModel = null;
     Global.gameManager = null;
+    Global.gameHandler = null;
     Global.waveManager = null;
     Global.trapManager = null;
     Global.countdownManager = null;
