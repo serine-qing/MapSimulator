@@ -7,6 +7,7 @@ import eventBus from "../utilities/EventBus";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "./BattleObject";
+import GameConfig from "../utilities/GameConfig";
 
 const ZERO = {
   x: 0,
@@ -154,8 +155,9 @@ class Enemy extends BattleObject{
   talents: any[];          //天赋
   skills: any[];           //技能
   
-  cursorPosition: THREE.Vector2;          //todo 光标坐标
-  position: THREE.Vector2;
+  spawnOffset: THREE.Vector2;             //出生点偏移
+  cursorPosition: THREE.Vector2;          //光标坐标
+  position: THREE.Vector2;                //实体坐标
   acceleration: THREE.Vector2;            //加速度
   inertialVector: THREE.Vector2;          //惯性向量
   velocity: THREE.Vector2;                //当前速度矢量
@@ -251,6 +253,7 @@ class Enemy extends BattleObject{
 
   protected unBalanceSpeed: number;         //当前失衡移动速度
   protected unBalanceVector: THREE.Vector2; //失衡移动方向
+  protected boundCrashed: boolean = false;  //在本次失衡移动中是否撞过墙
 
   constructor(param: EnemyParam, enemyData: EnemyData){
     super();
@@ -289,8 +292,14 @@ class Enemy extends BattleObject{
     this.isAirborne = this.route.isAirborne;
     this.visualRoutes = this.route.visualRoutes;
     this.motion = checkEnemyMotion(this.key, motion);
+    const spawnOffset = this.route.spawnOffset; 
+    this.spawnOffset = new THREE.Vector2(
+      spawnOffset.x ? spawnOffset.x : 0,
+      spawnOffset.y ? spawnOffset.y : 0
+    );
 
     this.position = new THREE.Vector2();
+    this.cursorPosition = new THREE.Vector2();
     this.acceleration = new THREE.Vector2(0, 0);
     this.inertialVector = new THREE.Vector2(0, 0);
     this.velocity = new THREE.Vector2(0, 0);
@@ -299,7 +308,7 @@ class Enemy extends BattleObject{
     //敌人阴影往下偏移
     this.shadowOffset  = {
       x: 0,
-      y: -0.15
+      y: this.isFly()? 0 : GameConfig.GROUND_ENEMY_YOFFSET
     };
 
     this.initOptions();
@@ -381,8 +390,13 @@ class Enemy extends BattleObject{
   }
 
   public setPosition(x:number, y: number){
-    this.position.set(x, y);
-    this.setObjectPosition(x, y);
+    this.cursorPosition.set(x, y)
+    this.position.set(x + this.spawnOffset.x, y + this.spawnOffset.y); //更新实体坐标
+
+    this.setObjectPosition(
+      this.position.x,
+      this.position.y
+    );
   }
 
   public setObjectPosition(x: number, y: number){
@@ -628,6 +642,7 @@ class Enemy extends BattleObject{
   }
 
   private getClosePoints(){
+    //足坐标：即敌人FootPoint所在位置。大部分情况下位于敌人的实体坐标偏移(0,-0.2)的位置
     const footPoint = new THREE.Vector2(
       this.position.x, this.position.y - 0.2
     );
@@ -887,7 +902,7 @@ class Enemy extends BattleObject{
         const targetPos = this.getTargetPostion();
 
         //检查自身以理论移速移动时，光标坐标是否可在此帧内抵达这个目标，如果是，跳过后面所有步骤
-        const simDistanceToTarget = this.position.distanceTo(targetPos);
+        const simDistanceToTarget = this.cursorPosition.distanceTo(targetPos);
         if(actualSpeed * delta >= simDistanceToTarget){
           this.setPosition(targetPos.x, targetPos.y);
           this.forceMoved = true;
@@ -897,8 +912,8 @@ class Enemy extends BattleObject{
 
         //给定方向向量
         this.unitVector = new THREE.Vector2(
-          targetPos.x - this.position.x,
-          targetPos.y - this.position.y
+          targetPos.x - this.cursorPosition.x,
+          targetPos.y - this.cursorPosition.y
         ).normalize();
         break;
 
@@ -949,7 +964,7 @@ class Enemy extends BattleObject{
         if(currentNode.nextNode === null) return;
 
         //若自身光标坐标进入了经过的前一地块的nextNode，但还未到达此地块中心0.25半径范围内，则目标仍然为当前光标坐标所在地块中心
-        const distance = this.position.distanceTo(currentNode.position as THREE.Vector2);
+        const distance = this.cursorPosition.distanceTo(currentNode.position as THREE.Vector2);
 
         if(distance <= arriveDistance){
           this.nextNode = currentNode.nextNode;
@@ -984,6 +999,10 @@ class Enemy extends BattleObject{
       }
       
     }
+  }
+
+  public changeHP(value: number){
+    this.hp += value;
   }
 
   //重生动画结束
@@ -1447,6 +1466,16 @@ class Enemy extends BattleObject{
     return true;
   }
 
+  //禁止移动
+  public unableMove(){
+    this.unMoveable = true;
+  }
+
+  //允许移动
+  public enableMove(){
+    this.unMoveable = false;
+  }
+
   protected move(delta: number){
     if(this.forceMoved || !this.canMove()) return;
     if(this.unitVector.equals(ZERO) && this.inertialVector.length() < 0.0001){
@@ -1510,8 +1539,8 @@ class Enemy extends BattleObject{
     this.setVelocity(velocity);
 
     this.setPosition(
-      this.position.x + this.velocity.x,
-      this.position.y + this.velocity.y
+      this.cursorPosition.x + this.velocity.x,
+      this.cursorPosition.y + this.velocity.y
     );
 
     this.changeTowardBySpeed();
@@ -1529,7 +1558,7 @@ class Enemy extends BattleObject{
     if(!this.hasMoved()) return;
     
     const targetPos = this.getTargetPostion();
-    const distanceToTarget = this.position.distanceTo(targetPos);
+    const distanceToTarget = this.cursorPosition.distanceTo(targetPos);
     //到达检查点终点
     if( distanceToTarget <= 0.05 &&
       (!this.nextNode.nextNode)
@@ -1712,7 +1741,7 @@ class Enemy extends BattleObject{
     enemy.setPosition(this.position.x, this.position.y);
     if(
       this.currentCheckPoint().type === "WAIT_FOR_SECONDS" &&
-      !this.position.equals(this.route.startPosition)  //没移动过，token不会跳过当前wait检查点
+      !this.cursorPosition.equals(this.route.startPosition)  //没移动过，token不会跳过当前wait检查点
     ){
       //只跳过WAIT_FOR_SECONDS
       enemy.changeCheckPoint(this.checkPointIndex + 1);
@@ -1746,7 +1775,9 @@ class Enemy extends BattleObject{
     this.unBalanceSpeed = this.getForce(forceLevel - this.attributes.massLevel);
     if(this.unBalanceSpeed > 0){
       this.unBalance = true;
+      this.boundCrashed = false;
       this.unBalanceVector = direction.normalize();
+      Global.gameHandler.handleEnemyUnbalanceMove(this);
     }
   }
 
@@ -1772,6 +1803,10 @@ class Enemy extends BattleObject{
           const offsetX = (edgeX - this.position.x - velocity.x) * prefix;
           if(offsetX < 0){
             velocity.x = velocity.x + offsetX * prefix; 
+            if(!this.boundCrashed){
+              this.boundCrashed = true;
+              Global.gameHandler.handleEnemyBoundCrash(this, tileManager.getTile(aroundX, y));
+            }
           }
         }
       }
@@ -1786,13 +1821,17 @@ class Enemy extends BattleObject{
           
           if(offsetY < 0){
             velocity.y = velocity.y + offsetY * prefix; 
+            if(!this.boundCrashed){
+              this.boundCrashed = true;
+              Global.gameHandler.handleEnemyBoundCrash(this, tileManager.getTile(x, aroundY));
+            }
           }
         }
       }
       
       this.setPosition(
-        this.position.x + velocity.x,
-        this.position.y + velocity.y
+        this.cursorPosition.x + velocity.x,
+        this.cursorPosition.y + velocity.y
       )
       
     }
@@ -1802,14 +1841,14 @@ class Enemy extends BattleObject{
   public get(){
     const superStates = super.get();
 
-    const position = {
-      x: this.position.x,
-      y: this.position.y
+    const cursorPosition = {
+      x: this.cursorPosition.x,
+      y: this.cursorPosition.y
     }
 
     const state = {
       id: this.id,
-      position,
+      cursorPosition,
       acceleration: this.acceleration,
       inertialVector: this.inertialVector,
       checkPointIndex: this.checkPointIndex,
@@ -1852,6 +1891,7 @@ class Enemy extends BattleObject{
       spawnIndex: this.spawnIndex,
       unBalanceSpeed: this.unBalanceSpeed,
       unBalanceVector: this.unBalanceVector,
+      boundCrashed: this.boundCrashed,
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
@@ -1868,7 +1908,7 @@ class Enemy extends BattleObject{
   public set(state){
     super.set(state);
 
-    const {position, 
+    const {cursorPosition, 
       acceleration,
       inertialVector,
       checkPointIndex, 
@@ -1911,6 +1951,7 @@ class Enemy extends BattleObject{
       spawnIndex,
       unBalanceSpeed,
       unBalanceVector,
+      boundCrashed,
       attributes,
       passengers,
       changeTileEvents,
@@ -1918,7 +1959,7 @@ class Enemy extends BattleObject{
       buffs
     } = state;
 
-    this.setPosition(position.x, position.y);
+    this.setPosition(cursorPosition.x, cursorPosition.y);
     this.acceleration = acceleration;
     this.inertialVector = inertialVector;
     this.checkPointIndex = checkPointIndex;
@@ -1958,6 +1999,7 @@ class Enemy extends BattleObject{
     this.spawnIndex = spawnIndex;
     this.unBalanceSpeed = unBalanceSpeed;
     this.unBalanceVector = unBalanceVector;
+    this.boundCrashed = boundCrashed;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.passengers = [...passengers];
     this.changeTileEvents = [...changeTileEvents],

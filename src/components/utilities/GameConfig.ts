@@ -4,6 +4,7 @@ const GameConfig = {
   MAP_ROTATION : 0.5,      
   //@ts-ignore
   BASE_URL : import.meta.env.VITE_API_URL,
+  GROUND_ENEMY_YOFFSET: -0.15,
   TILE_SIZE : 6,
   TILE_HEIGHT : 3/7, //高台地块的高度（按宽度为1计算）
   SIMULATE_STEP: 1,  //模拟数据间隔多少秒

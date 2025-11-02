@@ -48,7 +48,8 @@ class Trap extends BattleObject{
     this.isTokenCard = data.isTokenCard;
     this.key = data.key;
     this.alias = data.alias;
-    this.id = parseInt(this.alias?.split('#')[1]);
+    const id = this.alias?.split('#')[1];
+    this.id = parseInt(id? id : "0");
     this.direction = data.direction;
     this.position = data.position;
     this.mainSkillLvl = data.mainSkillLvl;

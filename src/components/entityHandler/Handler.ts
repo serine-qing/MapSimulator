@@ -44,6 +44,10 @@ interface Handler{
 
   handleEnemySet?(enemy: Enemy, state);
 
+  handleEnemyUnbalanceMove?(enemy: Enemy);               //敌人失衡移动
+
+  handleEnemyBoundCrash?(enemy: Enemy, tile: Tile);      //敌人撞墙事件
+
   afterMoveCamera?();
 
   afterGameUpdate?();

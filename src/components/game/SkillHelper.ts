@@ -59,13 +59,15 @@ const parseSkill = (enemyData: EnemyData) => {
     const skillClone = {...skill};
     skillClone.prefabKey = skillClone.prefabKey.toLowerCase();
     const parsedBlackboard:{[key: string]: number|string} = {};
-    if(skill.blackboard){
+    if(skill.blackboard && Array.isArray(skill.blackboard)){
       skill.blackboard.forEach((item: any) => {
         const {key, value, valueStr} = item;
         parsedBlackboard[key] = valueStr? valueStr : value;
       })
 
       skillClone.blackboard = parsedBlackboard;
+    }else{
+      skill.blackboard = null
     }
     res.push(skillClone);
   })

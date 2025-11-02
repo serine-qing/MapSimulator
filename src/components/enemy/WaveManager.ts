@@ -30,6 +30,14 @@ interface startExtraActionOptions{
   actionIndex?: number        //指定执行的currentActionIndex，数组只有一个元素
 }
 
+interface enemysInRectParam{
+  x1: number,
+  x2: number,
+  y1: number,
+  y2: number,
+  enemyIncludes?: string[],
+  enemyExcludes?: string[]
+}
 
 //敌人状态管理
 class WaveManager{
@@ -570,7 +578,8 @@ class WaveManager{
   }
 
   //获取矩形区域内的所有敌人
-  public getEnemysInRect(x1, x2, y1, y2){
+  public getEnemysInRect(param: enemysInRectParam): Enemy[]{
+    const {x1, x2, y1, y2, enemyIncludes, enemyExcludes} = param;
     const minX = Math.min(x1, x2) - 0.5;
     const maxX = Math.max(x1, x2) + 0.5;
     const minY = Math.min(y1, y2) - 0.5;
@@ -581,7 +590,9 @@ class WaveManager{
         enemy.position.x > minX &&
         enemy.position.x < maxX &&
         enemy.position.y > minY &&
-        enemy.position.y < maxY
+        enemy.position.y < maxY &&
+        (!enemyIncludes || enemyIncludes.includes(enemy.key)) &&
+        (!enemyExcludes || !enemyExcludes.includes(enemy.key))
       )
     })
   }

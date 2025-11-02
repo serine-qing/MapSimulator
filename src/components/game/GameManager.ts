@@ -195,9 +195,10 @@ class GameManager extends DataObject{
       }
       
       this.gameSecond += delta;
-      
-      this.countdownManager.update(delta);
+
+      //todo 调换过一次waveManager和countdownManager的执行顺序，不知道是否有未知bug
       this.waveManager.update(delta);
+      this.countdownManager.update(delta);
       this.trapManager.update(delta);
 
       Global.gameHandler.afterGameUpdate();

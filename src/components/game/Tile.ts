@@ -22,7 +22,7 @@ class Tile extends DataObject{
   });
 
   tileData: any;
-  blackboard: any[];
+  blackboard: BlackBoard[];
 
   width: number;
   height: number;
@@ -430,6 +430,12 @@ class Tile extends DataObject{
     }
     
     return passable;
+  }
+
+  //是否是可部署高台
+  public isBuildableHighland(){
+    return (this.buildableType === "RANGED" || this.buildableType === "ALL") &&
+      this.heightType === "HIGHLAND";
   }
 
   public setVisible(visible: boolean){

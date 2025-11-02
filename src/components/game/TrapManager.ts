@@ -39,6 +39,23 @@ class TrapManager{
     return this.traps.find(trap => key === trap.alias);
   }
 
+  getTrapsInRect(x1, x2, y1, y2): Trap[]{
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+
+    return this.traps.filter(trap => {
+      return (
+        trap.visible &&
+        trap.position.x >= minX &&
+        trap.position.x <= maxX &&
+        trap.position.y >= minY &&
+        trap.position.y <= maxY
+      )
+    })
+  }
+
   getSelected(): Trap{
     return this.traps.find(trap => trap.isSelected);
   }

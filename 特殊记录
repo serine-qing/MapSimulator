@@ -1,38 +1,5 @@
 filter: invert(100%); //图片反色 好用
 
-
-都是啥：
-enemy_1334_ristar 克里斯滕球
-enemy_10082_mpweak 15章装置
-S_church_statue 空想花庭圣像
-S_church_StatueBroken 空想花庭圣像（倒塌）
-S_Church_RockFall 空想花庭滚石装置
-S_latelan_arsenal 冰淇淋机
-S_light_pillar 长夜临光的灯
-S_Music_begin 尘影余音低音号
-S_Music_turn 尘影余音“谐振器”
-S_Recorder_trap 引航者试炼宝宝椅
-S_SDTrap 愚人号小帮手
-S_trap_080_garage 自走车出发
-S_trap_081_turngear 自走车转向
-S_Trap_124_eradio 桥夹活动的激光装置
-
-
-S_GLBY_Trap 监狱 禁锢装置
-trap_crsbow 解雇者清债程序
-Trap_SM_blower 源石流发生装置（萨米）
-S_zhong 覆潮之下 灯
-S_wind_device 吹风机
-S_mushroom 蘑菇
-S_icewild_wood 道路障碍物(8章箱子	)
-S_desert_wall 土石结构（OD） 可去掉外壳变成未加固
-S_curse_device 源石装置
-S_cave_stone 碎石 KR-1 玉门：沙丘狂欢
-S_boat_trap 多索雷斯特制水上平台
-S_037_airsup 可移动战术机库
-fire_jiejing 能量聚合体
-
-
 linux 启动后端：
 ss -tlpn | grep 3000 查看进程pid
 kill 杀死刚刚找到的进程
@@ -44,7 +11,7 @@ nohup npm run dev &  重新启动
 gems_type: 1 浅色结晶 2 深色结晶
 
 
-解包：敌人的spine在 arknights\refs\arts
+解包：敌人的spine在 arknights\refs\arts    boss是15XX开头
 spritepack/icon_enemies.ab 敌人头像
 部分装置spine在 模拟器游戏文件的pkgrps中
 部分装置建模 arts\maps\common

@@ -1,7 +1,7 @@
 import { GC_Add } from "../game/GC";
 import Enemy from "./Enemy";
 import * as spine  from "@/spine";
-import { getSpineScale } from "@/components/utilities/SpineHelper";
+import { getSpecialZHeight, getSpineScale } from "@/components/utilities/SpineHelper";
 import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
 import { gameCanvas } from "../game/GameCanvas";
@@ -34,15 +34,18 @@ class SpineEnemy extends Enemy{
     if(this.key.includes("enemy_3005_lpeopl")) isGroundUnit = true;  //修道院居民在boss关是空中单位
     else if(this.key === "enemy_10072_mpprhd") isGroundUnit = true;  //侵入式调用从模型来说被视为地面单位
 
-    const offsetY = isGroundUnit? -1/4 : 0;
+    const offsetY = isGroundUnit? GameConfig.GROUND_ENEMY_YOFFSET : 0;
+
+    const specialZHeight = getSpecialZHeight(this.key);   //特殊的Z高度
+    let ZHeight = specialZHeight ? specialZHeight : (isGroundUnit? 0 + this.ZOffset : 10/7);    
+
     const coordinateOffset = getCoordinate(0, offsetY)
     
     this.skeletonMesh.position.x = coordinateOffset.x;
     this.skeletonMesh.position.y = coordinateOffset.y;
 
     this.skeletonMesh.rotation.x = GameConfig.MAP_ROTATION;
-    this.skeletonMesh.position.z = isGroundUnit? 
-      getPixelSize( 1/7 + this.ZOffset) : getPixelSize( 10/7);
+    this.skeletonMesh.position.z = getPixelSize(ZHeight);
 
     this.mesh = this.skeletonMesh;
     this.meshContainer = new THREE.Object3D();

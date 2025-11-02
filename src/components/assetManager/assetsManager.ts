@@ -113,22 +113,34 @@ class AssetsManager{
     let returnPromise = new Promise((resolve , reject) => {
       fbxOnload.then(res => {
         res.forEach((group, index) => {
+          
           let setObj: THREE.Object3D;
           group.traverse(object => {
-
             //需要添加到场景中的obj
             if(object.name === fbxs[index].fbxName){
               setObj = object;
             }
             let { material: oldMat } = object
             if(oldMat){
-              object.material =  new THREE.MeshMatcapMaterial({
-                color: oldMat.color,
-                map: oldMat.map
-              });
+              const newMat = [];
 
-              oldMat.dispose();
+              if(Array.isArray(oldMat)){
+                oldMat.forEach(mat => {
+                  newMat.push(new THREE.MeshMatcapMaterial({
+                    color: mat.color,
+                    map: mat.map
+                  }));
+                  mat.dispose();
+                })
+                object.material = newMat;
+              }else{
+                object.material =  new THREE.MeshMatcapMaterial({
+                  color: oldMat.color,
+                  map: oldMat.map
+                });
 
+                oldMat.dispose();
+              }
             }
           })
           

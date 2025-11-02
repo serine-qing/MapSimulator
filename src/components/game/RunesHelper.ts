@@ -3,6 +3,7 @@ import TileManager from "./TileManager";
 import Tile from "./Tile";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
+import Global from "../utilities/Global";
 
 class RunesHelper{
   private runes: any[];
@@ -20,10 +21,8 @@ class RunesHelper{
 
   constructor(runes: any){
     this.runes = runes;
-
     
-    act42side.parseRunes(this);
-    act45side.parseRunes(this);
+    Global.gameHandler.parseRunes(this);
 
     const addOtherRuneBlackbord = [];
     this.runes.forEach(rune => {

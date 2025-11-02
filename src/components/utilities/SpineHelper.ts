@@ -1,6 +1,7 @@
 import Enemy from "../enemy/Enemy";
 import SpineEnemy from "../enemy/SpineEnemy";
 import Trap from "../game/Trap";
+import GameConfig from "./GameConfig";
 
 const specialIdle = {
   enemy_1536_ncrmcr: "Idle_b",       //boss领袖
@@ -131,6 +132,8 @@ export const getSpineScale = (inst: any): Vec2 => {
   };
 }
 
+
+
 const spineMap = {
   "enemy_10110_mjcsdw":{    //“破茧之梦”
     x: -0.9,
@@ -165,6 +168,14 @@ const spineMap = {
     x: 1.1,
     y: 1.1
   },
+  "enemy_10145_xdrock":{      //伊斯贝塔
+    x: 0.9,
+    y: 0.9
+  },
+  "enemy_10145_xdrock_2":{      //伊斯贝塔
+    x: 0.9,
+    y: 0.9
+  }
 }
 
 export const checkEnemyMotion = (key: string, motion: string) => {
@@ -187,4 +198,14 @@ const spineAnimationSpeed = {
 export const getAnimationSpeed = (key) => {
   const speed = spineAnimationSpeed[key];
   return speed? speed : 1;
+}
+
+const specialZHeight = {
+  "enemy_10140_xdbird": GameConfig.TILE_HEIGHT,        //洞栖雪灵看起啦更低，以匹配视觉效果
+  "enemy_10140_xdbird_2": GameConfig.TILE_HEIGHT,
+}
+
+export const getSpecialZHeight = (key) => {
+  const ZHeight = specialZHeight[key];
+  return ZHeight? ZHeight : null;
 }

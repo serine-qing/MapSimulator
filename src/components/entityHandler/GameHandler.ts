@@ -17,6 +17,7 @@ import act46side from "./雪山降临1101";
 import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
+import RunesHelper from "../game/RunesHelper";
 
 //todo 从雪山降临1101活动开始 将Handler转为实例化的类，前面的Handler就慢慢改了
 
@@ -28,8 +29,17 @@ class GameHandler implements Handler{
     this.handlers.push(new main15());
   }
 
+  public parseRunes(runesHelper: RunesHelper) {
+    //todo 
+    act42side.parseRunes(runesHelper)
+    act45side.parseRunes(runesHelper)
+    this.handlers.forEach(handler => {
+      handler.parseRunes && handler.parseRunes(runesHelper);
+    })
+  }
+
   //初始化全部Actions后执行
-  public afterGameInit () {
+  public afterGameInit() {
     act42side.afterGameInit();
     act45side.afterGameInit();
     act1vhalfidle.afterGameInit();
@@ -304,6 +314,18 @@ class GameHandler implements Handler{
 
   handleAttack(enemy: Enemy) {
     act45side.handleAttack(enemy);
+  }
+
+  handleEnemyUnbalanceMove(enemy: Enemy){
+    this.handlers.forEach(handler => {
+      handler.handleEnemyUnbalanceMove && handler.handleEnemyUnbalanceMove(enemy);
+    })
+  }
+
+  handleEnemyBoundCrash(enemy: Enemy, tile: Tile){
+    this.handlers.forEach(handler => {
+      handler.handleEnemyBoundCrash && handler.handleEnemyBoundCrash(enemy, tile);
+    })
   }
 
   finishedMap (enemy: Enemy) {

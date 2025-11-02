@@ -97,7 +97,6 @@ class MapModel{
     //获取哪些敌人的spine是可用的
     //获取敌人spine
     await this.getEnemyMeshs();
-
     //解析敌人路径
     this.routes = this.parseEnemyRoutes(routes);
     this.extraRoutes = this.parseEnemyRoutes(extraRoutes);
@@ -126,7 +125,7 @@ class MapModel{
   private async getTokenCards(){
 
     const tokenCards = this.sourceData.predefines?.tokenCards;
-    if(tokenCards){
+    if(tokenCards && Array.isArray(tokenCards)){
 
       tokenCards.forEach(tokenCard => {
         //障碍物
@@ -486,8 +485,10 @@ class MapModel{
   private parseEnemyRoutes(source){
     let routeIndex = 0;
     const routes = [];
-    source.forEach( (sourceRoute: any) =>{
-
+    Array.isArray(source) && source.forEach( (sourceRoute: any) =>{
+      if(!Array.isArray(sourceRoute.checkpoints)){
+        sourceRoute.checkpoints = [];
+      }
       //某些敌人(例如提示)没有路径route，所以会出现null，做下兼容处理
       //E_NUM不算进敌人路径内，例如"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
       if(sourceRoute && sourceRoute.motionMode !== "E_NUM") {

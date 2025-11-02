@@ -317,6 +317,11 @@ class BattleObject extends DataObject{
     return false;
   }
 
+  //技能是否在CD
+  public isSkillInCd(name: string): boolean{
+    return this.countdown.getCountdownTime(name) > 0;
+  }
+
   protected initSPBar(){
     if(!this.object) return;
 
