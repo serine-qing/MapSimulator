@@ -304,6 +304,18 @@ class GameHandler implements Handler{
     }
   }
 
+  handleEnemyWait(enemy: Enemy, waitTime: number) {
+    this.handlers.forEach(handler => {
+      handler.handleEnemyWait && handler.handleEnemyWait(enemy, waitTime);
+    })
+  }
+
+  handleEnemyWaitFinish(enemy: Enemy, waitTime: number) {
+    this.handlers.forEach(handler => {
+      handler.handleEnemyWaitFinish && handler.handleEnemyWaitFinish(enemy, waitTime);
+    })
+  }
+
   handlePickUp (enemy: Enemy, vehicle: Enemy) {
     act45side.handlePickUp(enemy, vehicle);
   }

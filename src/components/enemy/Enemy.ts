@@ -921,13 +921,16 @@ class Enemy extends BattleObject{
       case "WAIT_FOR_PLAY_TIME":             //等待至游戏开始后的固定时刻
       case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
+        const waitTime = this.getWaitTime(type, time);
         this.countdown.addCountdown({
           name: "checkPoint",
-          initCountdown: this.getWaitTime(type, time),
+          initCountdown: waitTime,
           callback: () => {
             this.nextCheckPoint();
+            Global.gameHandler.handleEnemyWaitFinish(this, waitTime)
           }
         });
+        Global.gameHandler.handleEnemyWait(this, waitTime)
         break;
 
       case "DISAPPEAR":

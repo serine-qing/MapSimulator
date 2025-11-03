@@ -282,36 +282,6 @@ class act46side implements Handler{
         enemy.startAnimate = "B_Start"
         break;
 
-      case "enemy_10143_xdmush":             //小雪伞
-      case "enemy_10143_xdmush_2":
-        // enemy.countdown.addCountdown({
-        //   name: "startAura",
-        //   initCountdown: 10,
-        //   callback: () => {
-        //     enemy.animationStateTransition({
-        //       idleAnimate: "Idle_B",
-        //       transAnimation: "Skill_Begin",
-        //       isWaitTrans: true,
-        //     })
-        //     enemy.unableMove();
-        //     enemy.customData.isAura = true;
-        //   }
-        // })
-
-        // enemy.countdown.addCountdown({
-        //   name: "endAura",
-        //   initCountdown: 130,
-        //   callback: () => {
-        //     enemy.animationStateTransition({
-        //       idleAnimate: "Idle_A",
-        //       transAnimation: "Skill_End",
-        //       isWaitTrans: true,
-        //     })
-        //     enemy.enableMove();
-        //     enemy.customData.isAura = false;
-        //   }
-        // })
-        break;
       case "enemy_10140_xdbird":             //洞栖雪灵
       case "enemy_10140_xdbird_2":
         const tileManager = Global.tileManager;
@@ -427,6 +397,28 @@ class act46side implements Handler{
         break;
     }
   }
-  
+
+  public handleEnemyWait(enemy: Enemy, waitTime: number) {
+    if(enemy.key === "enemy_10143_xdmush" || enemy.key === "enemy_10143_xdmush_2"){  //小雪伞
+      enemy.animationStateTransition({
+        idleAnimate: "Idle_B",
+        transAnimation: "Skill_Begin",
+        isWaitTrans: true,
+      })
+      enemy.customData.isAura = true;
+    }
+  }
+
+  public handleEnemyWaitFinish(enemy: Enemy, waitTime: number) {
+    if(enemy.key === "enemy_10143_xdmush" || enemy.key === "enemy_10143_xdmush_2"){  //小雪伞
+      enemy.animationStateTransition({
+        idleAnimate: "Idle_A",
+        transAnimation: "Skill_End",
+        isWaitTrans: true,
+      })
+      enemy.customData.isAura = false;
+    }  
+    
+  }
 }
 export default act46side;

@@ -32,6 +32,10 @@ interface Handler{
 
   handleChangeCheckPoint?(enemy: Enemy);
 
+  handleEnemyWait?(enemy: Enemy, waitTime: number);            //敌人触发停驻检查点
+
+  handleEnemyWaitFinish?(enemy: Enemy, waitTime: number);            //敌人结束停驻检查点
+
   handlePickUp?(enemy: Enemy, vehicle: Enemy);   //vehicle载具
 
   handleDropOff?(enemy: Enemy, vehicle: Enemy);
