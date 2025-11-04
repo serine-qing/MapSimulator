@@ -391,7 +391,6 @@ class MapModel{
       let currentTime = wave.preDelay;
       
       const innerFragments = this.parseActions(wave.fragments, currentTime, false)
-
       this.waveDatas.push({
         advancedWaveTag: wave.advancedWaveTag,
         actionDatas: innerFragments.flat()
@@ -810,11 +809,13 @@ class MapModel{
 
       if(branchId){
         const brancheData = branches[branchId]?.phases;
-
+        if(!brancheData) return;
+        
         trapData.extraWaveKey = branchId + (actionIndex? actionIndex : "");
 
         if(actionIndex !== null && actionIndex !== undefined){
           const findAction = brancheData[0]?.actions[actionIndex];
+          
           //只有单个action
           this.parseExtraActions(trapData.extraWaveKey, [
             {
