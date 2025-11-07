@@ -17,6 +17,11 @@ class act46side implements Handler{
   private avalancheDamage: number = 0;
   private avalancheZones: avalancheZone[] = [];    //雪崩区数组
   private prayTiles: {[key: number]: Tile} = {};   //初雪祈祷tile
+  private prayDuration: number;                    //祈祷时间
+  private prayDamageRate: number;                  //祈祷伤害倍率
+
+  private xdagt: Enemy;                            //披挂冰雪的少女
+  private xdmon: Enemy;                            //耶拉冈德
 
   //初始化雪崩区
   private initAvalancheZone (trap: Trap ,x1: number, x2: number, y1: number, y2: number) {
@@ -99,6 +104,7 @@ class act46side implements Handler{
     enemys.forEach(enemy => {
       const position = enemy.tilePosition;
       if(enemy.motion !== "WALK") return;
+      if(enemy.key === "enemy_1576_spbell") return;   //暂时不考虑圣女
       if(direction.x !== 0){
         //左右向
         const findIndex = auraTiles.findIndex(vec2 => {
@@ -329,6 +335,30 @@ class act46side implements Handler{
           }
         })
         break;
+      case "enemy_1576_spbell":        //喀兰圣女
+        enemy.dontBlockWave = true;
+        enemy.cantFinished = true;
+        enemy.customData.prayCount = 0;  //祈祷计数器
+        const prayTime = enemy.getSkill("pray");
+        this.prayDuration = prayTime.blackboard?.duration || 36;
+        this.prayDamageRate = prayTime.blackboard?.hp_ratio || 0.25;
+        break;
+      case "enemy_1574_xdagt":       //披挂冰雪的少女
+        enemy.ZOffset = 1;
+        enemy.unableMove();
+        this.xdagt = enemy;
+        break;
+      case "enemy_1575_xdmon":       //耶拉冈德
+        enemy.hide();
+        this.xdmon = enemy;
+        break;
+    }
+  }
+
+  public handleDie(enemy: Enemy) {
+    //披挂冰雪的少女离场后再显示耶拉冈德
+    if(enemy.key === "enemy_1574_xdagt"){
+      this.xdmon?.show();
     }
   }
 
@@ -429,6 +459,39 @@ class act46side implements Handler{
       enemy.customData.isAura = false;
     }  
     
+  }
+
+  public handleChangeCheckPoint(enemy: Enemy, oldCP: CheckPoint) {
+    if(enemy.key === "enemy_1576_spbell" && oldCP){
+      //喀兰圣女
+
+      const position = oldCP.position;
+      const prayTile = this.prayTiles[enemy.customData.prayCount];
+      if(prayTile && prayTile.position && prayTile.position.x === position.x && prayTile.position.y === position.y){
+        
+        enemy.animationStateTransition({
+          idleAnimate: "Skill_Loop",
+          transAnimation: "Skill_Begin",
+          isWaitTrans: true
+        });
+        enemy.unableMove();
+        enemy.countdown.addCountdown({
+          name: "prayFinish",
+          initCountdown: this.prayDuration,
+          callback: () => {
+            enemy.animationStateTransition({
+              idleAnimate: "Idle",
+              transAnimation: "Skill_End",
+              isWaitTrans: true
+            });
+            enemy.enableMove();
+            enemy.customData.prayCount ++;
+            this.xdagt.changeHP( -this.xdagt.getAttr("maxHp") * this.prayDamageRate );
+          }
+        })
+      }
+      
+    }
   }
 }
 export default act46side;

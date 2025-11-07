@@ -30,7 +30,7 @@ interface Handler{
 
   handleSkill?(enemy: Enemy, skill: any);
 
-  handleChangeCheckPoint?(enemy: Enemy);
+  handleChangeCheckPoint?(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint);
 
   handleEnemyWait?(enemy: Enemy, waitTime: number);            //敌人触发停驻检查点
 

@@ -418,7 +418,9 @@ class Enemy extends BattleObject{
   }
 
   public changeCheckPoint(index: number){
+    const old = this.currentCheckPoint();
     this.checkPointIndex = index;
+    Global.gameHandler.handleChangeCheckPoint(this, old, this.currentCheckPoint())
   }
 
   public currentCheckPoint(): CheckPoint{

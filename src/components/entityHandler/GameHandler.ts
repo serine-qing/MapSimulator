@@ -284,6 +284,7 @@ class GameHandler implements Handler{
       case "doom":
       case "suicide":
         if(enemy.key === "enemy_1554_lrtsia") return; //特蕾西娅
+        if(enemy.key === "enemy_1574_xdagt") return;  //披挂冰雪的少女
         let cd = initCooldown;
         if(enemy.key === "enemy_1521_dslily"){
           
@@ -302,6 +303,12 @@ class GameHandler implements Handler{
         break;
 
     }
+  }
+
+  handleChangeCheckPoint(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint) {
+    this.handlers.forEach(handler => {
+      handler.handleChangeCheckPoint && handler.handleChangeCheckPoint(enemy, oldCP, newCP);
+    })
   }
 
   handleEnemyWait(enemy: Enemy, waitTime: number) {
@@ -361,6 +368,9 @@ class GameHandler implements Handler{
   }
 
   handleDie (enemy: Enemy) {
+    this.handlers.forEach(handler => {
+      handler.handleDie && handler.handleDie(enemy);
+    })
     act35side.handleDie(enemy);
   }
 
