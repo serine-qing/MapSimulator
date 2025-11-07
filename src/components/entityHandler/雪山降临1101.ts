@@ -16,6 +16,7 @@ class act46side implements Handler{
   private currentTrapId: number = 0; 
   private avalancheDamage: number = 0;
   private avalancheZones: avalancheZone[] = [];    //雪崩区数组
+  private prayTiles: {[key: number]: Tile} = {};   //初雪祈祷tile
 
   //初始化雪崩区
   private initAvalancheZone (trap: Trap ,x1: number, x2: number, y1: number, y2: number) {
@@ -168,6 +169,15 @@ class act46side implements Handler{
     const tile = Global.tileManager.getTile(enemy.tilePosition);
     tile.customData.birdsCount = tile.customData.birdsCount?
       tile.customData.birdsCount + 1 : 1;
+  }
+
+  public handleTileInit(tile: Tile) {
+    if(tile.blackboard){
+      const check_point_index = getBlackBoardItem("check_point_index", tile.blackboard);
+      if(check_point_index !== null){
+        this.prayTiles[check_point_index] = tile;
+      }
+    }
   }
 
   public parseRunes(runesHelper: RunesHelper) {

@@ -8,7 +8,7 @@
       <template #reference> 
         <el-link type="danger">{{$t('info.UpdateNotice')}}</el-link>
       </template>
-      <p style="color: red;">11.1更新：雪山降临地图和敌人机制完成(差小雪伞待更新)</p>
+      <p style="color: red;">11.1更新：雪山降临地图和敌人机制完成</p>
       <p style="color: red;">10.26更新：完成引航者试炼波次转换机制</p>
       <p style="color: red;">10.14更新：修复主线Sub关卡不显示的bug</p>
       <p style="color: red;">10.3更新：添加0.2倍速、修复全息作战矩阵UI位置异常bug</p>
