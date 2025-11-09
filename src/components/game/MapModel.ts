@@ -106,6 +106,8 @@ class MapModel{
     this.parseExtraWave();
 
     this.initSPFA();
+
+    Global.gameHandler.afterModelInit();
   }
 
   private initExtraDesc(){

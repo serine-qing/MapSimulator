@@ -459,7 +459,7 @@ class GameManager extends DataObject{
 
   public get(){
     const superStates = super.get();
-
+    
     let state: {[key: string]: any} = {
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
@@ -472,6 +472,7 @@ class GameManager extends DataObject{
       countdownState: this.countdownManager.get(),
       tokenCardState: this.tokenCards.map(tc => tc.get()),
       SeededRandomState: this.seededRandom.get(),
+      gameHandlerState: this.gameHandler.get(),
       ...superStates
     }
     if(this.gractrl){
@@ -497,7 +498,8 @@ class GameManager extends DataObject{
       countdownState, 
       tokenCardState,
       gractrlState,
-      SeededRandomState
+      SeededRandomState,
+      gameHandlerState
     } = states;
     
     this.gameSecond = gameSecond;
@@ -524,6 +526,7 @@ class GameManager extends DataObject{
     this.buffManager.set(buffState),
     this.countdownManager.set(countdownState);
     this.seededRandom.set(SeededRandomState);
+    this.gameHandler.set(gameHandlerState);
 
     this.isFinished = isFinished;
     this.finishedSecond = finishedSecond;

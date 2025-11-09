@@ -40,6 +40,9 @@ class GameHandler implements Handler{
 
   //初始化全部Actions后执行
   public afterGameInit() {
+    this.handlers.forEach(handler => {
+      handler.afterGameInit && handler.afterGameInit();
+    })
     act42side.afterGameInit();
     act45side.afterGameInit();
     act1vhalfidle.afterGameInit();
@@ -52,6 +55,18 @@ class GameHandler implements Handler{
   handleTileInit (tile: Tile) {
     this.handlers.forEach(handler => {
       handler.handleTileInit && handler.handleTileInit(tile);
+    })
+  }
+
+  afterTilesInit(tiles: Tile[]) {
+    this.handlers.forEach(handler => {
+      handler.afterTilesInit && handler.afterTilesInit(tiles);
+    })
+  }
+
+  afterModelInit(){
+    this.handlers.forEach(handler => {
+      handler.afterModelInit && handler.afterModelInit();
     })
   }
 
@@ -399,6 +414,27 @@ class GameHandler implements Handler{
         }
         break;
     }
+  }
+
+  public get() {
+    const states = {};
+    this.handlers.forEach(handler => {
+      if( handler.get ){
+        const state = handler.get();
+        states[handler.constructor.name] = state;
+      }
+    })
+
+    return states;
+  }
+
+  public set(states: any) {
+    this.handlers.forEach(handler => {
+      if( handler.set ){
+        const state = states[handler.constructor.name];
+        state && handler.set(state);
+      }
+    })
   }
 }
 

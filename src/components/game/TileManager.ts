@@ -115,6 +115,8 @@ class TileManager{
 
     this.flatTiles = this.tiles.flat();
 
+    Global.gameHandler.afterTilesInit(this.flatTiles);
+
     this.initEvents();
   }
 

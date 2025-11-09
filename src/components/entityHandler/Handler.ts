@@ -11,6 +11,10 @@ interface Handler{
   parseExtraWave?(trapDatas: trapData[], branches: any, extraRoutes);
 
   handleTileInit?(tile: Tile);
+
+  afterTilesInit?(tiles: Tile[]);
+
+  afterModelInit?();
   
   initTileEvents?(tile: Tile);
 
@@ -57,6 +61,11 @@ interface Handler{
   afterGameUpdate?();
 
   afterGameViewInit?();
+
+
+  get?(): any;
+
+  set?(state: any);
 }
 
 export default Handler;

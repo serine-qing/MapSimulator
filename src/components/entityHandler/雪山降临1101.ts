@@ -8,12 +8,11 @@ import Tile from "../game/Tile";
 import RunesHelper from "../game/RunesHelper";
 
 interface avalancheZone{
-  x1: number, x2: number, y1: number, y2: number,
+  minX: number, maxX: number, minY: number, maxY: number, index?: number,
   trap: Trap
 }
 
 class act46side implements Handler{
-  private currentTrapId: number = 0; 
   private avalancheDamage: number = 0;
   private avalancheZones: avalancheZone[] = [];    //雪崩区数组
   private prayTiles: {[key: number]: Tile} = {};   //初雪祈祷tile
@@ -31,15 +30,20 @@ class act46side implements Handler{
       x1, x2, y1, y2,
       callback: (enemy: Enemy) => {
         if(enemy.isFly()) return;
+        if(
+          enemy.key === "enemy_10145_xdrock_2" && 
+          enemy.isExtra && 
+          enemy.idleAnimate === "B_Start"
+        ){
+          //组长级冰块哥 出生不会给装置回sp 很神秘
+          return;
+        }
         trap.addSPForSkill("Avalanche", enemy.attributes.massLevel);
       }
     })
 
     this.drawRect(x1, x2, y1, y2);
 
-    this.avalancheZones.push({
-      x1, x2, y1, y2, trap
-    })
   }
 
   private drawRect (x1: number, x2: number, y1: number, y2: number) {
@@ -162,10 +166,10 @@ class act46side implements Handler{
     //给雪崩区加sp
     const find = this.avalancheZones.find(avalancheZone => {
       return (
-        avalancheZone.x1 <= enemy.tilePosition.x &&
-        avalancheZone.x2 >= enemy.tilePosition.x &&
-        avalancheZone.y1 <= enemy.tilePosition.y &&
-        avalancheZone.y2 >= enemy.tilePosition.y
+        avalancheZone.minX <= enemy.tilePosition.x &&
+        avalancheZone.maxX >= enemy.tilePosition.x &&
+        avalancheZone.minY <= enemy.tilePosition.y &&
+        avalancheZone.maxY >= enemy.tilePosition.y
       ) 
     })
     if(find && find.trap){
@@ -186,6 +190,35 @@ class act46side implements Handler{
     }
   }
 
+  public afterModelInit() {
+    //获取雪崩区位置数据
+    const find = Global.mapModel.trapDatas.find(trapData => trapData.key === "trap_265_xdice1");
+    if(!find) return;
+    
+    Global.tileManager.flatTiles.forEach(tile => {
+      const avalanche_index = getBlackBoardItem("avalanche_index", tile.blackboard);
+      if(isNaN(avalanche_index) || avalanche_index === null) return;
+      let zone = this.avalancheZones.find(z => z.index === avalanche_index);
+      if(!zone){
+        zone = {
+          minX: Infinity,
+          minY: Infinity,
+          maxX: 0,
+          maxY: 0,
+          index: avalanche_index,
+          trap: null
+        }
+        this.avalancheZones.push(zone);
+      }
+      zone.minX = Math.min(tile.position.x, zone.minX);
+      zone.minY = Math.min(tile.position.y, zone.minY);
+      zone.maxX = Math.max(tile.position.x, zone.maxX);
+      zone.maxY = Math.max(tile.position.y, zone.maxY);
+
+    })
+  }
+
+
   public parseRunes(runesHelper: RunesHelper) {
     const blackboard = runesHelper.getRunes("env_system_new")[0]?.blackboard;
     if(blackboard){
@@ -196,33 +229,17 @@ class act46side implements Handler{
 
   public handleTrapStart(trap: Trap){
     if(trap.key !== "trap_265_xdice1") return;
-    this.currentTrapId += 1;
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = 0;
-    let maxY = 0;    //雪崩区四角坐标
 
-    Global.tileManager.flatTiles.forEach(tile => {
-      const avalanche_index = getBlackBoardItem("avalanche_index", tile.blackboard);
-      let id = this.currentTrapId;
-
-      //关底顺序有bug
-      if(Global.mapModel.sourceData.levelId === "activities/act46side/level_act46side_10"){
-        if(this.currentTrapId === 2) id = 3;
-        else if(this.currentTrapId === 3) id = 2;
-      }
-
-      if(avalanche_index === id){
-        
-        minX = Math.min(tile.position.x, minX);
-        minY = Math.min(tile.position.y, minY);
-        maxX = Math.max(tile.position.x, maxX);
-        maxY = Math.max(tile.position.y, maxY);
-      }
+    const findZone = this.avalancheZones.find(zone => {
+      return zone.maxX >= trap.position.x &&
+        zone.minX <= trap.position.x &&
+        zone.maxY >= trap.position.y &&
+        zone.minY <= trap.position.y
     })
 
+    if(!findZone) return;
+
     let direction;
-    
     switch (trap.direction) {
       case "LEFT":
         direction = new THREE.Vector2(-1, 0);
@@ -253,6 +270,8 @@ class act46side implements Handler{
         break;
     }
 
+    findZone.trap = trap;
+
     trap.addSkill({
       name: "Avalanche",
       initSp,
@@ -261,10 +280,11 @@ class act46side implements Handler{
       showSPBar: true,
       duration: 2,
       endCallback: () => {
-        this.avalanche(minX, maxX, minY, maxY, direction);
+        this.avalanche(findZone.minX, findZone.maxX, findZone.minY, findZone.maxY, direction);
       }
     })
-    this.initAvalancheZone(trap, minX, maxX, minY, maxY);
+    this.initAvalancheZone(trap, findZone.minX, findZone.maxX, findZone.minY, findZone.maxY);
+    
   }
 
   public handleEnemyStart(enemy: Enemy) {
@@ -295,7 +315,7 @@ class act46side implements Handler{
     
       case "enemy_10145_xdrock":             //伊斯贝塔
       case "enemy_10145_xdrock_2":
-        enemy.startAnimate = "B_Start"
+        enemy.startAnimate = "B_Start";
         break;
 
       case "enemy_10140_xdbird":             //洞栖雪灵
@@ -346,6 +366,7 @@ class act46side implements Handler{
       case "enemy_1574_xdagt":       //披挂冰雪的少女
         enemy.ZOffset = 1;
         enemy.unableMove();
+        enemy.notCountInTotal = true;
         this.xdagt = enemy;
         break;
       case "enemy_1575_xdmon":       //耶拉冈德
@@ -493,5 +514,6 @@ class act46side implements Handler{
       
     }
   }
+
 }
 export default act46side;
