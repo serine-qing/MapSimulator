@@ -187,7 +187,7 @@
 
 <script setup lang="ts">
 import eventBus from '@/components/utilities/EventBus';
-import { immuneTable } from '@/components/utilities/Interface';
+import { immuneTable } from '@/type/Interface';
 import { accuracyNum } from '@/components/utilities/utilities';
 import { ref, shallowRef } from 'vue';
 
