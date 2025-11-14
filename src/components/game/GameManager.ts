@@ -553,9 +553,9 @@ class GameManager extends DataObject{
     //模拟环境禁用console.log
     const cacheFunc = console.log;
     
-    console.log = ()=>{
-      return;
-    }
+    // console.log = ()=>{
+    //   return;
+    // }
 
     const simData = {
       byAction: [],

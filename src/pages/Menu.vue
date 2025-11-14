@@ -104,7 +104,7 @@ const toggle = ref(true);
     }
   }
 
-  ::v-deep .el-menu{
+  :deep(.el-menu){
     border-right: none;
   }
 }

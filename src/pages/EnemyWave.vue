@@ -58,7 +58,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, defineProps, watch } from 'vue';
+import { ref, watch } from 'vue';
 import eventBus from "@/components/utilities/EventBus";
 const { active } = defineProps(['active']);
 
@@ -158,7 +158,7 @@ const jumpToEnemyIndex = (index: number) => {
           }
           .play-button{
             font-size: 20px;
-            ::v-deep .el-icon{
+            :deep(.el-icon){
               padding-top: 1px;
               padding-left: 4px;
             }

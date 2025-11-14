@@ -210,6 +210,7 @@ class Trap extends BattleObject{
       case "trap_405_xbroadblock":
       case "trap_480_roadblockxb":
       case "trap_270_spawnp":
+      case "trap_264_xdplat":
         blockRoute = true;
         break;
     }
@@ -229,6 +230,10 @@ class Trap extends BattleObject{
     this.visible = false;
     if(this.object){
       this.object.visible = false;
+    }
+    if(this.canBlockRoute()){
+      //更新路线
+      Global.waveManager.updateSPFA();
     }
     
   }

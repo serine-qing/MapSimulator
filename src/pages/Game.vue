@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import * as THREE from "three"
-import {setupCanvas} from '@/components/game/GameCanvas.ts';
+import {setupCanvas} from '@/components/game/GameCanvas';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { accuracyNum, timeFormat } from "@/components/utilities/utilities";
@@ -13,7 +13,7 @@ import SandTable from "@/pages/SandTable.vue"
 import CombatMatrix from "@/pages/CombatMatrix.vue"
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
-import { computed, onMounted, ref, shallowRef, toRaw, watch } from 'vue';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 
 import btnPause from '@/assets/images/btn_pause.png';
 import btnPlay from '@/assets/images/btn_play.png';

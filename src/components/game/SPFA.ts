@@ -27,7 +27,7 @@ class SPFA{
   }
 
   private initBlockEdges(data: any[]){
-    if(!data) return;
+    if(!data || !Array.isArray(data)) return;
     const parseBlockEdge = (position: Vec2, blockMask: string, direction: string) => {
       let find = this.blockEdges.find(blockEdge => {
         return blockEdge.blockMask === blockMask &&
@@ -397,6 +397,8 @@ class SPFA{
     return !!this.enemyRoutes.find(route => {
       const { startPosition, motionMode, endPosition } = route;
       const node = this.getPathNode(startPosition, motionMode, endPosition)
+      console.log("route", route)
+  
       return node.distance >= 1000;
     })
   }

@@ -629,6 +629,7 @@ class MapModel{
 
     const res: any = await getEnemiesData( enemyRefReq );
     const enemyDatas = res.data.EnemyDatas;
+    console.log(enemyDatas)
     enemies.forEach((enemyDbRef: EnemyRef) => {
       let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
 

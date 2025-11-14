@@ -142,7 +142,7 @@ import WaveManager from '@/components/enemy/WaveManager';
 import { gameCanvas } from '@/components/game/GameCanvas';
 import * as THREE from "three";
 import Enemy from '@/components/enemy/Enemy';
-import { ref, defineEmits, defineProps, watch } from 'vue';
+import { ref, watch } from 'vue';
 import GameConfig from '@/components/utilities/GameConfig';
 import exitImg from '@/assets/images/escape.png'
 import Trap from '@/components/game/Trap';

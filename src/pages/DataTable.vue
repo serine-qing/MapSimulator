@@ -9,7 +9,7 @@
     <el-table-column align="center" :label="$t('table.Avatar')" width="70">
       <template #default="scope">
         <div class="icon">
-          <img :src="scope.row.icon" :alt="scope.row.name">
+          <img :src="scope.row.icon" :alt="scope.row.name" onerror="this.src='/placeholder.png'">
         </div>
       </template>
     </el-table-column> 
@@ -125,7 +125,12 @@
       <el-image
         style="width: 100px; height: 100px"
         :src="dialogData.icon"
-      />
+
+      >
+        <template #error>
+          <img style="height: 100%; width: 100%;" src="/placeholder.png">
+        </template>
+      </el-image>
     </el-descriptions-item>
     <el-descriptions-item :label="$t('attr.HP')">{{ dialogData.attributes.maxHp }}</el-descriptions-item>
     <el-descriptions-item :label="$t('attr.ATK')">{{ dialogData.attributes.atk }}</el-descriptions-item>

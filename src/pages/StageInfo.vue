@@ -60,10 +60,11 @@ title
     font-size: 15px;
     color: #555555;
   }
-  ::v-deep .bluename{
+  :deep(.bluename){
     color: #0645ad;
   }
-  ::v-deep .challenge{
+  
+  :deep(.challenge){
     color: #d22d2dcc;
     font-weight: bolder;
   }

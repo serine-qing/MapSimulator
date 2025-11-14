@@ -451,7 +451,7 @@ class WaveManager{
                   action.trap.show();
 
                   if(action.trap.canBlockRoute()){
-                    this.needUpdateSPFA = true;
+                    this.updateSPFA();
                   }
 
                   //模拟data set的时候会手动添加
@@ -510,6 +510,10 @@ class WaveManager{
     enemy.id = this.enemyId++;
 
     return enemy;
+  }
+
+  public updateSPFA(){
+    this.needUpdateSPFA = true;
   }
 
   public update(delta: number){

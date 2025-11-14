@@ -73,7 +73,7 @@ eventBus.on("update:countDownIndet", (value) => {
   display: flex;
   flex-direction: column;
   color: #fff;
-  ::v-deep .el-checkbox{
+  :deep(.el-checkbox){
     height: 20px;
   }
 }
