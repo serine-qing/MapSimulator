@@ -97,6 +97,25 @@ class act46side implements Handler{
     return auraTiles;
   }
 
+  //雪伞是否挡住雪崩
+  private isAuraBlockedAvalanche(auraTiles: THREE.Vector2[], direction: THREE.Vector2, position: THREE.Vector2 | Vec2){
+    if(direction.x !== 0){
+      //左右向
+      const findIndex = auraTiles.findIndex(vec2 => {
+        return position.y === vec2.y && (position.x - vec2.x) * direction.x  >= 0
+      })
+      if( findIndex > -1) return true;
+    }else if(direction.y !== 0){
+      //上下向
+      const findIndex = auraTiles.findIndex(vec2 => {
+        return position.x === vec2.x && (position.y - vec2.y) * direction.y  >= 0
+      })
+      if( findIndex > -1) return true;
+    }
+
+    return false;
+  }
+
   //执行雪崩
   private avalanche(x1, x2, y1, y2, direction: THREE.Vector2) {
     const auraTiles = this.getAuraTiles(x1, x2, y1, y2);
@@ -109,19 +128,9 @@ class act46side implements Handler{
       const position = enemy.tilePosition;
       if(enemy.motion !== "WALK") return;
       if(enemy.key === "enemy_1576_spbell") return;   //暂时不考虑圣女
-      if(direction.x !== 0){
-        //左右向
-        const findIndex = auraTiles.findIndex(vec2 => {
-          return position.y === vec2.y && (position.x - vec2.x) * direction.x  >= 0
-        })
-        if( findIndex > -1) return;
-      }else if(direction.y !== 0){
-        //上下向
-        const findIndex = auraTiles.findIndex(vec2 => {
-          return position.x === vec2.x && (position.y - vec2.y) * direction.y  >= 0
-        })
-        if( findIndex > -1) return;
-      }
+      
+      const blocked = this.isAuraBlockedAvalanche(auraTiles, direction, position);
+      if(blocked) return;
 
       enemy.changeHP(-this.avalancheDamage);
       if(!enemy.key.includes("enemy_10143_xdmush")){ //小雪伞免疫失衡
@@ -132,6 +141,9 @@ class act46side implements Handler{
 
     traps.forEach(trap => {
       if(trap.key === "trap_264_xdplat" && trap.extraWaveKey){
+        const blocked = this.isAuraBlockedAvalanche(auraTiles, direction, trap.position);
+        if(blocked) return;
+        
         trap.hide();
         Global.waveManager.startExtraAction({
           key: trap.extraWaveKey
