@@ -269,74 +269,75 @@ const generateStageInfo = () => {
 
   const stageAttrRunes = [];
 
-  Object.values(mapModel.runesHelper.attrChanges).forEach(attrChanges => {
-    attrChanges.forEach(attrChange => {
-      let { enemy, enemyExclude, calMethod } = attrChange;
-      if(enemy?.length > 10){
-        enemy = null;
-      }
-      if(enemyExclude?.length > 10){
-        enemyExclude = null;
-      }
-      let includeEnemy;
-      let excludeEnemy;
-      if(enemy){
-        includeEnemy = enemy.map(
-          eName => "<span class='bluename'>" + enemyDatas.find(eData => eData.key === eName)?.name + "</span>" 
-        )?.join("/");
-      }else if(enemyExclude){
-        excludeEnemy = enemyExclude.map(
-          eName => "<span class='bluename'>" + enemyDatas.find(eData => eData.key === eName)?.name + "</span>" 
-        )?.join("/");
-      }
+  //todo 
+  mapModel.runesHelper.attrChanges.forEach(attrChange => {
+    let { enemy, enemyExclude, calMethod } = attrChange;
+    if(enemy?.length > 10){
+      enemy = null;
+    }
+    if(enemyExclude?.length > 10){
+      enemyExclude = null;
+    }
+    let includeEnemy;
+    let excludeEnemy;
+    if(enemy){
+      includeEnemy = enemy.map(
+        eName => "<span class='bluename'>" + enemyDatas.find(eData => eData.key === eName)?.name + "</span>" 
+      )?.join("/");
+    }else if(enemyExclude){
+      excludeEnemy = enemyExclude.map(
+        eName => "<span class='bluename'>" + enemyDatas.find(eData => eData.key === eName)?.name + "</span>" 
+      )?.join("/");
+    }
 
-      const rune = {
-        includeEnemy,
-        excludeEnemy,
-        attrChanges: [],
-        calMethod
-      };
-      Object.keys(attrChange).forEach(key => {
-        const name = attrColumns[key];
-        if(name){
-          const val = attrChange[key];
-          rune.attrChanges.push({
-            name, val
-          });
+    const rune = {
+      includeEnemy,
+      excludeEnemy,
+      attrChanges: [],
+      calMethod
+    };
+
+    const blackboards = attrChange.blackboards;
+    blackboards.forEach(bb => {
+      const name = attrColumns[bb.key];
+      if(name){
+        const val = bb.value;
+        rune.attrChanges.push({
+          name, val
+        });
+      }
+    })
+
+    //有相同类型的rune就合并
+    const find = stageAttrRunes.find(traverseRune => {
+      return traverseRune.calMethod === rune.calMethod &&
+        traverseRune.includeEnemy === rune.includeEnemy &&
+        traverseRune.excludeEnemy === rune.excludeEnemy
+    });
+
+    if(find){
+      
+      const fAC = find.attrChanges; //原本属性
+      const rAC = rune.attrChanges; //需要额外乘/加的属性
+
+      rAC.forEach(rItem => {
+        const fItem = fAC.find(i => i.name === rItem.name);
+        if(fItem){
+
+          if(find.calMethod === "add"){
+            fItem.val += rItem.val;
+          }else if(find.calMethod === "mul"){
+            fItem.val *= rItem.val;
+          }
+
+        }else{
+          find.attrChanges.push(rItem);
         }
       })
+    }else{
+      stageAttrRunes.push(rune);
+    }
 
-      //有相同类型的rune就合并
-      const find = stageAttrRunes.find(traverseRune => {
-        return traverseRune.calMethod === rune.calMethod &&
-          traverseRune.includeEnemy === rune.includeEnemy &&
-          traverseRune.excludeEnemy === rune.excludeEnemy
-      });
-
-      if(find){
-        
-        const fAC = find.attrChanges; //原本属性
-        const rAC = rune.attrChanges; //需要额外乘/加的属性
-
-        rAC.forEach(rItem => {
-          const fItem = fAC.find(i => i.name === rItem.name);
-          if(fItem){
-
-            if(find.calMethod === "add"){
-              fItem.val += rItem.val;
-            }else if(find.calMethod === "mul"){
-              fItem.val *= rItem.val;
-            }
-
-          }else{
-            find.attrChanges.push(rItem);
-          }
-        })
-      }else{
-        stageAttrRunes.push(rune);
-      }
-
-    })
   })
 
   let infoStr1 = "";
@@ -381,7 +382,7 @@ const generateStageInfo = () => {
 //#region 处理敌人数据
 const enemyDatas = ref([]);
 
-const handleEnemyDatas = (_enemyDatas) => {
+const handleEnemyDatas = (_enemyDatas: EnemyData[]) => {
   const cloneEnemyDatas = [];
   _enemyDatas.forEach(enemyData => {
     const cloneEnemyData = {};
@@ -396,6 +397,8 @@ const handleEnemyDatas = (_enemyDatas) => {
   })
 
   enemyDatas.value = cloneEnemyDatas;
+
+  console.log(enemyDatas.value)
 }
 //#endregion
 

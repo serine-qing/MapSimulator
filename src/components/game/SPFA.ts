@@ -281,7 +281,7 @@ class SPFA{
         break;
     }
 
-    const blockRoute = tile.trap?.canBlockRoute();
+    const blockRoute = tile.trap && tile.trap.visible && tile.trap.canBlockRoute();
     if(blockRoute) distanceWeight = 1000;
 
     return distanceWeight;
@@ -368,7 +368,6 @@ class SPFA{
     const y = currentPosition.y;
 
     const pathMap = this.getPathMap(targetPoint, motionMode);
-
     const map = pathMap?.map;
     let currentNode = map? map[y]? map[y][x] : null : null;
 
@@ -397,9 +396,8 @@ class SPFA{
     return !!this.enemyRoutes.find(route => {
       const { startPosition, motionMode, endPosition } = route;
       const node = this.getPathNode(startPosition, motionMode, endPosition)
-      console.log("route", route)
-  
-      return node.distance >= 1000;
+      //todo 这里有本质性的问题 没考虑传送门检查点
+      return node && node.distance >= 1000;
     })
   }
 

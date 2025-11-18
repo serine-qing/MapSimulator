@@ -282,7 +282,7 @@ class Enemy extends BattleObject{
     this.icon = icon;
     // console.log(talents)
     this.attrChanges = attrChanges;
-    
+
     this.attributes = {...attributes};
     this.hp = attributes.maxHp;
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;

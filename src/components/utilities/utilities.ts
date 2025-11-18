@@ -1,3 +1,4 @@
+import { AttributesEnum } from "./Enum";
 import GameConfig from "./GameConfig";
 import * as THREE from "three"
 //获取两点形成的矩形里面所有的point坐标
@@ -140,10 +141,17 @@ const getBlackBoardItem = (key: string, blackboards: BlackBoard[]): any => {
   return find ? (find.valueStr? find.valueStr: find.value) : null;
 }
 
+const getAttrBlackBoard = (key: AttributesEnum, blackboards: AttrBlackboard[]): AttrBlackboard => {
+  const find = blackboards?.find(bb => bb.key === key);
+  return find;
+}
+
 const getValue = (key: string, keyValue: KeyValue[]): any => {
   const find = keyValue?.find(item => item.key === key);
   return find ? find.value : null;
 }
 
+
+
 export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, 
-  timeFormat, accuracyNum, getPixelSize, getCoordinate, getBlackBoardItem, getValue}
+  timeFormat, accuracyNum, getPixelSize, getCoordinate, getBlackBoardItem, getAttrBlackBoard, getValue}

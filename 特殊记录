@@ -1,5 +1,9 @@
 filter: invert(100%); //图片反色 好用
 
+在保留类型提示的情况下遍历：
+const keys = Object.keys(attributes) as Array<keyof EnemyAttributes>;
+keys.forEach
+
 linux 启动后端：
 ss -tlpn | grep 3000 查看进程pid
 kill 杀死刚刚找到的进程

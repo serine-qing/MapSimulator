@@ -1,8 +1,12 @@
-enum Direction{
+export enum Direction{
   UP,
   RIGHT,
   DOWN,
   LEFT
 }
 
-export { Direction }
+export enum LevelType{
+  NORMAL,
+  ELITE,
+  BOSS
+}

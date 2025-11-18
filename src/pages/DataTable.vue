@@ -37,9 +37,9 @@
 
       <template #default="scope">
         <el-tooltip
-          v-if="!!scope.row.attrChanges[key]"
+          v-if="scope.row.baseAttributes[key] !== scope.row.attributes[key]"
           effect="dark"
-          :content="getAttrChange( name, scope.row.attrChanges[key])"
+          :content="getAttrChange( key, scope.row.attrChanges)"
           placement="top"
           raw-content
         >
@@ -216,31 +216,39 @@ const attrColumns = {
   rangeRadius: t("attr.AttackRange")
 }
 
-const {enemyDatas} = defineProps(["enemyDatas"]);
+const {enemyDatas} = defineProps<{
+  enemyDatas: EnemyData[]
+}>();
 
 
-const getAttrChange = (name, attrChange): string => {
+const getAttrChange = (key: string, attrChanges: AttrChange[]): string => {
   let res = "";
   
-  attrChange?.forEach(item => {
-    const {value, calMethod} = item;
+  attrChanges?.forEach(attrChange => {
+    const { calMethod } = attrChange;
 
-    let updown = value >= 1 || calMethod === "addmul" ? t("info.Increase") : t("info.Decrease");
-    const color = value >= 1 || calMethod === "addmul" ? "red" : "blue";
-    let val;
+    attrChange.blackboards.forEach(bb => {
+      if(bb.key === key){
+        const value = bb.value;
 
-    if( calMethod === "add"){
-      val = value;
-    }else if(calMethod === "mul"){
-      updown += t("info.to");
-      val = accuracyNum(value * 100) + "%";
-    }else if(calMethod === "addmul"){
-      val = accuracyNum(value * 100) + "%";
-    }
-    
-    res += "<p>"
-    res += `${name}${updown}:`
-    res += `<span style = 'color:${color}'>    ${val}</span></p>`;
+        let updown = value >= 1 || calMethod === "addmul" ? t("info.Increase") : t("info.Decrease");
+        const color = value >= 1 || calMethod === "addmul" ? "red" : "blue";
+        let val;
+
+        if( calMethod === "add"){
+          val = value;
+        }else if(calMethod === "mul"){
+          updown += t("info.to");
+          val = accuracyNum(value * 100) + "%";
+        }else if(calMethod === "addmul"){
+          val = accuracyNum(value * 100) + "%";
+        }
+        
+        res += "<p>"
+        res += `${attrColumns[key]}${updown}:`
+        res += `<span style = 'color:${color}'>    ${val}</span></p>`;
+      }
+    })
     
   });
   return res;

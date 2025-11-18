@@ -1,16 +1,18 @@
-import { accuracyNum, toCamelCase } from "@/components/utilities/utilities"
+import { accuracyNum, getAttrBlackBoard, getBlackBoardItem, toCamelCase } from "@/components/utilities/utilities"
 import TileManager from "./TileManager";
 import Tile from "./Tile";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
+import { LevelType } from "../utilities/Enum";
+
 
 class RunesHelper{
   private runes: any[];
   private enemyGroupEnable: string[] = [];       //额外出现某组敌人
   private enemyGroupDisable: string[] = [];      //移除某组敌人
   private enemyChanges: { [ key:string ] : string } = {};      //移除某组敌人
-  public attrChanges: { [ key:string ] : any } = {};     //敌人属性提升
+  public attrChanges: AttrChange[] = [];     //敌人属性提升
   private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
   private bannedTiles: Vec2[] = [];
   private talentChanges: any[] = [];
@@ -160,22 +162,21 @@ class RunesHelper{
       
     })
     
+    
     //让加算排前面，加乘排中间,乘算排后面
-    Object.values(this.attrChanges).forEach(attrChange => {
-      attrChange.sort((a, b) => {
-        if(a.calMethod !== b.calMethod){
-          if(a.calMethod === "add"){
-            return -1;
-          }else if(a.calMethod === "addmul"){
-            return -1;
-          }else{
-            return 1;
-          }
-
+    this.attrChanges.sort((a, b) => {
+      if(a.calMethod !== b.calMethod){
+        if(a.calMethod === "add"){
+          return -1;
+        }else if(a.calMethod === "addmul"){
+          return -1;
         }else{
-          return 0;
+          return 1;
         }
-      })
+
+      }else{
+        return 0;
+      }
     })
 
     //各种计算类型
@@ -210,31 +211,34 @@ class RunesHelper{
   private getAttrChanges(rune){
     const { difficultyMask } = rune;
 
-    if(!this.attrChanges[difficultyMask]){
-      this.attrChanges[difficultyMask] = [];
-    }
-
-    const attrChanges = {};
+    let calMethod;
     switch (rune.key) {
       //加法提升
       case "enemy_attribute_add":
       case "enemy_weight_add":
       case "ebuff_weight":
-        attrChanges["calMethod"] = "add";
+        calMethod = "add";
         break;
       case "enemy_attribute_additive_mul":
-        attrChanges["calMethod"] = "addmul";
+        calMethod = "addmul";
         break;
       //乘法提升
       default:
-        attrChanges["calMethod"] = "mul";
+        calMethod = "mul";
         break;
     }
     
     //enemy_exclude是指不包括的敌人
     //enemy指包括的敌人
+    let enemy: string[];
+    let enemyExclude: string[];
+    let enemyLevelType: LevelType[];
+    let runeAlias: string;
+    let blackboards: AttrBlackboard[] = [];
+
     rune.blackboard.forEach( item => {
-      const { key, value , valueStr} = item;
+      const { key, value , valueStr}:{ key:string, value: number, valueStr: string }  = item;
+      
       let camelKey = toCamelCase(key); 
 
       if(
@@ -254,49 +258,67 @@ class RunesHelper{
       let val;
 
       switch (camelKey) {
-        case "enemyExclude":
         case "enemy":
-          val = valueStr.split("|");
+          enemy =  valueStr.split("|");
+          break;
+        case "enemyExclude":
+          enemyExclude =  valueStr.split("|");
           break;
         case "enemyLevelType":
-          val = valueStr.split("|");
+          enemyLevelType = valueStr.split("|").map(str => str as unknown as LevelType);
           break;
         case "runeAlias":    
-          val = valueStr;
+          runeAlias = valueStr;
           break;
         default:
-          val = value;
+          blackboards.push({
+            key: camelKey,
+            value
+          })
           break;
       }
-
-      attrChanges[camelKey] = val;
       
     })
 
-    this.attrChanges[difficultyMask].push(attrChanges);
+    const attrChange: AttrChange = {
+      difficultyMask,
+      calMethod,
+      enemyLevelType,
+      enemy,
+      enemyExclude,
+      runeAlias,
+      blackboards
+    };
+
+    this.attrChanges.push(attrChange);
   }
 
   private addRuneBlackb(rune){
     const runeAlias = rune.blackboard.find(b => b.key === "rune_alias")?.valueStr;
     const { difficultyMask } = rune;
 
-    const attrChange = this.attrChanges[difficultyMask];
-    attrChange.forEach(item => {
-      if(item.runeAlias && item.runeAlias === runeAlias){
-        rune.blackboard.forEach(attr => {
-          const key = toCamelCase(attr.key);
-          if(
-            key !== "rune_alias" && 
-            key !== "six_star_rune_alias" && 
-            attr.value !== 0 && 
-            item[key] !== undefined
-          ){
-            item[key] += attr.value;
-          }
-        })
 
-      }
+    const attrChanges = this.attrChanges.filter(change => {
+      return change.difficultyMask === difficultyMask &&
+        change.runeAlias === runeAlias
+    });
+
+    attrChanges.forEach(attrChange => {
+      
+      rune.blackboard.forEach(attr => {
+        const key = toCamelCase(attr.key);
+        if(
+          key !== "runeAlias" && key !== "sixStarRuneAlias" 
+        ){
+          const bbItem = getAttrBlackBoard(key, attrChange.blackboards);
+          if(bbItem){
+            bbItem.value = accuracyNum(bbItem.value + attr.value);
+          }
+        }
+      })
+      
     })
+
   }
 
   public checkEnemyGroup(group: string): boolean{
@@ -321,75 +343,59 @@ class RunesHelper{
     return apply;
   }
 
-  public checkEnemyAttribute(data: EnemyData){
-    const { key , attributes, levelType } = data;
+  public checkEnemyAttribute(enemyData: EnemyData){
+    const { key , attributes, baseAttributes, levelType } = enemyData;
     
-    if(!data.attrChanges) data.attrChanges = {};
-
-    Object.keys(this.attrChanges).forEach(type => {
-      const changesArr = this.attrChanges[type]
+    this.attrChanges.forEach(attrChange => {
       
-      changesArr.forEach(item => {
-        let apply = true;
-        const {enemy, enemyExclude, enemyLevelType, calMethod} = item;
-        if(enemy){
-          apply = enemy.includes(key);
-        }else if(enemyExclude){
+      const {enemy, enemyExclude, enemyLevelType} = attrChange;
 
-          apply = !enemyExclude.includes(key);
-        }else if(enemyLevelType){
-          apply = enemyLevelType.includes(levelType);
-        }
+      let apply = true;
+      if(enemy){
+        apply = enemy.includes(key);
+      }else if(enemyExclude){
+        apply = !enemyExclude.includes(key);
+      }else if(enemyLevelType){
+        apply = enemyLevelType.includes(levelType);
+      }
+      
+      //筛选是否适用rune
+      if(apply){
+        enemyData.attrChanges.push({
+          difficultyMask: attrChange.difficultyMask,
+          calMethod: attrChange.calMethod,
+          blackboards: attrChange.blackboards
+        })
         
-        if(apply){
-          Object.keys(item).forEach(attrKey => {
-
-            if(attrKey !== "enemyExclude" && attrKey !== "enemy" && attrKey !== "calMethod"){
-              const attrValue = item[attrKey];
-
-              if(!data.attrChanges[attrKey]){
-                data.attrChanges[attrKey] = [];
-              }
-
-              data.attrChanges[attrKey].push({
-                type, value: attrValue, calMethod
-              });
-            }
-          })
-
-
-        }
-      })
-
+      }
+      
     })
 
-    Object.keys(attributes).forEach(attrKey => {
-      const attrValue = attributes[attrKey];
-
-      const attrChange = data.attrChanges[attrKey];
-      let value = attrValue;
-
-      if(attrChange){
-        value =  attrChange.reduce((acc, current) => {
-          //加算
-          if(current.calMethod === "add"){
-            return acc + current.value;
-          //乘算
-          }else if(current.calMethod === "mul"){
-            return acc * current.value;
-
-          }else if(current.calMethod === "addmul"){
-            return acc + attrValue * current.value;
-          }
-        }, attrValue );
-
-        value = Math.max(value, 0);
-
-        //消除乘完后会出现的很长小数
-        attributes[attrKey] = accuracyNum(value);
+    enemyData.attrChanges.forEach(attrChange => {
+      switch(attrChange.calMethod){
+        case "add":
+          attrChange.blackboards.forEach(bb => {
+            attributes[bb.key] += bb.value;
+          })
+          break;
+        case "mul":
+          attrChange.blackboards.forEach(bb => {
+            attributes[bb.key] *= bb.value;
+          })
+          break;
+        case "addmul":
+          attrChange.blackboards.forEach(bb => {
+            attributes[bb.key] += baseAttributes[bb.key] * bb.value;
+          })
+          break;
       }
+    })
 
-    });
+    for(const key in attributes){
+      //消除乘完后可能会出现的很长小数
+      //近战敌人攻击范围是-1
+      attributes[key] = accuracyNum( Math.max(attributes[key], -1) );
+    }
 
   }
 

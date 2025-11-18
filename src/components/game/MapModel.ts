@@ -628,8 +628,8 @@ class MapModel{
     
 
     const res: any = await getEnemiesData( enemyRefReq );
-    const enemyDatas = res.data.EnemyDatas;
-    console.log(enemyDatas)
+    const enemyDatas: EnemyData[] = res.data.EnemyDatas;
+    
     enemies.forEach((enemyDbRef: EnemyRef) => {
       let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
 
@@ -684,6 +684,8 @@ class MapModel{
     })
 
     enemyDatas.forEach(enemyData => {
+      enemyData.attrChanges = [];
+      enemyData.baseAttributes ={ ...enemyData.attributes };
       enemyData.motion = AliasHelper(enemyData.motion, "motionMode");
       enemyData.levelType = AliasHelper(enemyData.levelType, "levelType");
       enemyData.applyWay = AliasHelper(enemyData.applyWay, "applyWay");

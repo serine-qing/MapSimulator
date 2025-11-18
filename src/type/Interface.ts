@@ -1,4 +1,6 @@
+import { LevelType } from "@/components/utilities/Enum";
 import * as THREE from "three";
+import  "./attrChange.d.ts";
 
 declare global {
   interface Stage{
@@ -27,22 +29,25 @@ declare global {
   }
 
   interface EnemyData{
+    [x: string]: {};
+    data: {};
     key: string,            //敌人id
     waveKey: string,       //敌人在波次数据中的id
     count: number,         //敌人数量
     level: number,         //敌人级别
-    attributes: any,        //敌人属性
+    attributes: EnemyAttributes,        //敌人属性
+    baseAttributes: EnemyAttributes,        //敌人基础属性
     talentBlackboard?: any[], //敌人天赋（原始数据）
     talents: any,           //敌人天赋
     skills: any,           //敌人技能
     hugeEnemy: boolean,     //是否是巨型敌人
     unMoveable: boolean,   //是否不可移动
     description: string,    //
-    levelType: string,      //敌人级别 普通/精英/领袖
+    levelType: LevelType,      //敌人级别 普通/精英/领袖
     name: string,
     icon: string,           //敌人头像URL
     applyWay: string,       //是否是远程
-    attrChanges: any,       //属性更改
+    attrChanges: EnemyAttrChange[],       //属性更改
     rangeRadius: number,    //攻击范围
     motion: string,         //移动motion
     notCountInTotal: boolean,  //非首要目标
@@ -58,6 +63,21 @@ declare global {
     immunes: string[],       //异常抗性
     abilityList: any,        //能力描述
     animations: any[],        //动画状态
+  }
+
+  //敌人基础属性
+  interface EnemyAttributes{
+    atk: number;
+    attackSpeed: number;                 //攻击速度
+    attackTime: number;                   //实际攻击间隔
+    baseAttackTime: number;              //基础攻击间隔
+    def: number;
+    hpRecoveryPerSec: number;
+    magicResistance: number;
+    massLevel: number;
+    maxHp: number;
+    moveSpeed: number;
+    rangeRadius: number;
   }
 
   //敌人路径检查点
