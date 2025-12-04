@@ -629,7 +629,12 @@ class Enemy extends BattleObject{
     const y = Math.round(this.position.y);
     const currentTile = Global.tileManager.getTile(x, y);
     let shadowHeight;
-    if( currentTile.passableMask === "ALL" ){
+
+    if(currentTile.tileKey === "tile_balloon" || currentTile.tileKey === "tile_balloon_fbd"){
+      //未许之地可升降高台
+      shadowHeight = this.shadowHeight + currentTile.getPixelHeight();
+    }
+    else if( currentTile.passableMask === "ALL"){
       //地面
       shadowHeight = this.shadowHeight;
       

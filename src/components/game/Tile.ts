@@ -101,7 +101,7 @@ class Tile extends DataObject{
         break;
       case "tile_balloon":  //未许之地的可变高台
       case "tile_balloon_fbd":           
-        this.height = 2/7;
+        this.height = 1/7;
         break;
       default:
         if(this.heightType === "HIGHLAND"){
