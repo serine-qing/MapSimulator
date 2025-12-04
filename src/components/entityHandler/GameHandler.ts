@@ -1,12 +1,11 @@
 import Tile from "../game/Tile";
 import Enemy from "../enemy/Enemy";
-import * as THREE from "three";
 import Global from "../utilities/Global";
 import { GC_Add } from "../game/GC";
 import Trap from "../game/Trap";
 import Handler from "./Handler";
 
-import act1vhalfidle from "../entityHandler/次生预案";
+import act1vhalfidle from "./次生预案";
 import act35side from "./太阳甩在身后";
 import act37side from "./追迹日落以西";
 import act41side from "./挽歌燃烧殆尽";
@@ -407,7 +406,7 @@ class GameHandler implements Handler{
     switch (trap.key) {
       //土石结构的壳
       case "trap_032_mound":
-        if(trap.mainSkillLvl === 1){
+        if(trap.mainSkillLvl === 1 && trap.fbxMesh){
           const skin = trap.fbxMesh.children[1];
           trap.fbxMesh.remove(skin);
           GC_Add(skin);
