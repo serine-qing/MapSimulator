@@ -398,7 +398,6 @@ const handleEnemyDatas = (_enemyDatas: EnemyData[]) => {
 
   enemyDatas.value = cloneEnemyDatas;
 
-  console.log(enemyDatas.value)
 }
 //#endregion
 

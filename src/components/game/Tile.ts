@@ -99,6 +99,10 @@ class Tile extends DataObject{
         this.height = GameConfig.TILE_HEIGHT;
         this.margin = 0.15; //高台有间隔
         break;
+      case "tile_balloon":  //未许之地的可变高台
+      case "tile_balloon_fbd":           
+        this.height = 2/7;
+        break;
       default:
         if(this.heightType === "HIGHLAND"){
           this.height = GameConfig.TILE_HEIGHT;

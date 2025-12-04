@@ -24,6 +24,10 @@ const pureWhite = new THREE.MeshBasicMaterial( {color: "#ffffff"} );
 const pureBlack = new THREE.MeshBasicMaterial( {color: "#000000"} );
 
 const darkYellow = new THREE.MeshBasicMaterial( {color: "#B8860B"} );
+
+const skyBlue = new THREE.MeshBasicMaterial( {color: "#87CEEB"} ); //天空蓝
+
+
 const transparent = new THREE.MeshBasicMaterial({
   transparent: true,
   opacity: 0,
@@ -61,6 +65,14 @@ const tileTextures: {[key: string]: TileTexture} = {
   },
   tile_quicksand:{
     top: darkYellow
+  },
+  tile_balloon:{
+    top: skyBlue,
+    side: white
+  },
+  tile_balloon_fbd:{
+    top: dark,
+    side: deepGray
   },
   tile_fence:{
     top: gray,

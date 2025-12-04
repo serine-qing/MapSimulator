@@ -32,3 +32,5 @@ enemy_handbook_table.json
 
 本地化：
 backend\src\scripts\story activity_table.json stage_table.json
+
+统一代码缩进与风格：Shift + Alt + F
