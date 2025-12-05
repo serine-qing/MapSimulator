@@ -663,7 +663,7 @@ class MapModel{
       const baseEnemy: EnemyData = enemyDatas.find(e => e.key === extraKey);
       const extraEnemy = { ...baseEnemy };
       const { attributes, talentBlackboard } = baseEnemy;
-      
+
       //深拷贝
       extraEnemy.attributes = {...attributes};
 

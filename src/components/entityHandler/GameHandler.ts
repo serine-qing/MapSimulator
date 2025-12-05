@@ -13,6 +13,7 @@ import act42side from "./众生行记";
 import act44side from "./墟";
 import act45side from "./无忧梦呓";
 import act46side from "./雪山降临1101";
+import act47side from "./未许之地";
 import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
@@ -26,6 +27,7 @@ class GameHandler implements Handler{
     this.handlers.push(new act46side());
     this.handlers.push(new main11());
     this.handlers.push(new main15());
+    this.handlers.push(new act47side());
   }
 
   public parseRunes(runesHelper: RunesHelper) {
@@ -181,24 +183,12 @@ class GameHandler implements Handler{
       case "rush": //冲刺！
 
         if(move_speed && interval && trig_cnt){
-          enemy.countdown.addCountdown({
-            name: "rush",
-            initCountdown: talent.value.predelay,
-            countdown: interval,
-            maxCount: trig_cnt,
-            callback: (timer) => {
-              enemy.addBuff({
-                id: "rush",
-                key: "rush",
-                overlay: false,
-                effect: [{
-                  attrKey:"moveSpeed",
-                  method: "mul",
-                  value: timer.count * move_speed + 1
-                }]
-              });
-            }
-          })
+          enemy.rush(
+            talent.value.predelay,
+            interval,
+            trig_cnt,
+            move_speed
+          )
         }
         
         break;

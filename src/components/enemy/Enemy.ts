@@ -8,6 +8,7 @@ import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "./BattleObject";
 import GameConfig from "../utilities/GameConfig";
+import { LevelType } from "../utilities/Enum";
 
 const ZERO = {
   x: 0,
@@ -101,7 +102,7 @@ class Enemy extends BattleObject{
   id: number;    //WaveManager中使用的id
   key: string;
   level: number;
-  levelType: string;
+  levelType: LevelType;
   motion: string;
   name: string;
   description: string;  
@@ -150,7 +151,7 @@ class Enemy extends BattleObject{
   buffs: Buff[] = [];
 
   attackSpeed: number;
-  attrChanges: {[key: string]: any[]}    //基础属性变化
+  attrChanges: EnemyAttrChange[];    //基础属性变化
 
   talents: any[];          //天赋
   skills: any[];           //技能
@@ -537,7 +538,7 @@ class Enemy extends BattleObject{
     const healthBarShadow = new THREE.Mesh(HealThBarGeometry, HealThBarShadowMaterial);
     const healthBar = new THREE.Mesh(
       HealThBarGeometry, 
-      this.levelType === "BOSS"? BossHealThBarMaterial : HealThBarMaterial
+      this.levelType === LevelType.BOSS ? BossHealThBarMaterial : HealThBarMaterial
     );
 
     healthBarShadow.position.y = getPixelSize(-0.4);
@@ -1464,6 +1465,28 @@ class Enemy extends BattleObject{
     if(prevAnimate !== this.animateState){
       this.changeAnimation();
     }
+  }
+
+  //冲刺类技能
+  public rush(predelay: number, interval: number, maxCount: number, deltaSpeed: number){
+    this.countdown.addCountdown({
+      name: "rush",
+      initCountdown: predelay,
+      countdown: interval,
+      maxCount,
+      callback: (timer) => {
+        this.addBuff({
+          id: "rush",
+          key: "rush",
+          overlay: false,
+          effect: [{
+            attrKey:"moveSpeed",
+            method: "mul",
+            value: timer.count * deltaSpeed + 1
+          }]
+        });
+      }
+    })
   }
   
   //是否具有移动能力
