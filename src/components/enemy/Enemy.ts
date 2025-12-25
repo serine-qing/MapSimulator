@@ -154,7 +154,7 @@ class Enemy extends BattleObject{
   attrChanges: EnemyAttrChange[];    //基础属性变化
 
   talents: any[];          //天赋
-  skills: any[];           //技能
+  skills: EnemySkill[];           //技能
   
   spawnOffset: THREE.Vector2;             //出生点偏移
   cursorPosition: THREE.Vector2;          //光标坐标
@@ -1272,7 +1272,7 @@ class Enemy extends BattleObject{
     return find? find.value : null;
   }
 
-  public getSkill(key: string){
+  public getSkill(key: string): EnemySkill{
     const find = this.skills.find(skill => skill.prefabKey === key);
     return find? find : null;
   }

@@ -6,6 +6,7 @@ import Trap from "../game/Trap";
 import Handler from "./Handler";
 
 import act1vhalfidle from "./次生预案";
+import act29side from "./崔林特尔梅之金";
 import act35side from "./太阳甩在身后";
 import act37side from "./追迹日落以西";
 import act41side from "./挽歌燃烧殆尽";
@@ -24,6 +25,7 @@ import RunesHelper from "../game/RunesHelper";
 class GameHandler implements Handler{
   private handlers: Handler[] = [];
   constructor(){
+    this.handlers.push(new act29side());
     this.handlers.push(new act46side());
     this.handlers.push(new main11());
     this.handlers.push(new main15());
@@ -32,6 +34,10 @@ class GameHandler implements Handler{
 
   public parseRunes(runesHelper: RunesHelper) {
     //todo 
+    const isBossRush6 = Global.mapModel.sourceData.id.includes("act6bossrush");
+    if(isBossRush6){
+      runesHelper.enemyGroupEnable.push("hidden01", "hidden02", "hidden03");
+    }
     act42side.parseRunes(runesHelper)
     act45side.parseRunes(runesHelper)
     this.handlers.forEach(handler => {
@@ -140,7 +146,7 @@ class GameHandler implements Handler{
         enemy.notCountInTotal = true;
         enemy.dontBlockWave = true;
         enemy.unMoveable = true;
-        break
+        break;
     }
 
     //判断是否是近地悬浮
@@ -176,7 +182,7 @@ class GameHandler implements Handler{
     act42side.handleTalent(enemy, talent);
     act44side.handleTalent(enemy, talent);
     act45side.handleTalent(enemy, talent);
-    const {move_speed, interval, duration, trig_cnt, unmove_duration, range_radius} = talent.value;
+    const {move_speed, interval, duration, trig_cnt, unmove_duration, sleep_duration} = talent.value;
     let waitTime;
 
     switch (talent.key) {
@@ -198,6 +204,14 @@ class GameHandler implements Handler{
           enemy.countdown.addCountdown({
             name: "checkPoint",
             initCountdown: unmove_duration
+          });
+        }
+        break;
+      case "sleepbuff":      //骑士领游荡者
+        if( sleep_duration ){
+          enemy.countdown.addCountdown({
+            name: "checkPoint",
+            initCountdown: sleep_duration
           });
         }
         break;
