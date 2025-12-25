@@ -196,6 +196,7 @@ class Enemy extends BattleObject{
 
   isStarted: boolean = false;
   isFinished: boolean = false;
+  isWaitForBossrush: boolean = false;
   exitCountDown: number = 0;   //隐藏spine的渐变倒计时
 
   public visible: boolean = false;
@@ -463,6 +464,16 @@ class Enemy extends BattleObject{
     }else{
       this.hide();
     }
+  }
+
+  //引航者试炼进绿门后等待
+  public waitBossrushWave(){
+    this.isWaitForBossrush = true;
+  }
+
+  //释放引航者试炼波次
+  public releaseBossrushWave(){
+    this.isWaitForBossrush = false;
   }
   
   //设置搭载、抓起物体的偏移
@@ -764,7 +775,7 @@ class Enemy extends BattleObject{
   }
 
   public update(delta: number){
-    if(this.isFinished) return;
+    if(this.isFinished || this.isWaitForBossrush) return;
 
     this.obstacleAvoidanceCalCount = Math.max(this.obstacleAvoidanceCalCount - 1, 0);
     this.unitVector = new THREE.Vector2(0, 0);
@@ -951,7 +962,8 @@ class Enemy extends BattleObject{
         this.nextCheckPoint();
         break;
       case "WAIT_BOSSRUSH_WAVE":
-        this.finishedMap();
+        this.waitBossrushWave();
+        this.nextCheckPoint();
         break;
     }
 
@@ -1918,6 +1930,7 @@ class Enemy extends BattleObject{
       canDie: this.canDie,
       reborned: this.reborned,
       isDisappear: this.isDisappear,
+      isWaitForBossrush: this.isWaitForBossrush,
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
       currentAttackRange: this.currentAttackRange,
@@ -1978,6 +1991,7 @@ class Enemy extends BattleObject{
       canDie,
       reborned,
       isDisappear,
+      isWaitForBossrush,
       canAttack,
       attackCountdown,
       currentAttackRange,
@@ -2028,6 +2042,7 @@ class Enemy extends BattleObject{
     this.canDie = canDie;
     this.reborned = reborned;
     this.isDisappear = isDisappear;
+    this.isWaitForBossrush = isWaitForBossrush;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
     this.carriedEnemyKey = carriedEnemyKey;

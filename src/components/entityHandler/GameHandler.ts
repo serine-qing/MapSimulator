@@ -34,15 +34,18 @@ class GameHandler implements Handler{
 
   public parseRunes(runesHelper: RunesHelper) {
     //todo 
-    const isBossRush6 = Global.mapModel.sourceData.id.includes("act6bossrush");
-    if(isBossRush6){
-      runesHelper.enemyGroupEnable.push("hidden01", "hidden02", "hidden03");
-    }
+
     act42side.parseRunes(runesHelper)
     act45side.parseRunes(runesHelper)
     this.handlers.forEach(handler => {
       handler.parseRunes && handler.parseRunes(runesHelper);
     })
+
+    //引航者6 显示所有圆仔
+    const isBossRush6 = Global.mapModel.sourceData.id.includes("act6bossrush");
+    if(isBossRush6){
+      runesHelper.enemyGroupEnable.push("hidden01", "hidden02", "hidden03");
+    }
   }
 
   //初始化全部Actions后执行

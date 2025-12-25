@@ -295,6 +295,7 @@ console.log(this.allActions)
     if(waveFinished){
       const find = this.enemiesInMap.find(enemy => {
         return enemy && 
+        !enemy.isWaitForBossrush &&  //引航者绿门
         !enemy.dontBlockWave && 
         !enemy.reborned   //模拟boss复活释放波次
       })
@@ -576,6 +577,11 @@ console.log(this.allActions)
   private changeCameraCount(count: number){
     this.currentCameraView = count;
     Global.gameHandler.afterMoveCamera();
+
+    //释放绿门波次
+    this.enemiesInMap.forEach(enemy => {
+      enemy.releaseBossrushWave();
+    })
   }
 
   private addCameraCount(){
