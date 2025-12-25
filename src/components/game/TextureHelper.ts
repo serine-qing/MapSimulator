@@ -57,6 +57,9 @@ const tileTextures: {[key: string]: TileTexture} = {
   tile_end:{
     ground: gray,
   },
+  tile_green:{
+    ground: gray,
+  },
   tile_deepsea:{
     top: sea
   },

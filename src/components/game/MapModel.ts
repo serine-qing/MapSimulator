@@ -201,7 +201,7 @@ class MapModel{
           skillBlackboard = overrideSkillBlackboard.map(item => {
             return {
               key: item.key,
-              value: item.valueStr === null? item.value : item.valueStr
+              value: (item.valueStr === null || item.valueStr === undefined)? item.value : item.valueStr
             }
           });
         }
@@ -341,6 +341,7 @@ class MapModel{
         })
       }
     })
+
   }
 
   private getRunes(){

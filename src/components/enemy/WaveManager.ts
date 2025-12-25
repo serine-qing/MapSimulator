@@ -81,7 +81,7 @@ class WaveManager{
     this.allActions = [
       ...this.waves.map(fragment => fragment.actions).flat()
     ];
-
+console.log(this.allActions)
     this.initCameraViews();   //多面地图数据
 
     Object.values(this.extraWaves).forEach(fragments => {
@@ -298,6 +298,7 @@ class WaveManager{
         !enemy.dontBlockWave && 
         !enemy.reborned   //模拟boss复活释放波次
       })
+
       //波次出怪结束，并且场上无敌人 就切换到下一波次
       if(!find){
         this.changeNextWave();
@@ -397,6 +398,7 @@ class WaveManager{
           case "SPAWN":
             let enemy;
             if(Global.gameManager.isSimulate){
+              console.log(actionData)
               let enemyData = actionData.enemyData;
 
               const enemyParam: EnemyParam = {

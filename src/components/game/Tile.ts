@@ -88,6 +88,7 @@ class Tile extends DataObject{
     switch (this.tileKey) {
       case "tile_start":
       case "tile_end":
+      case "tile_green":  //引航者绿门
         this.height = 1;
         break;
 
@@ -131,6 +132,7 @@ class Tile extends DataObject{
       //给红蓝门添加地面，因为没有设置默认材质所以红蓝门本身是透明的
       case "tile_start":
       case "tile_end":
+      case "tile_green":
         const groundGe0 = this.getBoxGeo(this.width, 0, 0);
         const { ground } = tileTexture;
         const groundMesh = new Mesh( groundGe0, [
@@ -371,7 +373,18 @@ class Tile extends DataObject{
     switch (this.tileKey) {
       case "tile_start":
       case "tile_end":
-        borderColor = this.tileKey === "tile_end"? "#359dde":"#e03253";
+      case "tile_green":
+        switch (this.tileKey) {
+          case "tile_start":
+            borderColor = "#e03253";
+            break;
+          case "tile_end":
+            borderColor = "#359dde";
+            break;
+          case "tile_green":
+            borderColor = "#32d74b";
+            break;
+        }
         break;
       case "tile_passable_wall":
         break;

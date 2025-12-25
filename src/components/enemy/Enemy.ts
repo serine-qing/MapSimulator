@@ -950,7 +950,9 @@ class Enemy extends BattleObject{
         this.appearAt(checkPoint.position);
         this.nextCheckPoint();
         break;
-
+      case "WAIT_BOSSRUSH_WAVE":
+        this.finishedMap();
+        break;
     }
 
   }
