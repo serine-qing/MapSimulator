@@ -111,7 +111,6 @@ class MapModel{
   }
 
   private initExtraDesc(){
-
     switch (this.sourceData.levelCode) {
       case "SS-8":
       case "SS-EX-8":
@@ -121,7 +120,12 @@ class MapModel{
         })
         break;
     }
-    
+    if(this.sourceData.id.includes("act6bossrush")){
+      this.addExtraDescription({
+        text: "引航者试炼#6的遏制单元4可以在地图中召唤“圆仔”，为方便查看，会默认在地图中显示",
+        color: "#3633F3"
+      })
+    }
   }
 
   private async getTokenCards(){

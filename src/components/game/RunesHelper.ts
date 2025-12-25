@@ -8,15 +8,15 @@ import { LevelType } from "../utilities/Enum";
 
 
 class RunesHelper{
-  private runes: any[];
-  private enemyGroupEnable: string[] = [];       //额外出现某组敌人
-  private enemyGroupDisable: string[] = [];      //移除某组敌人
-  private enemyChanges: { [ key:string ] : string } = {};      //移除某组敌人
+  public runes: any[];
+  public enemyGroupEnable: string[] = [];       //额外出现某组敌人
+  public enemyGroupDisable: string[] = [];      //移除某组敌人
+  public enemyChanges: { [ key:string ] : string } = {};      //移除某组敌人
   public attrChanges: AttrChange[] = [];     //敌人属性提升
-  private predefinesEnable: {[key: string]: boolean} = {};  //装置修改
-  private bannedTiles: Vec2[] = [];
-  private talentChanges: any[] = [];
-  private skillCDChanges: any[] = [];
+  public predefinesEnable: {[key: string]: boolean} = {};  //装置修改
+  public bannedTiles: Vec2[] = [];
+  public talentChanges: any[] = [];
+  public skillCDChanges: any[] = [];
 
   public charNumDdd: number = 0;
   public squadNum: number = 13;
