@@ -469,6 +469,7 @@ class Enemy extends BattleObject{
   //引航者试炼进绿门后等待
   public waitBossrushWave(){
     this.isWaitForBossrush = true;
+    this.dontBlockWave = true;
   }
 
   //释放引航者试炼波次
