@@ -81,7 +81,7 @@ class WaveManager{
     this.allActions = [
       ...this.waves.map(fragment => fragment.actions).flat()
     ];
-console.log(this.allActions)
+
     this.initCameraViews();   //多面地图数据
 
     Object.values(this.extraWaves).forEach(fragments => {
@@ -399,7 +399,6 @@ console.log(this.allActions)
           case "SPAWN":
             let enemy;
             if(Global.gameManager.isSimulate){
-              console.log(actionData)
               let enemyData = actionData.enemyData;
 
               const enemyParam: EnemyParam = {

@@ -100,6 +100,10 @@ const tileTextures: {[key: string]: TileTexture} = {
     yin: pureBlack,
     yang: pureWhite
   },
+  tile_act48side:{
+    top: new THREE.MeshBasicMaterial( {color: "#456865"} ),
+    side: new THREE.MeshBasicMaterial( {color: "#79765C"} )
+  }
 }
 
 //不需要的材质设置为透明，防止射线检测出错

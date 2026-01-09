@@ -76,7 +76,7 @@ const emit = defineEmits<{
 }>()
 
 //3级关卡菜单
-let activeEpisode = "act6bossrush";
+let activeEpisode = "act48side";
 
 switch (localStorage.currentLang) {
   case "EN":
