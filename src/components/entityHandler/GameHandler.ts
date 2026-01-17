@@ -15,6 +15,7 @@ import act44side from "./墟";
 import act45side from "./无忧梦呓";
 import act46side from "./雪山降临1101";
 import act47side from "./未许之地";
+import act48side from "./雅赛努斯复仇记";
 import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
@@ -30,6 +31,7 @@ class GameHandler implements Handler{
     this.handlers.push(new main11());
     this.handlers.push(new main15());
     this.handlers.push(new act47side());
+    this.handlers.push(new act48side());
   }
 
   public parseRunes(runesHelper: RunesHelper) {
@@ -248,13 +250,7 @@ class GameHandler implements Handler{
       case "timeup":  //prts 岁相等
         waitTime = duration || interval;
         if(waitTime){
-          enemy.countdown.addCountdown({
-            name: "end",
-            initCountdown: waitTime - Global.waveManager.gameSecond,
-            callback: () => {
-              enemy.finishedMap();
-            }
-          });
+          enemy.addEndCountdown(waitTime - Global.waveManager.gameSecond);
         }
           
         break;
@@ -314,13 +310,7 @@ class GameHandler implements Handler{
           const growup2 = enemy.getTalent("growup2");
           cd += growup1.interval + growup2.interval;
         }
-        enemy.countdown.addCountdown({
-          name: "end",
-          initCountdown: cd,
-          callback: () => {
-            enemy.finishedMap();
-          }
-        })
+        enemy.addEndCountdown(cd);
         break;
 
     }
@@ -369,6 +359,10 @@ class GameHandler implements Handler{
   }
 
   finishedMap (enemy: Enemy) {
+    this.handlers.forEach(handler => {
+      handler.handleFinishedMap && handler.handleFinishedMap(enemy);
+    })
+
     enemy.talents?.forEach(talent => {
       switch (talent.key) {
         case "strength":       //传令兵

@@ -48,7 +48,7 @@ interface AnimateTransition{
   //callback：结束过渡动画后的回调函数
   moveAnimate?: string, 
   idleAnimate?: string, 
-  transAnimation?: string, 
+  transAnimation: string, 
   startLag?: number,         //transAnimation动画前摇
   endLag?: number,           //transAnimation动画后摇
   animationScale?: number,
@@ -63,6 +63,7 @@ interface Watcher{
 
 //碰撞检测
 interface DetectionParam{
+  key: string,                //唯一标识
   enemyKeys?: string[],
   tileKeys?: string[],
   detectionRadius: number,    //检测半径
@@ -1305,7 +1306,7 @@ class Enemy extends BattleObject{
 
   //检测物体
   public addDetection(detection: DetectionParam){
-    const {enemyKeys, tileKeys, detectionRadius, duration, every, callback} = detection;
+    const {key, enemyKeys, tileKeys, detectionRadius, duration, every, callback} = detection;
 
     let objs, keyName;
     if(enemyKeys){
@@ -1317,7 +1318,7 @@ class Enemy extends BattleObject{
 
     if(keyName){
       this.countdown.addCountdown({
-        name: `Detection$${keyName}`,
+        name: `Detection$${key}`,
         initCountdown: 0,
         countdown: duration,
         callback: () => {
@@ -1345,6 +1346,10 @@ class Enemy extends BattleObject{
     }else{
       console.error("detection设置失败!")
     }
+  }
+
+  public removeDetection(key: string){
+    this.countdown.removeCountdown(`Detection$${key}`);
   }
 
   //装载
@@ -1827,6 +1832,18 @@ class Enemy extends BattleObject{
       this.unBalanceVector = direction.normalize();
       Global.gameHandler.handleEnemyUnbalanceMove(this);
     }
+  }
+
+  //添加结束倒计时(有红倒计时标识，结束后自己退场)
+  public addEndCountdown(countdown: number, callback?: Function){
+    this.countdown.addCountdown({
+      name: "end",
+      initCountdown: countdown,
+      callback: () => {
+        this.finishedMap();
+        if(callback) callback();
+      }
+    });
   }
 
   protected unBalanceMove(delta: number){

@@ -306,6 +306,7 @@ class act46side implements Handler{
         const growth = enemy.getTalent("growth");
         const {range_radius, max_stack_cnt, max_hp} = growth;
         enemy.addDetection({
+          key: "growth",
           detectionRadius: range_radius,
           duration: 0.1,
           every: false,

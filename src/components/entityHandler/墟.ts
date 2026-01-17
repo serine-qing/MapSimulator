@@ -63,6 +63,7 @@ const Handler = {
 
       case "ymgholjumptrigger": //雷遁忍者遇到伪装的土遁忍者触发跳跃
         enemy.addDetection({
+          key: "ymgholjumptrigger",
           detectionRadius: range_radius,
           enemyKeys: ["enemy_10115_ymghol","enemy_10115_ymghol_2"],
           duration: 0.1,
@@ -76,6 +77,7 @@ const Handler = {
         break;
       case "holetiletrigger": //雷遁忍者遇到坑触发跳跃
         enemy.addDetection({
+          key: "holetiletrigger",
           detectionRadius: range_radius,
           tileKeys: ["tile_hole"],
           duration: 0.1,

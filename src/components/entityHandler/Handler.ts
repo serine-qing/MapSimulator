@@ -28,6 +28,8 @@ interface Handler{
 
   handleEnemyStart?(enemy: Enemy);
 
+  handleFinishedMap?(enemy: Enemy);
+
   handleTrapStart?(trap: Trap);
 
   handleTalent?(enemy: Enemy, talent: any);

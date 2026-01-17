@@ -167,9 +167,11 @@ declare global {
     extraWaveKey?: string,      //额外波次key
   }
 
+
+  //todo attrKey也形成字面量形式
   interface Effect{
     attrKey: string,
-    method: string,               //加法：add / 乘法：mul
+    method: "add" | "mul",               //加法：add / 乘法：mul
     value: number               //具体数值
   }
 

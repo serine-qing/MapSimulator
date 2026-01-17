@@ -255,7 +255,7 @@ const addBossSkillRide = (enemy: Enemy, skill) => {
 
   const ride = enemy.getTalent(rideTalentKey);
 
-  const moveBuff = {
+  const moveBuff: Buff = {
     id: "ride",
     key: "ride",
     overlay: false,
@@ -701,6 +701,7 @@ const Handler = {
           })
 
           enemy.addDetection({
+            key: "getenmey",
             detectionRadius: range_radius,
             enemyKeys: ["enemy_10103_mjcppp", "enemy_10103_mjcppp_2","enemy_10105_mjcdol","enemy_10105_mjcdol_2"],
             duration: 0, //每帧触发
