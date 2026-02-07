@@ -5,6 +5,7 @@ import Tile from "../game/Tile";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
 import Unrealshapes_BG from "@/assets/images/Unrealshapes_BG.png"
+import type { trapData } from "@/type";
 
 const Handler = {
   parseRunes: (runesHelper: RunesHelper) => {

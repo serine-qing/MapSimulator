@@ -4,6 +4,7 @@ import Global from "../utilities/Global";
 import { GC_Add } from "../game/GC";
 import Trap from "../game/Trap";
 import Handler from "./Handler";
+import type { CheckPoint, Buff, BuffParam, ActionData } from "@/type";
 
 import act1vhalfidle from "./次生预案";
 import act29side from "./崔林特尔梅之金";

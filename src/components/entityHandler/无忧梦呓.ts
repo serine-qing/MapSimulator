@@ -5,6 +5,7 @@ import Tile from "../game/Tile";
 import Trap from "../game/Trap";
 import DataObject from "../enemy/DataObject";
 import RunesHelper from "../game/RunesHelper";
+import type { Buff, Vec2 } from "@/type";
 
 let direction, duration;
 let cw; //旋转方向 1顺时针 0逆时针

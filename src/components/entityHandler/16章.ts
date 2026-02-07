@@ -1,5 +1,6 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
+import type { Buff } from "@/type";
 
 const Handler = {
   afterMoveCamera: () => {

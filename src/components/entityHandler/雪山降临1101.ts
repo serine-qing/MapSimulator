@@ -6,6 +6,7 @@ import { getBlackBoardItem, getPixelSize } from "../utilities/utilities";
 import type Handler from "./Handler";
 import Tile from "../game/Tile";
 import RunesHelper from "../game/RunesHelper";
+import type { CheckPoint, Buff, Vec2 } from "@/type";
 
 interface avalancheZone{
   minX: number, maxX: number, minY: number, maxY: number, index?: number,

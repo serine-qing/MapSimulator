@@ -1,4 +1,5 @@
 import request from "./request"
+import type { EnemyRef } from "@/type"
 
 const language = localStorage.currentLang || "CN";
 

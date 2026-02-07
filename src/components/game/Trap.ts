@@ -3,10 +3,10 @@ import GameConfig from "../utilities/GameConfig";
 import * as spine  from "@/spine";
 import { GC_Add } from "./GC";
 import Tile from "./Tile";
-import { Countdown } from "./CountdownManager";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "../enemy/BattleObject";
+import type { KeyValue, trapData, Vec2 } from "@/type";
 
 class Trap extends BattleObject{
   data: trapData;  //原始数据

@@ -1,6 +1,7 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
 import { Countdown } from "./CountdownManager";
+import type { BuffParam, Buff } from "@/type";
 
 class BuffManager{
   countdown: Countdown;

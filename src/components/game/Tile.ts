@@ -1,4 +1,4 @@
-import {Object3D, BoxGeometry, BoxHelper, Mesh, Material, MeshBasicMaterial, TextureLoader, Vector2} from "three"
+import { Object3D, BoxGeometry, BoxHelper, Mesh, Material, MeshBasicMaterial, TextureLoader, Vector2 } from "three"
 import * as THREE from "three"
 import { getTexture, getTile } from "./TextureHelper";
 import Trap from "./Trap";
@@ -7,6 +7,7 @@ import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "../enemy/DataObject";
+import type { TileData, Vec2, BlackBoard } from "@/type";
 
 interface DynamicTexture{
   key: string,

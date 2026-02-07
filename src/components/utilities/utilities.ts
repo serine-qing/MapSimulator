@@ -1,6 +1,7 @@
-import { AttributesEnum } from "./Enum";
 import GameConfig from "./GameConfig";
-import * as THREE from "three"
+import * as THREE from "three";
+import type { Vec2, Stage, BlackBoard, AttrBlackboard, KeyValue } from "@/type";
+import { EnemyAttrKey } from "@/type/Enemy";
 //获取两点形成的矩形里面所有的point坐标
 const getRectPoints = (x0:number, y0:number, x1:number, y1:number) : Array<any> => {
   const points = [];
@@ -98,7 +99,7 @@ const RowColToVec2 = (param: any): Vec2 => {
 }
 
 
-const toCamelCase = (str) => {
+const toCamelCase = (str): string => {
   return str.replace(/[-_]\w/g, match => match[1].toUpperCase());
 }
 
@@ -141,7 +142,7 @@ const getBlackBoardItem = (key: string, blackboards: BlackBoard[]): any => {
   return find ? (find.valueStr? find.valueStr: find.value) : null;
 }
 
-const getAttrBlackBoard = (key: AttributesEnum, blackboards: AttrBlackboard[]): AttrBlackboard => {
+const getAttrBlackBoard = (key: EnemyAttrKey, blackboards: AttrBlackboard[]): AttrBlackboard => {
   const find = blackboards?.find(bb => bb.key === key);
   return find;
 }

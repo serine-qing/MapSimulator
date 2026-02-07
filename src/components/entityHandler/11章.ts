@@ -1,5 +1,7 @@
 import Enemy from "../enemy/Enemy";
+import Global from "../utilities/Global";
 import type Handler from "./Handler";
+import type { Buff } from "@/type";
 
 class main11 implements Handler{
   handleEnemyStart (enemy: Enemy) {

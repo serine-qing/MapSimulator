@@ -2,6 +2,7 @@ import Enemy from "../enemy/Enemy";
 import SpineEnemy from "../enemy/SpineEnemy";
 import Trap from "../game/Trap";
 import GameConfig from "./GameConfig";
+import type { EnemyData, EnemyRoute, Vec2 } from "@/type";
 
 const specialIdle = {
   enemy_1536_ncrmcr: "Idle_b",       //boss领袖

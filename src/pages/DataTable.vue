@@ -192,12 +192,13 @@
 
 <script setup lang="ts">
 import eventBus from '@/components/utilities/EventBus';
-import { immuneTable } from '@/type/Interface';
+import { immuneTable } from '@/type';
 import { accuracyNum } from '@/components/utilities/utilities';
 import { ref, shallowRef } from 'vue';
 
-import {JsonViewer} from "vue3-json-viewer"
+import { JsonViewer } from "vue3-json-viewer"
 import { useI18n } from 'vue-i18n'
+import type { EnemyData, AttrChange } from '@/type';
 const { t } = useI18n();
 
 const levelType = {

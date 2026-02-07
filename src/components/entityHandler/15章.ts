@@ -6,6 +6,7 @@ import Trap from "../game/Trap";
 import BattleObject from "../enemy/BattleObject";
 import { Vector3 } from "three";
 import type Handler from "./Handler";
+import type { Buff, ActionData } from "@/type";
 
 class main15 implements Handler{
   private addMpweakSkill (obj: BattleObject) {

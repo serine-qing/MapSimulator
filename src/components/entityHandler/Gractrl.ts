@@ -3,6 +3,7 @@ import Enemy from "../enemy/Enemy";
 import { Direction } from "../utilities/Enum";
 import Global from "../utilities/Global";
 import { Countdown } from "../game/CountdownManager";
+import type { PathMap, CheckPoint, Buff } from "@/type";
 
 class Gractrl{
   direction: Direction = Direction.DOWN;

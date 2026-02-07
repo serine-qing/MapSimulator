@@ -66,9 +66,10 @@
 
 <script lang="ts" setup>
 import { ref, watch } from "vue";
-import {getStorys, getStageInfo} from "@/api/stages"
+import { getStorys, getStageInfo } from "@/api/stages"
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from 'vue-i18n'
+import type { Stage } from "@/type";
 const { t } = useI18n();
 
 const emit = defineEmits<{

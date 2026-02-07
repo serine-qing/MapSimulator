@@ -14,7 +14,15 @@ import { getTrapsKey, getMeshsKey, getTokenCards } from "@/api/assets";
 import { GC_Add } from "./GC";
 import { parseSkill, parseTalent } from "./SkillHelper";
 import SPFA from "./SPFA";
-import { immuneTable } from "../../type/Interface";
+import { immuneTable } from "@/type";
+import type {
+  ActionData,
+  trapData,
+  EnemyData,
+  EnemyRoute,
+  CheckPoint,
+  EnemyRef
+} from "@/type";
 import act41side from "../entityHandler/挽歌燃烧殆尽";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";

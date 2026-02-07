@@ -8,6 +8,7 @@ import SpineEnemy from "./SpineEnemy";
 import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
 import { Mesh } from "three";
+import type { EnemyRoute, ActionData, Vec2, EnemyParam, EnemyData } from "@/type";
 
 interface Wave{
   advancedWaveTag?: string,

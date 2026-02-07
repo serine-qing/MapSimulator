@@ -5,6 +5,8 @@ import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
 import { LevelType } from "../utilities/Enum";
+import type { AttrBlackboard, AttrChange, EnemyData, Vec2 } from "@/type";
+import { EnemyAttrKey } from "@/type/Enemy";
 
 
 class RunesHelper{
@@ -271,8 +273,9 @@ class RunesHelper{
           runeAlias = valueStr;
           break;
         default:
+          const attrKey = camelKey as EnemyAttrKey;
           blackboards.push({
-            key: camelKey,
+            key: attrKey,
             value
           })
           break;
@@ -310,7 +313,7 @@ class RunesHelper{
         if(
           key !== "runeAlias" && key !== "sixStarRuneAlias" 
         ){
-          const bbItem = getAttrBlackBoard(key, attrChange.blackboards);
+          const bbItem = getAttrBlackBoard(key as EnemyAttrKey, attrChange.blackboards);
           if(bbItem){
             bbItem.value = accuracyNum(bbItem.value + attr.value);
           }

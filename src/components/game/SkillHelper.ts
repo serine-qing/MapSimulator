@@ -1,3 +1,5 @@
+import type { EnemyData } from "@/type";
+
 const parseTalent = (enemyData: EnemyData):{ [key: string]: any }  => {
   const talentBlackboard = enemyData.talentBlackboard;
   if(!talentBlackboard) return null;

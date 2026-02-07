@@ -8,6 +8,7 @@ import * as THREE from "three";
 import act35side from "../entityHandler/太阳甩在身后";
 import { getPixelSize } from "../utilities/utilities";
 import GameConfig from "../utilities/GameConfig";
+import type { TileData, Vec2 } from "@/type";
 
 interface TileEvent{
   key: string,

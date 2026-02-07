@@ -9,6 +9,18 @@ import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "./BattleObject";
 import GameConfig from "../utilities/GameConfig";
 import { LevelType } from "../utilities/Enum";
+import type {
+  EnemyData,
+  EnemyRoute,
+  CheckPoint,
+  Buff,
+  BuffParam,
+  Vec2,
+  EnemyAttrChange,
+  EnemySkill,
+  PathNode,
+  EnemyParam
+} from "@/type";
 
 const ZERO = {
   x: 0,
@@ -48,7 +60,7 @@ interface AnimateTransition{
   //callback：结束过渡动画后的回调函数
   moveAnimate?: string, 
   idleAnimate?: string, 
-  transAnimation: string, 
+  transAnimation?: string, 
   startLag?: number,         //transAnimation动画前摇
   endLag?: number,           //transAnimation动画后摇
   animationScale?: number,

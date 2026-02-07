@@ -1,6 +1,7 @@
 import Enemy from "../enemy/Enemy"
 import WaveManager from "../enemy/WaveManager"
 import Trap from "./Trap"
+import type { ActionData } from "@/type";
 
 class Action{
   id: number

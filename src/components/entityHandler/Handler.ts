@@ -2,6 +2,7 @@ import Enemy from "../enemy/Enemy"
 import RunesHelper from "../game/RunesHelper";
 import Tile from "../game/Tile"
 import Trap from "../game/Trap"
+import type { ActionData, trapData, EnemyData, CheckPoint } from "@/type";
 
 interface Handler{
   parseRunes?(runesHelper: RunesHelper);

@@ -8,6 +8,7 @@ import { gameCanvas } from "../game/GameCanvas";
 import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import { SkeletonMesh } from "@/spine/SkeletonMesh";
+import type { EnemyData, EnemyRoute, EnemyParam } from "@/type";
 
 class SpineEnemy extends Enemy{
   private skeletonData: any;     //骨架数据

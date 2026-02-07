@@ -1,6 +1,7 @@
 import Enemy from "../enemy/Enemy";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
+import type { Buff } from "@/type";
 
 const Handler = {
   handleTrapStart: (trap: Trap) => {

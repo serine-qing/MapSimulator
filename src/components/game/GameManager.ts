@@ -23,6 +23,7 @@ import GameHandler from "../entityHandler/GameHandler";
 import Gractrl from "../entityHandler/Gractrl";
 import AnimationFrame from "../utilities/AnimationFrame";
 import Enemy from "../enemy/Enemy";
+import type { BuffParam, Buff } from "@/type";
 import SpineEnemy from "../enemy/SpineEnemy";
 import FbxEnemy from "../enemy/FbxEnemy";
 import DataObject from "../enemy/DataObject";

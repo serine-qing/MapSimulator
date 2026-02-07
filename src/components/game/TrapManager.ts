@@ -2,6 +2,7 @@ import Tile from "./Tile";
 import TokenCard from "./TokenCard";
 import Trap from "./Trap";
 import Global from "../utilities/Global";
+import type { trapData } from "@/type";
 
 class TrapManager{
   trapDatas: trapData[];

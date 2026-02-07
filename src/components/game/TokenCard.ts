@@ -1,5 +1,7 @@
 import Global from "../utilities/Global";
 import { Countdown } from "./CountdownManager";
+import type { trapData } from "@/type";
+import * as THREE from "three";
 
 class TokenCard{
   initialCnt: number;

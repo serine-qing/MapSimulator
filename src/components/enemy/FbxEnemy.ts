@@ -6,6 +6,7 @@ import * as THREE from "three";
 import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
+import type { EnemyData, EnemyParam } from "@/type";
 
 class FbxEnemy extends Enemy{
   private fbxMesh: THREE.Mesh; 

@@ -1,6 +1,7 @@
 import {bresenhamLine, RowColToVec2} from "@/components/utilities/utilities"
 import Global from "../utilities/Global";
 import { Vector2 } from "three";
+import type { PathMap, EnemyRoute, Vec2, PathNode } from "@/type";
 
 //设定该地块上下左右是否可以通行
 interface BlockEdge{

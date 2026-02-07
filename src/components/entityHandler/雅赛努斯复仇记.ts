@@ -3,6 +3,7 @@ import Tile from "../game/Tile";
 import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import type Handler from "./Handler";
+import type { Buff } from "@/type";
 
 class act48side implements Handler{
   private usedTiles: Tile[] = [];
