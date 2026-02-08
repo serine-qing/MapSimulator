@@ -848,9 +848,7 @@ class MapModel{
       }
     })
     
-    act41side.parseExtraWave(branches);
-    act42side.parseExtraWave(this.trapDatas, branches, this.extraRoutes);
-    act45side.parseExtraWave(branches);
+    Global.gameHandler.parseExtraWave(branches);
 
     if(this.extraWaves.length === 0){
       Object.keys(branches).forEach(key => {

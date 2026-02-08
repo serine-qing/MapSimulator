@@ -1,9 +1,9 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
-import type { Buff } from "@/type";
+import type Handler from "./Handler";
 
-const Handler = {
-  afterMoveCamera: () => {
+class main16 implements Handler{
+  afterMoveCamera() {
     const extraWaves = Global.waveManager.extraWaves;
     const find = extraWaves["folchr_m2_route"];
     if(find){
@@ -11,13 +11,13 @@ const Handler = {
         key: "folchr_m2_route"
       })
     }
-  },
+  }
 
-  handleEnemyStart: (enemy: Enemy) => {
+  handleEnemyStart(enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_1571_mirbst":  //狂躁异质裂兽
         const m0crazybonus = enemy.getTalent("m0crazybonus");
-        if(m0crazybonus){ 
+        if(m0crazybonus){
           enemy.addBuff({
             id: "m0crazybonus",
             key: "m0crazybonus",
@@ -29,7 +29,7 @@ const Handler = {
             }]
           })
         }
-        
+
         break;
       case "enemy_1572_folchr":  //圣愚
         const waveManager = Global.waveManager;
@@ -64,6 +64,6 @@ const Handler = {
         break;
     }
   }
-};
+}
 
-export default Handler;
+export default main16;

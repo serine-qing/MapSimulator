@@ -6,9 +6,10 @@ import Trap from "../game/Trap";
 import Global from "../utilities/Global";
 import Unrealshapes_BG from "@/assets/images/Unrealshapes_BG.png"
 import type { trapData } from "@/type";
+import type Handler from "./Handler";
 
-const Handler = {
-  parseRunes: (runesHelper: RunesHelper) => {
+class act42side implements Handler{
+  parseRunes(runesHelper: RunesHelper) {
     const levelCtrl = runesHelper.getRunes("env_system_new", "env_act42side_level_ctrl")[0];
     if(levelCtrl){
       const customData = Global.gameManager.customData;
@@ -20,10 +21,11 @@ const Handler = {
         }
       })
     }
-  },
+  }
 
-  parseExtraWave: (trapDatas: trapData[], branches: any, extraRoutes) => {
-    trapDatas.forEach(trapData => {
+  parseExtraWave(branches: any) {
+    const extraRoutes = Global.mapModel.extraRoutes;
+    Global.mapModel.trapDatas.forEach(trapData => {
       switch (trapData.key) {
         case "trap_250_hlctrl":
           const brancheData = branches?.popeRoute?.phases[0]?.actions;
@@ -55,9 +57,9 @@ const Handler = {
           break;
       }
     })
-  },
+  }
 
-  afterGameInit: () => {
+  afterGameInit() {
     const customData = Global.gameManager.customData;
 
     if(customData.hiddenRect){
@@ -82,16 +84,16 @@ const Handler = {
 
         })
         customData.hiddenRect[index] = hiddenRectTiles;
-        
+
         hiddenRectTiles.forEach(tile => {
           tile.setVisible(false);
         })
 
       })
     }
-  },
+  }
 
-  handleTrapStart: (trap: Trap) => {
+  handleTrapStart(trap: Trap) {
     switch (trap.key) {
       //寻根圣事 绑定事件
       case "trap_250_hlctrl":
@@ -110,16 +112,16 @@ const Handler = {
             Global.waveManager.startExtraAction({
               key: popeKey
             });
-            customData.popeIndex += 1; 
+            customData.popeIndex += 1;
           }
 
         })
 
         break;
     }
-  },
+  }
 
-  handleEnemyStart: (enemy: Enemy) => {
+  handleEnemyStart(enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_1567_pope":
         enemy.dontBlockWave = false;
@@ -155,12 +157,12 @@ const Handler = {
             }]
           })
         }
-        
+
         break;
     }
-  },
+  }
 
-  handleTalent: (enemy: Enemy, talent: any) => {
+  handleTalent(enemy: Enemy, talent: any) {
 
     const {duration, range_radius} = talent.value;
     // switch (talent.key) {
@@ -168,9 +170,9 @@ const Handler = {
     //     console.log(enemy)
     //     break;
     // }
-  },
+  }
 
-  handleSkill: (enemy: Enemy, skill: any) => {
+  handleSkill(enemy: Enemy, skill: any) {
     const { initCooldown, cooldown } =  skill;
     switch (skill.prefabKey) {
       case "foreverenhance":
@@ -209,7 +211,7 @@ const Handler = {
           }
         })
         break;
-      
+
       case "rangeheal":
 
         enemy.addSkill({
@@ -225,6 +227,6 @@ const Handler = {
         break;
     }
   }
-};
+}
 
-export default Handler;
+export default act42side;

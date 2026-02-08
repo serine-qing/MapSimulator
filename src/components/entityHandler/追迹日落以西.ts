@@ -1,16 +1,17 @@
 import Enemy from "../enemy/Enemy";
 import Global from "../utilities/Global";
+import type Handler from "./Handler";
 
-const Handler = {
-  handleEnemyConstructor: (enemy: Enemy) => {
+class act37side implements Handler{
+  handleEnemyConstructor(enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_10027_vtsk":
         enemy.startAnimate = "Start";
         break;
     }
-  },
+  }
 
-  handleEnemyStart: (enemy: Enemy) => {
+  handleEnemyStart(enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_10030_vtwand":
       case "enemy_10028_vtswd":
@@ -31,9 +32,7 @@ const Handler = {
         })
         break;
     }
+  }
+}
 
-  },
-
-};
-
-export default Handler;
+export default act37side;

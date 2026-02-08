@@ -1,8 +1,9 @@
 import Global from "../utilities/Global";
 import { getBlackBoardItem } from "../utilities/utilities";
+import type Handler from "./Handler";
 
-const Handler = {
-  afterGameInit: () => {
+class act44side implements Handler{
+  afterGameInit() {
     const configBlackBoard = Global.mapModel.sourceData.options?.configBlackBoard;
     if(configBlackBoard){
       const bossTriggerTime = getBlackBoardItem("boss_branch_trigger_time", configBlackBoard);
@@ -27,7 +28,7 @@ const Handler = {
         })
       }
     }
-  },
-};
+  }
+}
 
-export default Handler;
+export default act44side;

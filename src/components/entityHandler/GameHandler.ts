@@ -4,7 +4,7 @@ import Global from "../utilities/Global";
 import { GC_Add } from "../game/GC";
 import Trap from "../game/Trap";
 import Handler from "./Handler";
-import type { CheckPoint, Buff, BuffParam, ActionData } from "@/type";
+import type { CheckPoint, Buff, BuffParam, ActionData, trapData } from "@/type";
 
 import act1vhalfidle from "./次生预案";
 import act29side from "./崔林特尔梅之金";
@@ -28,18 +28,22 @@ class GameHandler implements Handler{
   private handlers: Handler[] = [];
   constructor(){
     this.handlers.push(new act29side());
+    this.handlers.push(new act35side());
+    this.handlers.push(new act37side());
+    this.handlers.push(new act41side());
+    this.handlers.push(new act42side());
+    this.handlers.push(new act44side());
+    this.handlers.push(new act45side());
     this.handlers.push(new act46side());
-    this.handlers.push(new main11());
-    this.handlers.push(new main15());
     this.handlers.push(new act47side());
     this.handlers.push(new act48side());
+    this.handlers.push(new main11());
+    this.handlers.push(new main15());
+    this.handlers.push(new main16());
+    this.handlers.push(new act1vhalfidle());
   }
 
   public parseRunes(runesHelper: RunesHelper) {
-    //todo 
-
-    act42side.parseRunes(runesHelper)
-    act45side.parseRunes(runesHelper)
     this.handlers.forEach(handler => {
       handler.parseRunes && handler.parseRunes(runesHelper);
     })
@@ -56,9 +60,6 @@ class GameHandler implements Handler{
     this.handlers.forEach(handler => {
       handler.afterGameInit && handler.afterGameInit();
     })
-    act42side.afterGameInit();
-    act45side.afterGameInit();
-    act1vhalfidle.afterGameInit();
   }
 
   public beforeGameInit () {
@@ -96,7 +97,9 @@ class GameHandler implements Handler{
   }
 
   afterMoveCamera () {
-    main16.afterMoveCamera();
+    this.handlers.forEach(handler => {
+      handler.afterMoveCamera && handler.afterMoveCamera();
+    })
   }
 
   checkActionDatas (actionDatas: ActionData[]) {
@@ -106,7 +109,9 @@ class GameHandler implements Handler{
   }
 
   handleEnemyConstructor (enemy: Enemy) {
-    act37side.handleEnemyConstructor(enemy);
+    this.handlers.forEach(handler => {
+      handler.handleEnemyConstructor && handler.handleEnemyConstructor(enemy);
+    })
   }
 
   //劫持SpawnEnemy方法
@@ -121,13 +126,6 @@ class GameHandler implements Handler{
   }
 
   handleEnemyStart (enemy: Enemy) {
-    act37side.handleEnemyStart(enemy);
-    act41side.handleEnemyStart(enemy);
-    act42side.handleEnemyStart(enemy);
-    act44side.handleEnemyStart(enemy);
-    act45side.handleEnemyStart(enemy);
-    main16.handleEnemyStart(enemy);
-
     this.handlers.forEach(handler => {
       handler.handleEnemyStart && handler.handleEnemyStart(enemy);
     })
@@ -184,10 +182,6 @@ class GameHandler implements Handler{
   }
 
   handleTalent (enemy: Enemy, talent: any) {
-    act35side.handleTalent(enemy, talent);
-    act42side.handleTalent(enemy, talent);
-    act44side.handleTalent(enemy, talent);
-    act45side.handleTalent(enemy, talent);
     const {move_speed, interval, duration, trig_cnt, unmove_duration, sleep_duration} = talent.value;
     let waitTime;
 
@@ -288,10 +282,6 @@ class GameHandler implements Handler{
   }
 
   handleSkill (enemy: Enemy, skill: any) {
-    act35side.handleSkill(enemy, skill);
-    act42side.handleSkill(enemy, skill);
-    act44side.handleSkill(enemy, skill);
-    act45side.handleSkill(enemy, skill);
     this.handlers.forEach(handler => {
       handler.handleSkill && handler.handleSkill(enemy, skill);
     })
@@ -336,15 +326,21 @@ class GameHandler implements Handler{
   }
 
   handlePickUp (enemy: Enemy, vehicle: Enemy) {
-    act45side.handlePickUp(enemy, vehicle);
+    this.handlers.forEach(handler => {
+      handler.handlePickUp && handler.handlePickUp(enemy, vehicle);
+    })
   }
 
   handleDropOff (enemy: Enemy, vehicle: Enemy) {
-    act45side.handleDropOff(enemy, vehicle);
+    this.handlers.forEach(handler => {
+      handler.handleDropOff && handler.handleDropOff(enemy, vehicle);
+    })
   }
 
   handleAttack(enemy: Enemy) {
-    act45side.handleAttack(enemy);
+    this.handlers.forEach(handler => {
+      handler.handleAttack && handler.handleAttack(enemy);
+    })
   }
 
   handleEnemyUnbalanceMove(enemy: Enemy){
@@ -380,14 +376,15 @@ class GameHandler implements Handler{
   }
 
   handleReborn (enemy: Enemy) {
-    act45side.handleReborn(enemy);
+    this.handlers.forEach(handler => {
+      handler.handleReborn && handler.handleReborn(enemy);
+    })
   }
 
   handleDie (enemy: Enemy) {
     this.handlers.forEach(handler => {
       handler.handleDie && handler.handleDie(enemy);
     })
-    act35side.handleDie(enemy);
   }
 
   handleEnemySet (enemy: Enemy, state) {
@@ -395,10 +392,6 @@ class GameHandler implements Handler{
   }
 
   handleTrapStart (trap: Trap) {
-    act42side.handleTrapStart(trap);
-    act44side.handleTrapStart(trap);
-    act45side.handleTrapStart(trap);
-
     this.handlers.forEach(handler => {
       handler.handleTrapStart && handler.handleTrapStart(trap);
     })
@@ -415,6 +408,18 @@ class GameHandler implements Handler{
         }
         break;
     }
+  }
+
+  public initTileEvents(tile: Tile) {
+    this.handlers.forEach(handler => {
+      handler.initTileEvents && handler.initTileEvents(tile);
+    })
+  }
+
+  public parseExtraWave(branches: any) {
+    this.handlers.forEach(handler => {
+      handler.parseExtraWave && handler.parseExtraWave(branches);
+    })
   }
 
   public get() {

@@ -1,10 +1,10 @@
 import Enemy from "../enemy/Enemy";
 import Trap from "../game/Trap";
 import Global from "../utilities/Global";
-import type { Buff } from "@/type";
+import type Handler from "./Handler";
 
-const Handler = {
-  handleTrapStart: (trap: Trap) => {
+class act44side implements Handler{
+  handleTrapStart(trap: Trap) {
     switch (trap.key) {
       //压力舒缓帮手
       case "trap_253_boxnma":
@@ -23,11 +23,11 @@ const Handler = {
           }
         })
         break;
-    
-    }
-  },
 
-  handleEnemyStart: (enemy: Enemy) => {
+    }
+  }
+
+  handleEnemyStart(enemy: Enemy) {
     switch (enemy.key) {
       //压力舒缓帮手
       case "enemy_10119_ymgbxm":
@@ -35,9 +35,9 @@ const Handler = {
         enemy.startAnimate = "Start";
         break;
     }
-  },
+  }
 
-  handleTalent: (enemy: Enemy, talent: any) => {
+  handleTalent(enemy: Enemy, talent: any) {
     const {duration, range_radius} = talent.value;
     switch (talent.key) {
       case "endhole":  //土遁忍者
@@ -45,7 +45,7 @@ const Handler = {
         enemy.changeAnimation();
         const firstCP = enemy.route.checkpoints[0];
         if(firstCP.type === "WAIT_FOR_SECONDS"){
-          firstCP.time = Math.max(0 , firstCP.time - duration);
+          firstCP.time = Math.max(0, firstCP.time - duration);
         }
 
         enemy.addSkill({
@@ -87,12 +87,12 @@ const Handler = {
             enemy.triggerSkill("jump");
           }
         })
-      
+
       break;
     }
-  },
+  }
 
-  handleSkill: (enemy: Enemy, skill: any) => {
+  handleSkill(enemy: Enemy, skill: any) {
     const { initCooldown, cooldown } =  skill;
 
     switch (skill.prefabKey) {
@@ -111,7 +111,7 @@ const Handler = {
           })
 
         }
-        
+
         break;
 
       case "takeoff":
@@ -135,7 +135,7 @@ const Handler = {
           });
         }
         break;
-      
+
       case "jump":  //雷遁忍者
         const jumpspeedup = enemy.talents.find(talent =>  talent.key === "jumpspeedup")?.value?.move_speed;
 
@@ -172,6 +172,6 @@ const Handler = {
         break;
     }
   }
-};
+}
 
-export default Handler;
+export default act44side;

@@ -9,7 +9,7 @@ interface Handler{
 
   checkActionDatas?(actionDatas: ActionData[]);
 
-  parseExtraWave?(trapDatas: trapData[], branches: any, extraRoutes);
+  parseExtraWave?(branches: any);
 
   handleTileInit?(tile: Tile);
 
