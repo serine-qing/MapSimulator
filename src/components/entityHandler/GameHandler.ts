@@ -17,6 +17,7 @@ import act45side from "./无忧梦呓";
 import act46side from "./雪山降临1101";
 import act47side from "./未许之地";
 import act48side from "./雅赛努斯复仇记";
+import act49side from "./辞岁行";
 import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
@@ -37,6 +38,7 @@ class GameHandler implements Handler{
     this.handlers.push(new act46side());
     this.handlers.push(new act47side());
     this.handlers.push(new act48side());
+    this.handlers.push(new act49side());
     this.handlers.push(new main11());
     this.handlers.push(new main15());
     this.handlers.push(new main16());

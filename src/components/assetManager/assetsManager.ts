@@ -8,6 +8,7 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 import { parseTexture } from "@/components/game/TextureHelper";
 //@ts-ignore
 import texture1 from "@/assets/texture/tiles1.png"
+import sprite_sui from "@/assets/texture/sprite_sui.png"
 import { GC_Add } from "../game/GC";
 import { unitizeFbx } from "../game/FbxHelper";
 
@@ -54,8 +55,9 @@ class AssetsManager{
 
   loadStaticTexture(){
     const textures: {[key: string]: THREE.Texture} = {};
-    this.loadTexture([texture1]).then(res => {
+    this.loadTexture([texture1, sprite_sui]).then(res => {
       textures.texture1 = res[0];
+      textures.sprite_sui = res[1];
       parseTexture(textures);
     })
 

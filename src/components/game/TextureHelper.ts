@@ -115,10 +115,7 @@ Object.values(tileTextures).forEach(data => {
 tileTextures["tile_passable_wall"] = tileTextures["tile_wall"];
 tileTextures["tile_fence_bound"] = tileTextures["tile_fence"];
 
-const getClone = (texture: THREE.Texture, index:number):THREE.Texture  => {
-  const width = GameConfig.SPRITE_SIZE[0];
-  const height = GameConfig.SPRITE_SIZE[1];
-
+const getClone = (texture: THREE.Texture, index:number, width: number, height: number):THREE.Texture  => {
   const tileWidth = 1 / width;
   const tileHeight = 1 / height;
 
@@ -140,7 +137,7 @@ textureMats["moonlight_shadow"] = new THREE.MeshBasicMaterial({
 });
 
 const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
-  const {texture1} = textures;
+  const {texture1, sprite_sui} = textures;
   texture1.colorSpace = THREE.SRGBColorSpace;
   const keyArr = [
     "gem", "gemdark","juntan",null, "tile_banned", "tile_banned2", "tile_bigforce", "tile_bigforce2",
@@ -153,7 +150,7 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   keyArr.forEach( (key, index) => {
     if(!key) return;
 
-    const texture = getClone(texture1, index);
+    const texture = getClone(texture1, index, GameConfig.SPRITE_SIZE[0], GameConfig.SPRITE_SIZE[1]);
     textureMats[key] = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,   //矢量图能透明
@@ -165,6 +162,25 @@ const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   textureMats["tile_toxic"] = textureMats["tile_floor"];
   textureMats["tile_sleep_road"] = textureMats["tile_sleep_wall"];
 
+  parseSpriteSui(sprite_sui);
+}
+
+const parseSpriteSui = (textureSui: THREE.Texture) => {
+  textureSui.colorSpace = THREE.SRGBColorSpace;
+  const keyArr = [
+    "Fortune", "Food", "Camp", "Highland", "Anchor", "Trigger", "Empty"
+  ]
+
+  keyArr.forEach( (key, index) => {
+    if(!key) return;
+
+    const texture = getClone(textureSui, index, 7, 1);
+    textureMats[key] = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,   //矢量图能透明
+      depthWrite: false    //关闭depthWrite，这样无论如何都遮挡不到敌人模型了
+    })
+  })
 }
 
 const getTile = (key: string, buildableType: string, heightType: string): any => {
