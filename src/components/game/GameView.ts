@@ -24,7 +24,7 @@ class GameView{
   private tileBgImage: THREE.Mesh;
 
   public enemyMeshs: {[key: string]: THREE.Object3D} = {};           //每种敌人对应的mesh
-
+  
   public bossRushAreaData: any[];
 
   private drawObjectArray: THREE.Object3D[] = [];
@@ -74,7 +74,6 @@ class GameView{
   public setScale(scale: number){
     this.scale = scale;
     this.mapContainer.scale.set(scale,scale,scale);
-    this.mapContainer.position.y = (- Global.tileManager.height / 2 * GameConfig.TILE_SIZE + 7) * scale;
   }
 
   public getScale(){
@@ -82,16 +81,9 @@ class GameView{
   }
 
   public updateCameraView(){
-    if(this.bossRushAreaData && this.bossRushAreaData.length > 0 ){
-      const currentCameraView = Global.waveManager.currentCameraView;
-      const {start, end} = this.bossRushAreaData[currentCameraView];
-      const currentOffset = (end - start) / 2 + start;
-      this.mapContainer.position.x =  - GameConfig.TILE_SIZE * currentOffset * this.scale;
-    }else{
-      const width = Math.floor(Global.tileManager.width / Global.waveManager.cameraViewCount);
-      this.mapContainer.position.x = - (width * Global.waveManager.currentCameraView + width / 2) 
-      * GameConfig.TILE_SIZE * this.scale;
-    }
+    const mapPosition = Global.gameManager.mapPosition;
+    this.mapContainer.position.x =  - GameConfig.TILE_SIZE * this.scale * mapPosition.x;
+    this.mapContainer.position.y =  - GameConfig.TILE_SIZE * this.scale * mapPosition.y + 7;
 
   }
 

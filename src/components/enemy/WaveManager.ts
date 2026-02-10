@@ -466,7 +466,7 @@ class WaveManager{
                     case "trap_091_brctrl":
                       //引航者试炼装置激活 清空前面区域，并移动相机
                       //老版本引航者还有MoveCamera的触发事件，为了兼容统一使用ACTIVATE_PREDEFINED
-                      this.changeCameraCount(action.trap.id - 1);
+                      this.bossrushMoveCamera(action.trap.id - 1);
                       break;
                   
                   }
@@ -485,7 +485,7 @@ class WaveManager{
             break;
           case "PLAY_OPERA":
             if(action.actionData.key === "move_camera"){
-              this.addCameraCount();
+              this.moveCamera();
             }
             break;
         }
@@ -574,8 +574,11 @@ class WaveManager{
     this.checkFinished();
   }
 
-  private changeCameraCount(count: number){
+  private bossrushMoveCamera(count: number){
     this.currentCameraView = count;
+    const {start, end} = Global.mapModel.bossRushAreaData[this.currentCameraView];
+    const currentOffset = (end - start) / 2 + start;
+    Global.gameManager.setMapPosition({x: currentOffset});
     Global.gameHandler.afterMoveCamera();
 
     //释放绿门波次
@@ -584,8 +587,10 @@ class WaveManager{
     })
   }
 
-  private addCameraCount(){
+  private moveCamera(){
     this.currentCameraView ++;
+    const width = Math.floor(Global.tileManager.width / Global.waveManager.cameraViewCount);
+    Global.gameManager.setMapPosition({x: width * Global.waveManager.currentCameraView + width / 2});
     Global.gameHandler.afterMoveCamera();
   }
 

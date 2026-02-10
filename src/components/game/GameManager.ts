@@ -70,6 +70,17 @@ class GameManager extends DataObject{
   public gractrl: Gractrl;  //重力控制
   public gameHandler: GameHandler;
 
+  /**
+   *  地图在视图上的位置
+   *  因为要存到缓存里，所以不能放到GameView
+   */
+  public mapPosition: {
+    x: number
+    y: number
+  } = {
+    x: 0, y: 0
+  }
+
   constructor(){
     super();
     Global.gameManager = this;
@@ -111,6 +122,8 @@ class GameManager extends DataObject{
 
     Global.gameHandler.afterGameInit();
 
+    this.initMapPosition();
+    
     this.startSimulate();
     
     this.start();
@@ -453,6 +466,38 @@ class GameManager extends DataObject{
     this.updateCountdown = 1 / this.gameSpeed * 2;
   }
 
+  //todo 各种设置相机位置的方法统一下
+  private initMapPosition(){
+    const cameraViewCount = Global.waveManager.cameraViewCount;
+    this.setMapOffset({
+      x: Global.tileManager.width * (1 / cameraViewCount - 1) / 2, y: 0
+    })
+  }
+
+  /**
+   * 让视图中心对准x, y
+   * @param options 
+   */
+  public setMapPosition(options: {x?: number, y?: number}){
+    const {x, y} = options;
+    if(x !== undefined && x !== null) this.mapPosition.x = x;
+    if(y !== undefined && y !== null) this.mapPosition.y = y;
+  }
+
+  /**
+   * 让地图相对于原始位置偏移x, y
+   * @param options 
+   */
+  public setMapOffset(options: {x?: number, y?: number}){
+    const offsetX = Global.tileManager.width / 2;
+    const offsetY = Global.tileManager.height / 2;
+    const {x, y} = options;
+    this.setMapPosition({
+      x: x + offsetX,
+      y: y + offsetY
+    })
+  }
+
   public restart(){
     const data = this.simulateData?.byTime[0];
     this.set(data);
@@ -465,6 +510,7 @@ class GameManager extends DataObject{
       gameSecond: this.gameSecond,
       isFinished: this.isFinished,
       finishedSecond: this.finishedSecond,
+      mapPosition: { ...this.mapPosition },
       SPFAState: this.SPFA.get(),
       trapState: this.trapManager.get(),
       tileState: this.tileManager.get(),
@@ -491,6 +537,7 @@ class GameManager extends DataObject{
       gameSecond, 
       isFinished, 
       finishedSecond,
+      mapPosition,
       SPFAState, 
       trapState, 
       tileState, 
@@ -500,7 +547,7 @@ class GameManager extends DataObject{
       tokenCardState,
       gractrlState,
       SeededRandomState,
-      gameHandlerState
+      gameHandlerState,
     } = states;
     
     this.gameSecond = gameSecond;
@@ -531,6 +578,7 @@ class GameManager extends DataObject{
 
     this.isFinished = isFinished;
     this.finishedSecond = finishedSecond;
+    this.mapPosition = {...mapPosition};
 
     this.gractrl?.set(gractrlState);
     

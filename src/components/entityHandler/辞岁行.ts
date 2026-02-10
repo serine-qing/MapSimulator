@@ -3,7 +3,7 @@ import Tile from "../game/Tile";
 import Global from "../utilities/Global";
 import RunesHelper from "../game/RunesHelper";
 import type Handler from "./Handler";
-import type { Vec2 } from "@/type";
+import type { BlackBoard, Vec2 } from "@/type";
 import { getBlackBoardItem } from "../utilities/utilities";
 
 interface StampGroup{
@@ -33,6 +33,16 @@ class act49side implements Handler{
   private yinCooldown: number = 10;              // <印>地块冷却时间（秒）
   private yinTileCooldowns: Map<string, number> = new Map(); // 字格位置 -> 冷却结束时间
 
+  private parseCoordinates(str) {
+    // 移除括号，按逗号分割
+    const parts = str.slice(1, -1).split(',');
+    
+    return {
+      x: parseFloat(parts[0]),  // 使用parseFloat可以处理负数和小数
+      y: parseFloat(parts[1])   // 同样处理负数
+    };
+  }
+
   /**
    * 从符文读取配置
    */
@@ -55,6 +65,21 @@ class act49side implements Handler{
     //   text: `活字印章拓印间隔：${this.sealInterval}秒`,
     //   color: "#FF9900"
     // });
+  }
+
+  afterGameViewInit() {
+    const runesHelper = Global.mapModel.runesHelper;
+    const blackboards: BlackBoard[] = runesHelper.getRunes("env_system_new", "env_040_act49side_boss_manager")[0]?.blackboard;
+    if(blackboards && blackboards.length > 0){
+      const up = this.parseCoordinates(getBlackBoardItem("head_room_offset", blackboards));
+      const down = this.parseCoordinates(getBlackBoardItem("tail_room_offset", blackboards));
+      const left = this.parseCoordinates(getBlackBoardItem("left_hand_room_offset", blackboards));
+      const right = this.parseCoordinates(getBlackBoardItem("right_hand_room_offset", blackboards));
+
+
+      console.log(up, down, left, right )
+      // Global.gameView.setMapOffset(left)
+    }
   }
 
 	handleTileInit(tile: Tile) {
@@ -187,13 +212,6 @@ class act49side implements Handler{
    */
   private isBlockedByBaShan(position: Vec2): boolean {
     return false;
-  }
-
-  /**
-   * 敌人开始时处理
-   */
-  handleEnemyStart(enemy: Enemy) {
-    
   }
 
 
