@@ -30,7 +30,8 @@ const getRecalRunes = (levelId: string) => {
     method: "post",
     url: "/recalRune/getData",
     data: {
-      levelId
+      levelId,
+      language
     }
   })
 }

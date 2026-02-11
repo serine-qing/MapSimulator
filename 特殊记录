@@ -28,7 +28,7 @@ zone_table.json
 enemy_database.json
 stage_table.json
 enemy_handbook_table.json
-
+crisis_v2_table.json
 
 本地化：
 backend\src\scripts\story activity_table.json stage_table.json
