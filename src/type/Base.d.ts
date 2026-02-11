@@ -2,11 +2,22 @@
 // 基础类型定义
 // ==========================================
 
+
 // 二维向量
 export interface Vec2 {
   x: number;
   y: number;
 }
+
+/**
+ * 用x,y表示的某个点
+ */
+export interface Point{
+  x: number
+  y: number
+}
+
+export type Direction = "up" | "down" | "left" | "right";
 
 // 键值对
 export interface KeyValue {

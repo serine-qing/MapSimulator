@@ -21,6 +21,11 @@ interface Handler{
 
   afterGameInit?();
 
+  /**
+   * 初始化地图在视图上的位置
+   */
+  afterInitMapPosition?();
+
   beforeEnemyStart?(enemyData: EnemyData);
   
   handleEnemyConstructor?(enemy: Enemy);
@@ -29,7 +34,15 @@ interface Handler{
 
   handleEnemyStart?(enemy: Enemy);
 
+  /**
+   * 某个敌人结束生命周期
+   */
   handleFinishedMap?(enemy: Enemy);
+
+  /**
+   * 额外波次生成结束触发
+   */
+  afterExtraWaveFinish?(key: string);
 
   handleTrapStart?(trap: Trap);
 

@@ -127,6 +127,12 @@ class GameHandler implements Handler{
     return spawnEnemy;
   }
 
+  afterInitMapPosition() {
+    this.handlers.forEach(handler => {
+      handler.afterInitMapPosition && handler.afterInitMapPosition();
+    })
+  }
+
   handleEnemyStart (enemy: Enemy) {
     this.handlers.forEach(handler => {
       handler.handleEnemyStart && handler.handleEnemyStart(enemy);
@@ -354,6 +360,12 @@ class GameHandler implements Handler{
   handleEnemyBoundCrash(enemy: Enemy, tile: Tile){
     this.handlers.forEach(handler => {
       handler.handleEnemyBoundCrash && handler.handleEnemyBoundCrash(enemy, tile);
+    })
+  }
+
+  afterExtraWaveFinish(key: string) {
+    this.handlers.forEach(handler => {
+      handler.afterExtraWaveFinish && handler.afterExtraWaveFinish(key);
     })
   }
 

@@ -108,7 +108,7 @@ class Tile extends DataObject{
       default:
         if(this.heightType === "HIGHLAND"){
           this.height = GameConfig.TILE_HEIGHT;
-          this.margin = 0.15; //高台有间隔
+          this.margin = 0; //高台间隔
 
         }else if(this.heightType === "LOWLAND"){
           this.height = 0;
@@ -391,8 +391,9 @@ class Tile extends DataObject{
         break;
       default:
         if(this.heightType === "LOWLAND"){
-
           borderColor = "#0d0d0d";
+        }else if(this.heightType === "HIGHLAND"){
+          borderColor = "#555555";
         }
         break;
     }

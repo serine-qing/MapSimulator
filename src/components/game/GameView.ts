@@ -36,7 +36,7 @@ class GameView{
     this.initMap();
     this.initTraps();
     this.initEnemys();
-    this.setBgImage(blackTexture);   //给tile下面加一个默认黑色背景
+    // this.setBgImage(blackTexture);   //给tile下面加一个默认黑色背景
     this.drawObjects();
     Global.gameHandler.afterGameViewInit();
   }
@@ -83,7 +83,7 @@ class GameView{
   public updateCameraView(){
     const mapPosition = Global.gameManager.mapPosition;
     this.mapContainer.position.x =  - GameConfig.TILE_SIZE * this.scale * mapPosition.x;
-    this.mapContainer.position.y =  - GameConfig.TILE_SIZE * this.scale * mapPosition.y + 7;
+    this.mapContainer.position.y =  - GameConfig.TILE_SIZE * this.scale * (mapPosition.y - 1);
 
   }
 

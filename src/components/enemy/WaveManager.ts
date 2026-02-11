@@ -16,6 +16,7 @@ interface Wave{
 }
 
 interface activeExtraAction{
+  key: string                   //波次名
   time: number,
   startTime: number,            //该波次开始时间
   enemyKey: string,
@@ -261,6 +262,7 @@ class WaveManager{
         this.removedEnemyIds.push(enemy.id);
         if(!enemy.isExtra && !enemy.notCountInTotal) this.finishedEnemyCount++;
         
+        Global.gameHandler.finishedMap(enemy);
         eventBus.emit("setData", {
           finishedEnemyCount: this.finishedEnemyCount
         });
@@ -332,7 +334,7 @@ class WaveManager{
   }
 
   //是否主要波次出怪全部完毕
-  private isSpawnFinished(){
+  public isSpawnFinished(){
     const currentActions = this.currentActions();
     let spawnFinished = false;
     if(currentActions){
@@ -367,6 +369,7 @@ class WaveManager{
       }
 
       this.activeExtraActions.push({
+        key,
         time: 0,
         startTime: this.waveSecond,
         enemyKey: enemyKey? enemyKey : null,
@@ -491,7 +494,6 @@ class WaveManager{
         }
 
         currentObj.currentActionIndex ++;
-
         !isExtra && eventBus.emit("action_index_change", this.currentActionIndex - 1, this.waveIndex);
 
       }
@@ -536,6 +538,7 @@ class WaveManager{
 
     for(let i = 0; i < this.activeExtraActions.length; i++){
       const activeExtra = this.activeExtraActions[i];
+      
       const { enemyKey, actions } = activeExtra;
       activeExtra.time += delta;
 
@@ -548,9 +551,10 @@ class WaveManager{
         enemyKey
       });
 
-      if(activeExtra.currentActionIndex > actions.length){
+      if(activeExtra.currentActionIndex >= actions.length){
         this.activeExtraActions.splice(i, 1);
         i--;
+        Global.gameHandler.afterExtraWaveFinish(activeExtra.key);
       }
     }
 

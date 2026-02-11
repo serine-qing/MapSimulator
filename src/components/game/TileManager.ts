@@ -57,12 +57,13 @@ class TileManager{
   constructor(mapData:any){
     Global.tileManager = this;
     
-    const matrix = mapData.map.map((row: any)=>{
+    const matrix: (TileData | null)[][] = mapData.map.map((row: any)=>{
       //row是一行tile的数组,rowIndex为坐标轴中的y值
       return row.map((item: any)=>{
 
         const tile = mapData.tiles[item];
         let tileKey = tile.tileKey;
+        if(tileKey === "tile_empty") return null;
 
         if(tile.tileKey === "tile_grvtybtn"){
           //重力感应机关
@@ -96,8 +97,9 @@ class TileManager{
     this.width = matrix[0]?.length;
 
     matrix.forEach((arr, y) => {
-      arr.forEach((tileData: TileData, x) => {
-
+      arr.forEach((tileData: TileData | null, x) => {
+        if(!tileData) return;
+        
         const tile = new Tile(tileData, {x, y});
         if(!this.tiles[y]){
           this.tiles[y] = [];

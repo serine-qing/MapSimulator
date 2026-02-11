@@ -77,8 +77,6 @@ class GameManager extends DataObject{
   public mapPosition: {
     x: number
     y: number
-  } = {
-    x: 0, y: 0
   }
 
   constructor(){
@@ -120,10 +118,10 @@ class GameManager extends DataObject{
       this.gractrl = new Gractrl();
     } 
 
+    this.initMapPosition();
+
     Global.gameHandler.afterGameInit();
 
-    this.initMapPosition();
-    
     this.startSimulate();
     
     this.start();
@@ -472,6 +470,8 @@ class GameManager extends DataObject{
     this.setMapOffset({
       x: Global.tileManager.width * (1 / cameraViewCount - 1) / 2, y: 0
     })
+
+    Global.gameHandler.afterInitMapPosition();
   }
 
   /**
@@ -480,6 +480,9 @@ class GameManager extends DataObject{
    */
   public setMapPosition(options: {x?: number, y?: number}){
     const {x, y} = options;
+    if(!this.mapPosition){
+      this.mapPosition = { x: 0, y: 0 }
+    }
     if(x !== undefined && x !== null) this.mapPosition.x = x;
     if(y !== undefined && y !== null) this.mapPosition.y = y;
   }

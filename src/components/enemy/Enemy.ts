@@ -466,7 +466,6 @@ class Enemy extends BattleObject{
     if( this.cantFinished ) return;
     this.isFinished = true;
     this.countdown.clearCountdown();
-    Global.gameHandler.finishedMap(this);
     this.dropOff();
     
     if(!this.isSimulate()){

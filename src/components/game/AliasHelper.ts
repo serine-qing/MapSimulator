@@ -43,8 +43,12 @@ const AliasMap = {
     2: "DOWN",
     3: "LEFT",
   },
+  /**
+   * STORY: 播放对话
+   */
   actionType:{
     0: "SPAWN",
+    2: "STORY",
     6: "ACTIVATE_PREDEFINED",
     7: "PLAY_OPERA",
     8: "TRIGGER_PREDEFINED"
