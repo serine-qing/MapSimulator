@@ -230,6 +230,8 @@ class Enemy extends BattleObject{
   public shadowHeight: number = 0.2;
   public attackRangeCircle: THREE.Line;         //攻击范围的圈
   private currentAttackRange: number;       //攻击范围的圈的半径
+
+  public enemyTags: string[];
   
   //视图层面会修改到的选项
   public options = {
@@ -288,7 +290,7 @@ class Enemy extends BattleObject{
 
     const {
       key, level, levelType, motion, name, description, icon, applyWay, unMoveable, hugeEnemy,
-      attributes, notCountInTotal, talents, skills, attrChanges, animations, moveAnimate, idleAnimate
+      attributes, notCountInTotal, talents, skills, attrChanges, animations, moveAnimate, idleAnimate, enemyTags
     } = this.enemyData;
 
     this.key = key;
@@ -310,6 +312,7 @@ class Enemy extends BattleObject{
     this.attributes = {...attributes};
     this.hp = attributes.maxHp;
     // this.attributes["attackSpeed"] = attributes.baseAttackTime * 100 / attributes.attackSpeed;
+    this.enemyTags = enemyTags;
     
     this.route = param.route;
 

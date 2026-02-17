@@ -1,5 +1,4 @@
 import Enemy from "../enemy/Enemy";
-import Global from "../utilities/Global";
 import type Handler from "./Handler";
 
 class act37side implements Handler{

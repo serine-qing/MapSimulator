@@ -48,7 +48,7 @@ export interface EnemyAttributes {
 }
 
 export interface EnemyData {
-  [x: string]: {};
+  [x: string]: any;
   data: {};
   key: string;
   waveKey: string;

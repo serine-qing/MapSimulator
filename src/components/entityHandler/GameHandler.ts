@@ -7,6 +7,7 @@ import Handler from "./Handler";
 import type { CheckPoint, Buff, BuffParam, ActionData, trapData } from "@/type";
 
 import act1vhalfidle from "./次生预案";
+import act23side from "./登临意";
 import act29side from "./崔林特尔梅之金";
 import act35side from "./太阳甩在身后";
 import act37side from "./追迹日落以西";
@@ -28,6 +29,7 @@ import RunesHelper from "../game/RunesHelper";
 class GameHandler implements Handler{
   private handlers: Handler[] = [];
   constructor(){
+    this.handlers.push(new act23side());
     this.handlers.push(new act29side());
     this.handlers.push(new act35side());
     this.handlers.push(new act37side());
