@@ -77,7 +77,7 @@ class act44side implements Handler{
         })
         break;
       case "holetiletrigger": //雷遁忍者遇到坑触发跳跃
-        enemy.addDetection({
+        enemy.addDetectionByTile({
           key: "holetiletrigger",
           detectionRadius: range_radius,
           tileKeys: ["tile_hole"],

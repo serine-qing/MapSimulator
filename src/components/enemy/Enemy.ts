@@ -77,6 +77,15 @@ interface Watcher{
 interface DetectionParam{
   key: string,                //唯一标识
   enemyKeys?: string[],
+  excludeEnemyKeys?: string[],
+  detectionRadius: number,    //检测半径
+  duration: number,           //检测间隔
+  every: boolean,             //检测到第一个就停下，还是检测所有的
+  callback: Function,  
+}
+
+interface DetectionTileParam{
+  key: string,                //唯一标识
   tileKeys?: string[],
   detectionRadius: number,    //检测半径
   duration: number,           //检测间隔
@@ -1315,48 +1324,81 @@ class Enemy extends BattleObject{
     }
   }
 
-  //检测物体
+  /**
+   * 检测敌人
+   */
   public addDetection(detection: DetectionParam){
-    const {key, enemyKeys, tileKeys, detectionRadius, duration, every, callback} = detection;
+    const {key, enemyKeys, excludeEnemyKeys, detectionRadius, duration, every, callback} = detection;
 
-    let objs, keyName;
-    if(enemyKeys){
-      keyName = enemyKeys[0];
-    }else if(tileKeys){
-      keyName = tileKeys[0];
-      objs = Global.tileManager.flatTiles.filter(tile => tileKeys.includes(tile.tileKey));
-    }
+    let objs: Enemy[];
 
-    if(keyName){
-      this.countdown.addCountdown({
-        name: `Detection$${key}`,
-        initCountdown: 0,
-        countdown: duration,
-        callback: () => {
-          if(this.isDisappear) return;
+    this.countdown.addCountdown({
+      name: `Detection$${key}`,
+      initCountdown: 0,
+      countdown: duration,
+      callback: () => {
+        if(this.isDisappear) return;
+        
+        objs = Global.waveManager.enemiesInMap.filter(enemy => {
+          return enemy !== this && 
+            (!enemyKeys || enemyKeys.includes(enemy.key)) &&
+            (!excludeEnemyKeys || !excludeEnemyKeys.includes(enemy.key))
+        });
+        
 
-          if(enemyKeys){
-            objs = Global.waveManager.enemiesInMap.filter(enemy => enemyKeys.includes(enemy.key));
-          }
-          for(let i = 0; i < objs.length; i++){
-            const obj = objs[i];
-            if(obj.isEnemy && (!obj.isStarted || obj.isFinished)) continue;
-            if(obj.isDisappear) continue;
+        for(let i = 0; i < objs.length; i++){
+          const obj = objs[i];
+          if(!obj.isStarted || obj.isFinished) continue;
+          if(obj.isDisappear) continue;
 
-            const detectPos: THREE.Vector2 = obj.position;
-            const distance = this.position.distanceTo(detectPos);
-          
-            if(distance <= detectionRadius){
-              
-              callback(obj);
-              if(!every) break;
-            }
+          const detectPos: THREE.Vector2 = obj.position;
+          const distance = this.position.distanceTo(detectPos);
+          if(distance <= detectionRadius){
+            /**
+             * 回调函数返回true 会终止执行
+             */
+            if(callback(obj)) break;
+            if(!every) break;
           }
         }
-      })
+      }
+    })
+  }
+
+  /**
+   * 检测Tile
+   */
+  public addDetectionByTile(detection: DetectionTileParam){
+    const {key, tileKeys, detectionRadius, duration, every, callback} = detection;
+
+    let objs: Tile[];
+    if(tileKeys){
+      objs = Global.tileManager.flatTiles.filter(tile => tileKeys.includes(tile.tileKey));
     }else{
-      console.error("detection设置失败!")
+      objs = Global.tileManager.flatTiles;
     }
+
+    this.countdown.addCountdown({
+      name: `Detection$${key}`,
+      initCountdown: 0,
+      countdown: duration,
+      callback: () => {
+        if(this.isDisappear) return;
+        
+        for(let i = 0; i < objs.length; i++){
+          const obj = objs[i];
+          const detectPos: THREE.Vector2 = obj.position;
+          const distance = this.position.distanceTo(detectPos);
+          if(distance <= detectionRadius){
+            /**
+             * 回调函数返回true 会终止执行
+             */
+            if(callback(obj)) break;
+            if(!every) break;
+          }
+        }
+      }
+    })
   }
 
   public removeDetection(key: string){

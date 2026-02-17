@@ -112,7 +112,6 @@ class act49side implements Handler{
 	}
   
   handleEnemyStart(enemy: Enemy) {
-    if(!this.active) return;
     switch (enemy.key) {
       //岁影
       case "enemy_1586_suiy":
@@ -123,6 +122,29 @@ class act49side implements Handler{
       case "enemy_1584_suiyzh": //岁·右爪
       case "enemy_1585_suiwei": //岁·尾
         enemy.addEndCountdown(600);
+        break;
+      case "enemy_10164_tjgxb":
+      case "enemy_10164_tjgxb_2": //操戈
+        const detection = enemy.getTalent("1");
+        if(!detection) return;
+        const maxCount = detection.max_stack_cnt;
+        enemy.addDetection({
+          key: "tjgxb",
+          detectionRadius: detection.range_radius + 0.03, //修正下
+          duration: 0,
+          every: true,
+          excludeEnemyKeys: ["enemy_10164_tjgxb", "enemy_10164_tjgxb_2"],
+          callback: (detectionEnemy: Enemy) => {
+            if(detectionEnemy.isFly()) return false;
+            if(!detectionEnemy.customData.tjgxbCount || detectionEnemy.customData.tjgxbCount < maxCount){
+              enemy.removeDetection("tjgxb");
+              enemy.finishedMap();
+              detectionEnemy.customData.tjgxbCount = detectionEnemy.customData.tjgxbCount ? 
+                detectionEnemy.customData.tjgxbCount + 1 : 1;
+              return true;
+            }
+          }
+        })
         break;
     }
   }

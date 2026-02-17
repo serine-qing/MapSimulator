@@ -190,6 +190,10 @@ class GameHandler implements Handler{
   }
 
   handleTalent (enemy: Enemy, talent: any) {
+    this.handlers.forEach(handler => {
+      handler.handleTalent && handler.handleTalent(enemy, talent);
+    })
+
     const {move_speed, interval, duration, trig_cnt, unmove_duration, sleep_duration} = talent.value;
     let waitTime;
 
