@@ -1,13 +1,18 @@
-import { accuracyNum, getAttrBlackBoard, getBlackBoardItem, toCamelCase } from "@/components/utilities/utilities"
+import { accuracyNum, getAttrBlackBoard, getBlackBoardItem, toCamelCase, tuplesToVec2 } from "@/components/utilities/utilities"
 import TileManager from "./TileManager";
 import Tile from "./Tile";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
 import { LevelType } from "../utilities/Enum";
-import type { AttrBlackboard, AttrChange, EnemyData, Vec2 } from "@/type";
+import type { AttrBlackboard, AttrChange, BlackBoard, EnemyData, TileData, Vec2 } from "@/type";
 import { EnemyAttrKey } from "@/type/Enemy";
 
+
+interface TileBlackbChange{
+  locations: Vec2[]
+  blackboards: BlackBoard[]
+}
 
 class RunesHelper{
   public runes: any[];
@@ -19,6 +24,7 @@ class RunesHelper{
   public bannedTiles: Vec2[] = [];
   public talentChanges: any[] = [];
   public skillCDChanges: any[] = [];
+  public tileBlackbChanges: TileBlackbChange[] = [];
 
   public charNumDdd: number = 0;
   public squadNum: number = 13;
@@ -31,28 +37,28 @@ class RunesHelper{
     const addOtherRuneBlackbord = [];
     this.runes.forEach(rune => {
 
-      const { blackboard } = rune;
+      const  blackboards: BlackBoard[] = rune.blackboard;
 
       switch (rune.key) {
       
         case "level_hidden_group_enable":
           this.enemyGroupEnable = [
-            ...blackboard.map( i => i.valueStr),
+            ...blackboards.map( i => i.valueStr),
             ...this.enemyGroupEnable
           ]
           break;
         
         case "level_hidden_group_disable":
           this.enemyGroupDisable = [
-            ...blackboard.map( i => i.valueStr),
+            ...blackboards.map( i => i.valueStr),
             ...this.enemyGroupDisable
           ]
           break; 
 
         //敌人更换
         case "level_enemy_replace":
-          const changeFrom = blackboard[0].valueStr;
-          const changeTo = blackboard[1].valueStr;
+          const changeFrom = blackboards[0].valueStr;
+          const changeTo = blackboards[1].valueStr;
           this.enemyChanges[changeFrom] = changeTo;
         
         //敌人属性修改
@@ -71,7 +77,7 @@ class RunesHelper{
         
         //ban格子
         case "global_forbid_location":
-          blackboard.forEach( item => {
+          blackboards.forEach( item => {
             const vecArr = item.valueStr.split("|");
             vecArr.forEach(_vec => {
               const vec = _vec
@@ -79,8 +85,8 @@ class RunesHelper{
                 .replace(")","")
                 .split(",")
               this.bannedTiles.push({
-                x: vec[1],
-                y: vec[0],
+                x: parseInt(vec[1]),
+                y: parseInt(vec[0]),
               })
             })
 
@@ -89,7 +95,7 @@ class RunesHelper{
 
         //地图装置修改
         case "level_predefines_enable":
-          blackboard.forEach( item => {
+          blackboards.forEach( item => {
             this.predefinesEnable[item.key] = !!item.value;
           })
           break;
@@ -108,7 +114,7 @@ class RunesHelper{
         case "enemy_talent_blackb_mul":
         case "enemy_talent_blackb_max":
           const change = {}; 
-          blackboard.forEach(item => {
+          blackboards.forEach(item => {
             
             switch (item.key) {
               case "enemy":
@@ -143,12 +149,12 @@ class RunesHelper{
 
         //增减部署位
         case "global_placable_char_num_add":
-          this.charNumDdd += blackboard[0].value;
+          this.charNumDdd += blackboards[0].value;
           break;
 
         //更改可携带干员数
         case "global_squad_num_limit":
-          this.squadNum = blackboard[0].value;
+          this.squadNum = blackboards[0].value;
           break;
 
         //todo 修改敌人技能cd
@@ -159,6 +165,18 @@ class RunesHelper{
             skill: this.getBlackboard(rune, "skill"),
             calMethod: "mul",
           })
+          break;
+
+        //修改地图tile的blackboard
+        case "map_tile_blackb_assign":
+          const location = blackboards.find(blackb => blackb.key === "location" );
+          blackboards.remove(location);
+          
+          this.tileBlackbChanges.push({
+            locations: tuplesToVec2(location.valueStr),
+            blackboards
+          })
+
           break;
       }
       
@@ -470,6 +488,13 @@ class RunesHelper{
       }
     });
 
+  }
+
+  public checkTileBlackboard(tileData: TileData, location: Vec2){
+    const find = this.tileBlackbChanges.find(blackbChange => blackbChange.locations.find(
+      _location => _location.x === location.x && _location.y === location.y
+    ));
+    if(find) tileData.blackboard = find.blackboards;
   }
 
 }

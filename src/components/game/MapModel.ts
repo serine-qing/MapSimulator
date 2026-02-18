@@ -23,9 +23,6 @@ import type {
   CheckPoint,
   EnemyRef
 } from "@/type";
-import act41side from "../entityHandler/挽歌燃烧殆尽";
-import act42side from "../entityHandler/众生行记";
-import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
 
 interface WaveData{
@@ -393,7 +390,6 @@ class MapModel{
     this.runesHelper = new RunesHelper([...runesData, ...runes]);
 
   }
-
 
   //解析波次
   private parseWaves(waves: any[]){ 

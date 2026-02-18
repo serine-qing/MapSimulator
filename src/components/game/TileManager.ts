@@ -99,7 +99,7 @@ class TileManager{
     matrix.forEach((arr, y) => {
       arr.forEach((tileData: TileData | null, x) => {
         if(!tileData) return;
-        
+        Global.mapModel.runesHelper.checkTileBlackboard(tileData, {x, y});
         const tile = new Tile(tileData, {x, y});
         if(!this.tiles[y]){
           this.tiles[y] = [];

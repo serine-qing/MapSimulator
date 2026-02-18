@@ -152,7 +152,32 @@ const getValue = (key: string, keyValue: KeyValue[]): any => {
   return find ? find.value : null;
 }
 
+/**
+ * 将形如 "(4,3)|(3,5)|(4,7)" 的字符串转换为 Vec2 对象数组。
+ * 每个括号内的第一个数字成为 y，第二个数字成为 x。
+ * @param input - 符合格式的字符串
+ * @returns Vec2 对象数组
+ */
+const tuplesToVec2 = (input: string): Vec2[] => {
+    if (!input) return [];
+
+    return input.split('|').map(part => {
+        // 去除可能的空白字符并移除首尾括号
+        const cleaned = part.trim();
+        const inner = cleaned.slice(1, -1); // 去掉 '(' 和 ')'
+
+        // 分割出两个数字
+        const [first, second] = inner.split(',');
+
+        // 转换为数字（支持整数/浮点数）
+        const y = parseFloat(first);
+        const x = parseFloat(second);
+
+        return { x, y };
+    });
+}
+
 
 
 export{getRectPoints, addPoints, bresenhamLine, RowColToVec2, toCamelCase, 
-  timeFormat, accuracyNum, getPixelSize, getCoordinate, getBlackBoardItem, getAttrBlackBoard, getValue}
+  timeFormat, accuracyNum, getPixelSize, getCoordinate, getBlackBoardItem, getAttrBlackBoard, getValue, tuplesToVec2}
