@@ -119,7 +119,7 @@ class GameManager extends DataObject{
     } 
 
     this.initMapPosition();
-
+    
     Global.gameHandler.afterGameInit();
 
     this.startSimulate();

@@ -17,8 +17,8 @@ class SPFA{
   public pathMaps: PathMap[] = []; //寻路地图
   public enemyRoutes: EnemyRoute[] = [];
   private blockEdges: BlockEdge[] = [];
-  public extraBlocks: Vector2[] = [];
-  constructor(enemyRoutes: EnemyRoute[], extraBlocks: Vector2[], blockEdges: any[]){
+  public extraBlocks: Vec2[] = [];
+  constructor(enemyRoutes: EnemyRoute[], extraBlocks: Vec2[], blockEdges: any[]){
     Global.SPFA = this;
 
     //阻挡tile的某个方向，一般登临意用
@@ -95,6 +95,16 @@ class SPFA{
       parseBlockEdge(position2, blockMask, direction2);
     })
 
+  }
+
+  /**
+   * 给指定坐标添加阻挡物
+   */
+  public addExtraBlocks(position: Vec2){
+    const findedIndex = this.extraBlocks.findIndex(p => p.x === position.x && p.y === position.y);
+    if(findedIndex === -1){
+      this.extraBlocks.push(position);
+    }
   }
 
   //生成寻路地图需要用到的拷贝对象

@@ -19,22 +19,10 @@ interface StampTile{
 }
 
 class act49side implements Handler{
-  // 活字印章配置
-  private sealInterval: number = 5;        // 拓印间隔（秒）
-  private sealDamage: number = 500;        // 印章伤害
-
-  // 字格状态管理
-  private stampGroups: StampGroup[] = [];     // 拓印字格（活字印章全图触发）
-  private specialTiles: {
-    tile: Tile;
-    type: "bing" | "shan" | "yin";
-  }[] = [];
-
-  // <印>地块独立冷却
-  private yinCooldown: number = 10;              // <印>地块冷却时间（秒）
-  private yinTileCooldowns: Map<string, number> = new Map(); // 字格位置 -> 冷却结束时间
-
+  //是否是boss关
   private active: boolean = false;
+  //boss机制中已经添加的被封锁的区域数量
+  private addedBossBlockAreaCount: number = 0;
 
   /**
    * 卡住主图的敌人：岁影
@@ -64,25 +52,6 @@ class act49side implements Handler{
       x: parseFloat(parts[0]),  // 使用parseFloat可以处理负数和小数
       y: parseFloat(parts[1])   // 同样处理负数
     };
-  }
-
-  /**
-   * 从符文读取配置
-   */
-  parseRunes(runesHelper: RunesHelper) {
-    // 读取活字印章配置
-    // const sealRune = runesHelper.getRunes("env_system_new", "env_act46side_seal")[0];
-    // if(sealRune){
-    //   this.sealInterval = runesHelper.getBlackboard(sealRune, "interval") || this.sealInterval;
-    //   this.sealDamage = runesHelper.getBlackboard(sealRune, "damage") || this.sealDamage;
-    // }
-
-    // // 读取<印>地块冷却配置
-    // const yinRune = runesHelper.getRunes("env_system_new", "env_act46side_yin")[0];
-    // if(yinRune){
-    //   this.yinCooldown = runesHelper.getBlackboard(yinRune, "cooldown") || this.yinCooldown;
-    // }
-
   }
 
   afterInitMapPosition() {
@@ -118,9 +87,19 @@ class act49side implements Handler{
         this.mainEnemy = enemy;
         break;
       case "enemy_1582_suisho": //岁
+        //周围9格添加阻挡物，向下偏移一格
+        this.addBlocksAroundHead(enemy.position);
+        enemy.addEndCountdown(600);
+        break;
       case "enemy_1583_suizzh": //岁·左爪
       case "enemy_1584_suiyzh": //岁·右爪
+        //周围9格添加阻挡物
+        this.addBlocksAroundHand(enemy.position);
+        enemy.addEndCountdown(600);
+        break;
       case "enemy_1585_suiwei": //岁·尾
+        //周围4格添加阻挡物，中心在右下
+        this.addBlocksAroundTail(enemy.position);
         enemy.addEndCountdown(600);
         break;
       case "enemy_10164_tjgxb":
@@ -146,6 +125,62 @@ class act49side implements Handler{
           }
         })
         break;
+    }
+  }
+
+  /**
+   * 周围9格添加阻挡物
+   */
+  private addBlocksAroundHand(position: Vec2){
+    const startX = position.x - 1;
+    const startY = position.y - 1;
+    const endX = position.x + 1;
+    const endY = position.y + 1;
+    for(let x = startX; x <= endX; x++){
+      for(let y = startY; y <= endY; y++){
+        Global.SPFA.addExtraBlocks({x, y});
+      }
+    }
+    this.checkBossBlockAreaCount();
+  }
+
+  /**
+   * 周围9格添加阻挡物，向下偏移一格
+   */
+  private addBlocksAroundHead(position: Vec2){
+    const startX = position.x - 1;
+    const startY = position.y - 2;
+    const endX = position.x + 1;
+    const endY = position.y;
+    for(let x = startX; x <= endX; x++){
+      for(let y = startY; y <= endY; y++){
+        Global.SPFA.addExtraBlocks({x, y});
+      }
+    }
+    this.checkBossBlockAreaCount();
+  }
+
+  /**
+   * 周围4格添加阻挡物，中心在右下
+   */
+  private addBlocksAroundTail(position: Vec2){
+    const startX = position.x - 1;
+    const startY = position.y;
+    const endX = position.x;
+    const endY = position.y + 1;
+    for(let x = startX; x <= endX; x++){
+      for(let y = startY; y <= endY; y++){
+        Global.SPFA.addExtraBlocks({x, y});
+      }
+    }
+    this.checkBossBlockAreaCount();
+  }
+
+  //四个阻挡区域添加完成后再重新生成寻路
+  private checkBossBlockAreaCount(){
+    
+    if(++this.addedBossBlockAreaCount >= 4){
+      Global.SPFA.regenerate(false);
     }
   }
 
@@ -235,29 +270,6 @@ class act49side implements Handler{
     }
   }
 
-  /**
-   * 初始化活字印章覆盖的字格
-   */
-  private initStampTiles() {
-    // 活字印章全图触发，获取所有字格
-  }
-
-  /**
-   * 注册特殊地块
-   */
-  private registerSpecialTile(tile: Tile, type: "bing" | "shan" | "yin") {
-
-    this.specialTiles.push({
-      tile,
-      type
-    });
-
-		switch(type){
-			case "yin":
-				this.handleYinTileEvent(tile);
-				break;
-		}
-  }
 
   /**
    * 注册<印>地块
@@ -270,85 +282,12 @@ class act49side implements Handler{
 		})
   }
 
-  /**
-   * 执行一次活字印章拓印
-   */
-  private handleStamping() {
-    // 对所有覆盖字格上的敌人造成伤害	
-    this.stampGroups.forEach(tile => {
-      // // 获取字格上的敌人并造成伤害
-      // const enemies: Enemy[] = [];
-
-      // enemies.forEach(enemy => {
-      //   // 拔山伤害减免
-      //   if(enemy.key.includes("bashan")){
-      //     enemy.hp -= this.sealDamage * 0.3; //拔山只受30%伤害
-      //   }else{
-      //     enemy.hp -= this.sealDamage;
-      //   }
-      // });
-
-			// // 检查是否有拔山阻止
-      // if(this.isBlockedByBaShan(tile.position)) return;
-      // // 触发特殊地块效果
-      // this.checkSpecialTileEffect(tile);
-    });
-  }
-
-  /**
-   * 检查并触发特殊地块效果
-   */
-  private checkSpecialTileEffect(tile: Tile) {
-    const special = this.specialTiles.find(s => s.tile === tile);
-    if(!special) return;
-
-    // 检查是否被拔山阻止
-    if(this.isBlockedByBaShan(tile.position)) return;
-
-    switch(special.type){
-      case "bing":
-        // <兵>地块：生成敌人
-        this.spawnEnemyFromBingTile();
-        break;
-      case "shan":
-        // <山>地块：生成高台
-        this.spawnHighlandFromShanTile();
-        break;
-      case "yin":
-        // <印>地块已在bindYinTileEvents中处理
-        break;
-    }
-  }
-
-  /**
-   * <兵>地块生成敌人
-   */
-  private spawnEnemyFromBingTile() {
-    // 通过waveManager生成敌人
-    Global.waveManager.startExtraAction({
-      key: "bing_spawn"
-    });
-  }
-
-  /**
-   * <山>地块生成高台
-   */
-  private spawnHighlandFromShanTile() {
-    // 将当前字格设为可部署高台
-  }
-
-  /**
-   * 检查指定位置是否被拔山阻止
-   */
-  private isBlockedByBaShan(position: Vec2): boolean {
-    return false;
-  }
-
   get() {
     if(!this.active) return;
     return {
       currentSubStage: this.currentSubStage,
-      bossSummonStep: this.bossSummonStep
+      bossSummonStep: this.bossSummonStep,
+      addedBossBlockAreaCount: this.addedBossBlockAreaCount
     }
   }
 
@@ -356,6 +295,7 @@ class act49side implements Handler{
     if(!this.active) return;
     this.currentSubStage = state.currentSubStage;
     this.bossSummonStep = state.bossSummonStep;
+    this.addedBossBlockAreaCount = state.addedBossBlockAreaCount;
   }
 
 }

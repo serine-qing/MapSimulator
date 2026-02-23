@@ -3,7 +3,7 @@ import Enemy from "../enemy/Enemy";
 import { Direction } from "../utilities/Enum";
 import Global from "../utilities/Global";
 import { Countdown } from "../game/CountdownManager";
-import type { PathMap, CheckPoint, Buff } from "@/type";
+import type { PathMap, CheckPoint, Buff, Vec2 } from "@/type";
 
 class Gractrl{
   direction: Direction = Direction.DOWN;
@@ -72,7 +72,7 @@ class Gractrl{
   private initPathMaps(){
     this.upPathMaps = Global.SPFA.pathMaps;
 
-    const extraBlocks = [];
+    const extraBlocks: Vec2[] = [];
     Global.waveManager.enemies.flat().forEach(enemy => {
       if(enemy?.key === "enemy_1334_ristar"){
         const y1 = enemy.route.startPosition.y;
