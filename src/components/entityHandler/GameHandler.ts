@@ -7,7 +7,6 @@ import Handler from "./Handler";
 import type { CheckPoint, Buff, BuffParam, ActionData, trapData } from "@/type";
 
 import act1vhalfidle from "./次生预案";
-import act23side from "./登临意";
 import act29side from "./崔林特尔梅之金";
 import act35side from "./太阳甩在身后";
 import act37side from "./追迹日落以西";
@@ -23,13 +22,13 @@ import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
 import RunesHelper from "../game/RunesHelper";
+import { LevelType } from "../utilities/Enum";
 
 //todo 从雪山降临1101活动开始 将Handler转为实例化的类，前面的Handler就慢慢改了
 
 class GameHandler implements Handler{
   private handlers: Handler[] = [];
   constructor(){
-    this.handlers.push(new act23side());
     this.handlers.push(new act29side());
     this.handlers.push(new act35side());
     this.handlers.push(new act37side());
@@ -189,6 +188,35 @@ class GameHandler implements Handler{
         enemy.nearFly = true;
       }
     }
+
+    /**
+     * 装载敌人类，通用
+     */
+    //todo LevelType改为type
+    switch (enemy.key) {
+      case "enemy_1302_ymtro":
+      case "enemy_1302_ymtro_2":    //“越长尘”
+      case "enemy_1263_durbus":     //沙滩车
+      case "enemy_1263_durbus_2":     //沙滩车
+        const bus = enemy.getTalent("bus");
+        const busCount = bus?.max_cnt;
+        if(busCount){
+          enemy.maxPickUpCount = busCount;
+          enemy.addDetection({
+            key: "bus",
+            detectionRadius: 0.5,
+            duration: 0,
+            every: true,
+            callback: (find: Enemy) => {
+              //是否是领袖以外的非机械敌人
+              if(find.levelType !== LevelType.BOSS && !find.enemyTags.includes("machine")){
+                enemy.pickUp(find);
+              }
+            }
+          })
+        }
+        break;
+    }
   }
 
   handleTalent (enemy: Enemy, talent: any) {
@@ -282,6 +310,7 @@ class GameHandler implements Handler{
         }
         break;
       case "bleed":       //随时间掉血
+      case "periodic_damage":     //狂暴宿主的自掉血
         const { damage } = talent.value;
         enemy.countdown.addCountdown({
           name: "damageSelf",
