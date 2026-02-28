@@ -209,7 +209,7 @@ class GameHandler implements Handler{
             every: true,
             callback: (find: Enemy) => {
               //是否是领袖以外的非机械敌人
-              if(find.levelType !== LevelType.BOSS && !find.enemyTags.includes("machine")){
+              if(find.levelType !== LevelType.BOSS && !find.enemyTags?.includes("machine")){
                 enemy.pickUp(find);
               }
             }
