@@ -722,7 +722,12 @@ class MapModel{
   }
 
   private async getEnemyMeshUrls(){
-    const sNames = this.enemyDatas.map(data => data.key.replace("enemy_", ""));
+    const sNames = this.enemyDatas.map(data => {
+        return data.key.replace("enemy_", "")
+        //将矢量突破boss的id变为可用id，例如8010_mcnist_3改为8010_mcnist
+        .replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1')
+      }
+    );
     const res = await getMeshsKey(sNames);
     return res.data;
   }
@@ -766,7 +771,7 @@ class MapModel{
     const spineManager = assetsManager.spineManager;
     this.enemyDatas.forEach(data => {
       const {key} = data;
-      const find = urls.find(url => url.key === key.replace("enemy_", ""));
+      const find = urls.find(url => url.key === key.replace("enemy_", "").replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1'));
       if(find){
         const {atlasUrl, skelUrl} = find;
         //使用AssetManager中的name.atlas和name.png加载纹理图集。
