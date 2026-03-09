@@ -160,6 +160,10 @@ class GameHandler implements Handler{
         enemy.dontBlockWave = true;
         enemy.unMoveable = true;
         break;
+      case "enemy_3010_mcreep": //矿工
+        enemy.dontBlockWave = true;
+        enemy.notCountInTotal = true;
+        break;
     }
 
     //判断是否是近地悬浮

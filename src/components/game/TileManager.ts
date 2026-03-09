@@ -63,7 +63,8 @@ class TileManager{
 
         const tile = mapData.tiles[item];
         let tileKey = tile.tileKey;
-        if(tileKey === "tile_empty") return null;
+        //todo 新故事集这块会有bug
+        // if(tileKey === "tile_empty") return null;
 
         if(tile.tileKey === "tile_grvtybtn"){
           //重力感应机关

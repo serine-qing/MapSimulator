@@ -889,7 +889,7 @@ class Enemy extends BattleObject{
     this.notCountInTotal = true;
     this.dontBlockWave = true;
     const tile = Global.tileManager.getTile(this.getIntPosition());
-    this.setZOffset( tile.height );
+    if(tile) this.setZOffset( tile.height );
   }
 
   protected getTargetPostion(): THREE.Vector2{
