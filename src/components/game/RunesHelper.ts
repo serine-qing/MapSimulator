@@ -170,6 +170,7 @@ class RunesHelper{
         //修改地图tile的blackboard
         case "map_tile_blackb_assign":
           const location = blackboards.find(blackb => blackb.key === "location" );
+          if(!location) return;
           blackboards.remove(location);
           
           this.tileBlackbChanges.push({

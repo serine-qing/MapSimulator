@@ -57,6 +57,10 @@ class Tile extends DataObject{
 
     const {tileKey, heightType, buildableType, passableMask, blackboard} = tileData;
 
+    //照我以火的不可部署芦苇
+    if(tileKey === "tile_reedf"){
+      this.isBanned = true;
+    }
     this.passableMask = passableMask;
     this.buildableType = buildableType;
     this.blackboard = blackboard;

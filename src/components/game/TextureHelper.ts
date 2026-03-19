@@ -27,6 +27,7 @@ const darkYellow = new THREE.MeshBasicMaterial( {color: "#B8860B"} );
 
 const skyBlue = new THREE.MeshBasicMaterial( {color: "#87CEEB"} ); //天空蓝
 
+const green = new THREE.MeshBasicMaterial( {color: "#255F25"} );
 
 const transparent = new THREE.MeshBasicMaterial({
   transparent: true,
@@ -103,7 +104,20 @@ const tileTextures: {[key: string]: TileTexture} = {
   tile_act48side:{
     top: new THREE.MeshBasicMaterial( {color: "#456865"} ),
     side: new THREE.MeshBasicMaterial( {color: "#79765C"} )
-  }
+  },
+  //照我以火的草(不可部署地面)
+  tile_reedf:{
+    top: green,
+  },
+  //照我以火的草(地面)
+  tile_reed:{
+    top: green,
+  },
+  //照我以火的草(高台)
+  tile_reedw:{
+    top: green,
+    side: darkGray
+  },
 }
 
 //不需要的材质设置为透明，防止射线检测出错
