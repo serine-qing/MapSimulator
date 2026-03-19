@@ -83,7 +83,7 @@ switch (localStorage.currentLang) {
   case "EN":
   case "JP":
   case "KR":
-    activeEpisode = "act45side";
+    activeEpisode = "main_16";
     break;
 
 }
