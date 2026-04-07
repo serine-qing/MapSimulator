@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { getPixelSize } from "../utilities/utilities";
 import GameConfig from "../utilities/GameConfig";
 import type { TileData, Vec2 } from "@/type";
+import Trap from "./Trap";
 
 interface TileEvent{
   key: string,
@@ -17,7 +18,7 @@ interface TileEvent{
   enemy: string[],
   trap: string[],
   isMerge: boolean,   //是否是合并地块事件，默认false。靠近的合并地块会视为一个事件，同一片合并地块上进出不会触发事件
-  callback: Function
+  callback: (enemy: Enemy | Trap) => void
 }
 
 interface TileEventOption{
@@ -28,13 +29,13 @@ interface TileEventOption{
   enemy?: string[],
   trap?: string[],
   isMerge?: boolean,
-  callback: Function
+  callback: (enemy: Enemy | Trap) => void
 }
 
 //矩形区域添加事件
 interface RectEventsOption{
   key: string,
-  type: string,      // in:入 out:出
+  type: "in" | "out",      // in:入 out:出
   x1: number,
   x2: number,
   y1: number,
@@ -42,7 +43,16 @@ interface RectEventsOption{
   enemy?: string[],
   trap?: string[],
   isMerge?: boolean,
-  callback: Function
+  callback: (enemy: Enemy | Trap) => void
+}
+
+interface RemoveRectEventsOption{
+  key: string,
+  type: "in" | "out",      // in:入 out:出
+  x1: number,
+  x2: number,
+  y1: number,
+  y2: number,
 }
 
 class TileManager{
@@ -334,6 +344,18 @@ class TileManager{
         trap: option.trap,
         isMerge: option.isMerge === undefined? true : option.isMerge,
         callback: option.callback
+      })
+    })
+  }
+
+  removeRectEvents(option: RemoveRectEventsOption){
+    const rect = this.getRect(option.x1, option.x2, option.y1, option.y2);
+    rect.forEach(tile => {
+      this.removeEvent({
+        key: option.key,
+        type: option.type,
+        x: tile.position.x,
+        y: tile.position.y,
       })
     })
   }

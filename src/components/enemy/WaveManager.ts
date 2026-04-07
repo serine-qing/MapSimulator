@@ -7,7 +7,7 @@ import eventBus from "@/components/utilities/EventBus";
 import SpineEnemy from "./SpineEnemy";
 import FbxEnemy from "./FbxEnemy";
 import Global from "../utilities/Global";
-import { Mesh } from "three";
+import { Mesh, Vector2 } from "three";
 import type { EnemyRoute, ActionData, Vec2, EnemyParam, EnemyData } from "@/type";
 
 interface Wave{
@@ -53,6 +53,10 @@ class WaveManager{
   public enemies: Enemy[] = []; //敌人对象数组
   public enemiesInMap: Enemy[] = []; //需要在地图上渲染的enemy
   private removedEnemyIds: number[] = [];
+
+  //用于spawnExtraEnemy这个方法生成的敌人缓存使用
+  private extraEnemies: Enemy[] = [];
+  private currentExtraEnemyIndex: number = 0;
 
   private waveIndex: number = 0;
   public currentActionIndex: number = 0;  //当前波次的actionIndex
@@ -517,6 +521,49 @@ class WaveManager{
     return enemy;
   }
 
+  /**
+   * 生成额外的敌人，从startPos生成，endPos消失
+   */
+  public spawnExtraEnemy(startPos: Vector2, endPos: Vector2, enemyKey: string){
+    let enemy: Enemy;
+    if(Global.gameManager.isSimulate){
+      const route: EnemyRoute = {
+        index: 0,
+        visitEveryTileCenter: false,
+        visitEveryNodeCenter: false,
+        visitEveryNodeStably: false,
+        checkpoints: [{
+          type: "MOVE",
+          position: endPos,
+          time: 0,
+          reachOffset: {x: 0, y: 0},
+          randomizeReachOffset: false
+        }],
+        startPosition: startPos,
+        endPosition: endPos,
+        isAirborne: false,
+        motionMode: "WALK",
+        spawnOffset: null,
+        spawnRandomRange: null
+      }
+      const enemyParam: EnemyParam = {
+        startTime: 0,
+        fragmentTime: 0,
+        dontBlockWave: true,
+        route
+      }
+      const enemyData = this.mapModel.getEnemyData(enemyKey);
+      enemy = this.newEnemy(enemyParam, enemyData);
+      enemy.isExtra = true;
+      this.extraEnemies.push(enemy);
+      this.enemies.push(enemy);
+    }else{
+      enemy = this.extraEnemies[this.currentExtraEnemyIndex];
+    }
+    enemy.start();
+    this.currentExtraEnemyIndex ++;
+  }
+
   public updateSPFA(){
     this.needUpdateSPFA = true;
   }
@@ -647,7 +694,8 @@ class WaveManager{
       finishedEnemyCount: this.finishedEnemyCount,
       extraActionStates,
       isFinished: this.isFinished,
-      currentCameraView: this.currentCameraView
+      currentCameraView: this.currentCameraView,
+      currentExtraEnemyIndex: this.currentExtraEnemyIndex
     }
 
     return state;
@@ -666,7 +714,8 @@ class WaveManager{
       enemyStates,
       extraActionStates,
       isFinished,
-      currentCameraView
+      currentCameraView,
+      currentExtraEnemyIndex
     } = state;
 
     this.enemiesInMap = [...enemiesInMap];
@@ -678,6 +727,7 @@ class WaveManager{
     this.finishedEnemyCount = finishedEnemyCount;
     this.isFinished = isFinished;
     this.currentCameraView = currentCameraView;
+    this.currentExtraEnemyIndex = currentExtraEnemyIndex;
     
     for(let i = 0; i < this.allActions.length; i++){
       const aState = actionStates[i];

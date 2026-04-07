@@ -321,8 +321,8 @@ class Enemy extends BattleObject{
     this.motion = checkEnemyMotion(this.key, motion);
     const spawnOffset = this.route.spawnOffset; 
     this.spawnOffset = new THREE.Vector2(
-      spawnOffset.x ? spawnOffset.x : 0,
-      spawnOffset.y ? spawnOffset.y : 0
+      spawnOffset ? spawnOffset.x : 0,
+      spawnOffset ? spawnOffset.y : 0
     );
 
     this.position = new THREE.Vector2();
@@ -397,8 +397,8 @@ class Enemy extends BattleObject{
 
   public reset(){
     this.setPosition(
-      this.route.startPosition.x + (this.route.spawnOffset.x || 0),
-      this.route.startPosition.y + (this.route.spawnOffset.y || 0)
+      this.route.startPosition.x + (this.spawnOffset.x || 0),
+      this.route.startPosition.y + (this.spawnOffset.y || 0)
     );
     this.isStarted = false;
     this.isFinished = false;
@@ -442,12 +442,14 @@ class Enemy extends BattleObject{
   
   public setRoute(route: EnemyRoute){
     this.route = route;
+    this.countdown.removeCountdown("checkPoint");
   }
 
   public changeCheckPoint(index: number){
     const old = this.currentCheckPoint();
     this.checkPointIndex = index;
-    Global.gameHandler.handleChangeCheckPoint(this, old, this.currentCheckPoint())
+    const current = this.currentCheckPoint();
+    Global.gameHandler.handleChangeCheckPoint(this, old, current ? current : null)
   }
 
   public currentCheckPoint(): CheckPoint{
@@ -1053,6 +1055,27 @@ class Enemy extends BattleObject{
 
   public changeHP(value: number){
     this.hp += value;
+  }
+
+  /**
+   * 添加持续掉血buff
+   */
+  public addHPDoT(damage: number, duration: number = 1){
+    this.countdown.addCountdown({
+      name: "HPDoT",
+      initCountdown: duration,
+      countdown: duration,
+      callback:() => {
+        this.hp -= damage;
+      }
+    })
+  }
+
+  /**
+   * 移除持续掉血buff
+   */
+  public removeHPDoT(){
+    this.countdown.removeCountdown("HPDoT");
   }
 
   //重生动画结束
@@ -1805,6 +1828,7 @@ class Enemy extends BattleObject{
     }else{
       apply();
     }
+    
   }
 
   //更改动画

@@ -1,3 +1,4 @@
+import { ExtraWaveData } from "@/type/Map";
 import Enemy from "../enemy/Enemy"
 import RunesHelper from "../game/RunesHelper";
 import Tile from "../game/Tile"
@@ -10,6 +11,8 @@ interface Handler{
   checkActionDatas?(actionDatas: ActionData[]);
 
   parseExtraWave?(branches: any);
+  
+  afterParseExtraWave?(extraWaves: ExtraWaveData[]);
 
   handleTileInit?(tile: Tile);
 
@@ -50,7 +53,7 @@ interface Handler{
 
   handleSkill?(enemy: Enemy, skill: any);
 
-  handleChangeCheckPoint?(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint);
+  handleChangeCheckPoint?(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint | null);
 
   handleEnemyWait?(enemy: Enemy, waitTime: number);            //敌人触发停驻检查点
 

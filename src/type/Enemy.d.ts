@@ -115,8 +115,8 @@ export interface EnemyRoute {
   endPosition: Vec2;
   isAirborne: boolean;
   motionMode: string;
-  spawnOffset: any;
-  spawnRandomRange: any;
+  spawnOffset: Vec2;
+  spawnRandomRange: Vec2;
   visualRoutes?: any;
 }
 

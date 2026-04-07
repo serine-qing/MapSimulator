@@ -18,11 +18,13 @@ import act46side from "./雪山降临1101";
 import act47side from "./未许之地";
 import act48side from "./雅赛努斯复仇记";
 import act49side from "./辞岁行";
+import act51side from "./人们，我们";
 import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
 import RunesHelper from "../game/RunesHelper";
 import { LevelType } from "../utilities/Enum";
+import { ExtraWaveData } from "@/type/Map";
 
 //todo 从雪山降临1101活动开始 将Handler转为实例化的类，前面的Handler就慢慢改了
 
@@ -40,6 +42,7 @@ class GameHandler implements Handler{
     this.handlers.push(new act47side());
     this.handlers.push(new act48side());
     this.handlers.push(new act49side());
+    this.handlers.push(new act51side());
     this.handlers.push(new main11());
     this.handlers.push(new main15());
     this.handlers.push(new main16());
@@ -358,7 +361,7 @@ class GameHandler implements Handler{
     }
   }
 
-  handleChangeCheckPoint(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint) {
+  handleChangeCheckPoint(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint | null) {
     this.handlers.forEach(handler => {
       handler.handleChangeCheckPoint && handler.handleChangeCheckPoint(enemy, oldCP, newCP);
     })
@@ -476,6 +479,12 @@ class GameHandler implements Handler{
   public parseExtraWave(branches: any) {
     this.handlers.forEach(handler => {
       handler.parseExtraWave && handler.parseExtraWave(branches);
+    })
+  }
+
+  public afterParseExtraWave(extraWaves: ExtraWaveData[]) {
+    this.handlers.forEach(handler => {
+      handler.afterParseExtraWave && handler.afterParseExtraWave(extraWaves);
     })
   }
 

@@ -4,6 +4,7 @@ import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "./DataObject";
 import { isNumber } from "element-plus/es/utils/types.mjs";
+import { stat } from "fs";
 
 const spBarWidth = getPixelSize(5/7);
 const spBarGeometry = new PlaneGeometry(spBarWidth, 0.4);
@@ -419,6 +420,7 @@ class BattleObject extends DataObject{
       skillStates: [...this.skillStates],
       skillStatesDynamicData: this.skillStates.map(state => {
         return {
+          pause: state.pause,
           sp: state.sp,
           spSpeed: state.spSpeed,
           beUsing: state.beUsing,
@@ -448,6 +450,7 @@ class BattleObject extends DataObject{
 
     for(let i = 0; i < this.skillStates.length; i++){
       const state = skillStatesDynamicData[i];
+      this.skillStates[i].pause = state.pause;
       this.skillStates[i].sp = state.sp;
       this.skillStates[i].spSpeed = state.spSpeed;
       this.skillStates[i].beUsing = state.beUsing;

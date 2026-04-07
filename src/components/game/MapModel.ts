@@ -24,15 +24,11 @@ import type {
   EnemyRef
 } from "@/type";
 import Global from "../utilities/Global";
+import { ExtraWaveData } from "@/type/Map";
 
 interface WaveData{
   advancedWaveTag?: string,
   actionDatas: ActionData[]
-}
-
-interface ExtraWaveData{
-  key: string,
-  actionDatas: ActionData[][]
 }
 
 interface Description{
@@ -857,6 +853,8 @@ class MapModel{
         this.parseExtraActions(key, branche)
       })
     }
+
+    Global.gameHandler.afterParseExtraWave(this.extraWaves);
 
   }
 

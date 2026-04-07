@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Vec2, KeyValue } from "./Base";
+import { ActionData } from "./Action";
 
 // ==========================================
 // 地图数据
@@ -45,4 +46,10 @@ export interface trapData {
   skeletonData?: any;
   textureMat?: THREE.MeshBasicMaterial;
   extraWaveKey?: string;
+}
+
+
+export interface ExtraWaveData{
+  key: string,
+  actionDatas: ActionData[][]
 }
