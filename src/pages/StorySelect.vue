@@ -77,7 +77,7 @@ const emit = defineEmits<{
 }>()
 
 //3级关卡菜单
-let activeEpisode = "act20mini";
+let activeEpisode = "act51side";
 
 switch (localStorage.currentLang) {
   case "EN":

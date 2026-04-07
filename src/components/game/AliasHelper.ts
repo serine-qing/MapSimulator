@@ -17,7 +17,8 @@ const AliasMap = {
     6: "APPEAR_AT_POS",
     7: "ALERT",
     8: "PATROL_MOVE",
-    9: "WAIT_BOSSRUSH_WAVE"
+    9: "WAIT_BOSSRUSH_WAVE",
+    10:"MOVE" //todo 不清楚是不是
   },
   motionMode: {
     0: "WALK",

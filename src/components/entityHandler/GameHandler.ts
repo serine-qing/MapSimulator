@@ -164,6 +164,10 @@ class GameHandler implements Handler{
         enemy.dontBlockWave = true;
         enemy.notCountInTotal = true;
         break;
+      case "enemy_1588_ubbphw": //临时处理
+        enemy.dontBlockWave = true;
+        enemy.notCountInTotal = true;
+        break;
     }
 
     //判断是否是近地悬浮
