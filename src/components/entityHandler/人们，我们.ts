@@ -98,7 +98,18 @@ class act51side implements Handler{
 	handleChangeCheckPoint(enemy: Enemy, oldCP: CheckPoint, newCP: CheckPoint | null) {
 		if(enemy.key === "enemy_1587_ubbplwq"){
 			if(newCP && newCP.type === "WAIT_FOR_SECONDS"){
-				enemy.triggerSkill("speech");
+				const cdTime = enemy.countdown.getCountdownTime("speech");
+				if(cdTime > 0){
+					enemy.countdown.addCountdown({
+						name: "speech_wait",
+						initCountdown: cdTime + 0.01,
+						callback: () => {
+							enemy.triggerSkill("speech");
+						}
+					})
+				}else{
+					enemy.triggerSkill("speech");
+				}
 			}
 		}
 	}
@@ -185,6 +196,8 @@ class act51side implements Handler{
 				this.tilesEndPos.push(tile.position);
 			}
 		})
+		//反转数组，需要从后往前遍历
+		this.tilesEndPos.reverse();
 	}
 
 	//召唤小怪
