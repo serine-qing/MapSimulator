@@ -5,14 +5,16 @@ import Global from "../utilities/Global";
 import type Handler from "./Handler";
 import { Vector2 } from "three";
 import { CheckPoint, EnemyRoute } from "@/type";
+import Trap from "../game/Trap";
 
 class act51side implements Handler{
-	private boss: Enemy;
-	private boss_reborn_tile: Vector2;
-	private boss_reborn_route: EnemyRoute;
-	private summonEnemys1: string[];
-	private summonEnemys2: string[];
-	private auraMovespeed: number;
+	private boss!: Enemy;
+	private boss_reborn_tile: Vector2 = new Vector2(0, 0);
+	private boss_reborn_route: EnemyRoute | null = null;
+	private summonEnemys1: string[] = [];
+	private summonEnemys2: string[] = [];
+	private auraMovespeed: number = 0;
+	private tilesEndPos: Vector2[] = [];
 
 	afterParseExtraWave(extraWaves: ExtraWaveData[]) {
 		extraWaves.forEach(wave => {
@@ -102,6 +104,7 @@ class act51side implements Handler{
 	}
 
 	handleReborn(enemy: Enemy) {
+		if(!this.boss_reborn_route) return;
     if(enemy.key === "enemy_1587_ubbplwq"){
       enemy.canReborn = false;
 			enemy.removeSkill("speech");
@@ -175,6 +178,15 @@ class act51side implements Handler{
 		});
 	}
 
+	//缓存所有蓝门
+	afterTilesInit(tiles: Tile[]) {
+		tiles.forEach(tile => { 	
+			if(tile.tileKey === "tile_end"){
+				this.tilesEndPos.push(tile.position);
+			}
+		})
+	}
+
 	//召唤小怪
 	summonEnemys(){
 		const speech = this.boss.getSkill("skill_speech");
@@ -183,8 +195,6 @@ class act51side implements Handler{
 		const pos = this.boss.tilePosition;
 		const tiles = Global.tileManager.getRect(pos.x -2, pos.x +2, pos.y -2, pos.y +2).filter(tile => tile.isPassable());
 
-		//蓝门
-		const tile_end = Global.tileManager.flatTiles.find(tile => tile.tileKey === "tile_end");
 		const currentEnemyKeys = this.boss.reborned ? this.summonEnemys2 : this.summonEnemys1;
 
 		this.boss.countdown.addCountdown({
@@ -197,8 +207,20 @@ class act51side implements Handler{
 				const currentTile = tiles[randomInt];
 				const enemyIndex = (timer.count - 1)  % currentEnemyKeys.length;
 				const enemyKey = currentEnemyKeys[enemyIndex];
+
+				let distance = Infinity;
+				let endPos = new Vector2(0, 0);
+				this.tilesEndPos.forEach(pos => {
+					//曼哈顿距离
+					const innerDis = Math.abs(pos.x - currentTile.position.x) + Math.abs(pos.y - currentTile.position.y);
+					if(innerDis < distance){
+						//曼哈顿距离更小，则选取该蓝门作为目标
+						distance = innerDis;
+						endPos = pos;
+					}
+				});
 				
-				Global.waveManager.spawnExtraEnemy(currentTile.position, tile_end.position, enemyKey);
+				Global.waveManager.spawnExtraEnemy(currentTile.position, endPos, enemyKey);
 			}
 		})
 
@@ -214,8 +236,8 @@ class act51side implements Handler{
 			x2: pos.x + 2,
 			y1: pos.y - 2,
 			y2: pos.y + 2,
-			callback: (enemy: Enemy) => { 
-				enemy.addBuff({
+			callback: (enemy: Enemy | Trap) => { 
+				(enemy as Enemy).addBuff({
 					id: "speedup",
 					key: "speedup",
 					overlay: false,
@@ -235,8 +257,8 @@ class act51side implements Handler{
 			x2: pos.x + 2,
 			y1: pos.y - 2,
 			y2: pos.y + 2,
-			callback: (enemy: Enemy) => { 
-				enemy.removeBuff("speedup");
+			callback: (enemy: Enemy | Trap) => { 
+				(enemy as Enemy).removeBuff("speedup");
 			}
 		})
 	}
