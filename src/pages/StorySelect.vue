@@ -83,17 +83,17 @@ switch (localStorage.currentLang) {
   case "EN":
   case "JP":
   case "KR":
-    activeEpisode = "main_16";
+    activeEpisode = "act46side";
     break;
 
 }
 
 
-const storys = ref([]);
+const storys = ref<any[]>([]);
 const stageId = ref();   //当前关卡id
 const currentStage = ref();   //当前关卡
 
-const initActiveEpisode = (storys) => {
+const initActiveEpisode = (storys: any[]) => {
   for(let n = 0; n < storys.length; n++){
     const story = storys[n];
 
@@ -118,7 +118,7 @@ const initActiveEpisode = (storys) => {
 }
 
 getStorys().then((res) => {
-  res.data.storys.forEach(story => {
+  res.data.storys.forEach((story: any) => {
     if(story.stage !== true){
       story.childNodes.reverse();
     }
