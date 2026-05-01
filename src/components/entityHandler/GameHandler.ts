@@ -25,6 +25,7 @@ import main16 from "./16章";
 import RunesHelper from "../game/RunesHelper";
 import { LevelType } from "../utilities/Enum";
 import { ExtraWaveData } from "@/type/Map";
+import main17 from "./17章";
 
 //todo 从雪山降临1101活动开始 将Handler转为实例化的类，前面的Handler就慢慢改了
 
@@ -46,6 +47,7 @@ class GameHandler implements Handler{
     this.handlers.push(new main11());
     this.handlers.push(new main15());
     this.handlers.push(new main16());
+    this.handlers.push(new main17());
     this.handlers.push(new act1vhalfidle());
   }
 
@@ -447,7 +449,7 @@ class GameHandler implements Handler{
     })
   }
 
-  handleEnemySet (enemy: Enemy, state) {
+  handleEnemySet (enemy: Enemy) {
 
   }
 

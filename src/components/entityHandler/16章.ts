@@ -41,7 +41,7 @@ class main16 implements Handler{
         enemy.isExtra = false;
         const summonfearpj = enemy.getSkill("summonfearpj");
         const branch_id = summonfearpj.blackboard.branch_id;
-        const summonLength = waveManager.getExtraWave(branch_id)?.length;
+        const summonLength = waveManager.getExtraWave(branch_id)!.length;
         enemy.customData.summonIndex = 0;
         enemy.addSkill({
           name: "summonfearpj",
