@@ -894,9 +894,15 @@ class Enemy extends BattleObject{
     if(tile) this.setZOffset( tile.height );
   }
 
-  protected getTargetPostion(): THREE.Vector2{
+  protected getTargetPostion(): THREE.Vector2 | null{
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
+
+    //不是移动检查点 退出
+    if(checkPoint.type !== "MOVE" && checkPoint.type !== "PATROL_MOVE"){
+      return null;
+    }
+
     let {position, nextNode} = this.nextNode;
     let targetPos = new THREE.Vector2(position.x,position.y);
 
@@ -926,21 +932,21 @@ class Enemy extends BattleObject{
     switch (type) {
       case "MOVE":  
       case "PATROL_MOVE":  
-        if(this.countdown.getCountdownTime("waiting") > 0 || this.waitAnimationTrans) return;
-        if(!this.canMove()) return;
-
+        
         const currentNode = Global.SPFA.getPathNode(
           this.currentCheckPoint().position,
           this.motion,
           this.tilePosition
         );
-
         this.updateNextNode(currentNode);
         
         if(!this.nextNode){
           this.setHighlandEnemy();
           return;
         }
+
+        if(this.countdown.getCountdownTime("waiting") > 0 || this.waitAnimationTrans) return;
+        if(!this.canMove()) return;
 
         const actualSpeed = this.currentFrameSpeed * 0.5;
         if(actualSpeed <= 0) return;
@@ -1687,15 +1693,24 @@ class Enemy extends BattleObject{
   }
 
   protected updateCheckPoint(){
-    if(!this.hasMoved()) return;
-    
     const targetPos = this.getTargetPostion();
-    const distanceToTarget = this.cursorPosition.distanceTo(targetPos);
-    //到达检查点终点
-    if( distanceToTarget <= 0.05 &&
-      (!this.nextNode.nextNode)
-    ){
-      this.nextCheckPoint();
+    if(targetPos){
+      const distanceToTarget = this.cursorPosition.distanceTo(targetPos);
+      //到达检查点终点
+      if( distanceToTarget <= 0.05 &&
+        (!this.nextNode.nextNode)
+      ){
+        this.nextCheckPoint();
+      }
+    }
+
+  }
+
+  public blinkToNextCheckPoint(){
+    const checkPoints = this.route.checkpoints;
+    const nextCheckPoint = checkPoints[this.checkPointIndex];
+    if(nextCheckPoint){
+      this.setPosition(nextCheckPoint.position.x, nextCheckPoint.position.y);
     }
   }
 

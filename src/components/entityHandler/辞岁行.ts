@@ -73,7 +73,7 @@ class act49side implements Handler{
   }
 
 	handleTileInit(tile: Tile) {
-		const zi_type = getBlackBoardItem("zi_tile_type", tile.blackboard);
+		const zi_type = getBlackBoardItem("zi_tile_type", tile.blackboard) as string;
 		if(zi_type){
 			if(zi_type !== "Empty") tile.addTexture("Empty");
 			tile.addTexture(zi_type);

@@ -449,7 +449,7 @@ class GameHandler implements Handler{
     })
   }
 
-  handleEnemySet (enemy: Enemy) {
+  handleEnemySet (enemy: Enemy, state: any) {
 
   }
 
