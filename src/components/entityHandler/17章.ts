@@ -11,6 +11,9 @@ class main17 implements Handler{
   
   handleEnemyStart(enemy: Enemy) {
     switch (enemy.key) {
+      case "enemy_10211_murad":   //泄漏源
+        enemy.dontBlockWave = true;
+        break;
       case "enemy_1590_muama":  //ama
       case "enemy_1591_mutwin":  //ama异构体
       case "enemy_1591_mutwin_2":  //ama异构体2
