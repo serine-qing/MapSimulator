@@ -7,6 +7,7 @@ import Handler from "./Handler";
 import type { CheckPoint, Buff, BuffParam, ActionData, trapData } from "@/type";
 
 import act1vhalfidle from "./次生预案";
+import act24side from "./落叶逐火";
 import act29side from "./崔林特尔梅之金";
 import act35side from "./太阳甩在身后";
 import act37side from "./追迹日落以西";
@@ -27,11 +28,13 @@ import { LevelType } from "../utilities/Enum";
 import { ExtraWaveData } from "@/type/Map";
 import main17 from "./17章";
 
+
 //todo 从雪山降临1101活动开始 将Handler转为实例化的类，前面的Handler就慢慢改了
 
 class GameHandler implements Handler{
   private handlers: Handler[] = [];
   constructor(){
+    this.handlers.push(new act24side());
     this.handlers.push(new act29side());
     this.handlers.push(new act35side());
     this.handlers.push(new act37side());

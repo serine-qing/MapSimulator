@@ -898,8 +898,9 @@ class Enemy extends BattleObject{
 
     const checkPoint: CheckPoint = this.currentCheckPoint();
 
+    
     //不是移动检查点 退出
-    if(checkPoint.type !== "MOVE" && checkPoint.type !== "PATROL_MOVE"){
+    if(!checkPoint || !this.nextNode || (checkPoint.type !== "MOVE" && checkPoint.type !== "PATROL_MOVE")){
       return null;
     }
 
@@ -974,14 +975,7 @@ class Enemy extends BattleObject{
       case "WAIT_CURRENT_FRAGMENT_TIME":     //等待至分支(FRAGMENT)开始后的固定时刻
       case "WAIT_CURRENT_WAVE_TIME":         //等待至波次(WAVE)开始后的固定时刻
         const waitTime = this.getWaitTime(type, time);
-        this.countdown.addCountdown({
-          name: "checkPoint",
-          initCountdown: waitTime,
-          callback: () => {
-            this.nextCheckPoint();
-            Global.gameHandler.handleEnemyWaitFinish(this, waitTime)
-          }
-        });
+        this.addWaitingTime(waitTime);
         Global.gameHandler.handleEnemyWait(this, waitTime)
         break;
 
@@ -1036,6 +1030,21 @@ class Enemy extends BattleObject{
       if(old !== this.nextNode) this.changeTowardByNode();
     }
 
+  }
+
+  /**
+   * 添加等待时间（基于CheckPoint）
+   * @param waitTime 等待时间
+   */
+  public addWaitingTime(waitTime: number){
+    this.countdown.addCountdown({
+      name: "checkPoint",
+      initCountdown: waitTime,
+      callback: () => {
+        this.nextCheckPoint();
+        Global.gameHandler.handleEnemyWaitFinish(this, waitTime)
+      }
+    });
   }
 
   private updateHP(){

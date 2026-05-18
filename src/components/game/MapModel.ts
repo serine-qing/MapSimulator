@@ -401,7 +401,6 @@ class MapModel{
         advancedWaveTag: wave.advancedWaveTag,
         actionDatas: innerFragments.flat()
       });
-      
       //todo postDelay实际上没应用
       currentTime += wave.postDelay;
     });
@@ -421,14 +420,20 @@ class MapModel{
 
       fragment.actions.forEach((action: any) =>{
         
+        action.actionType = AliasHelper(action.actionType, "actionType");
+        if(action.actionType === "PLAY_OPERA" && action.key === "move_camera"){
+          //落叶逐火CF-9的move_camera的action的count是0 莫名其妙
+          action.count = 1;
+        }
         for(let i=0; i<action.count; i++){
           //检查敌人分组
+          
           const check = this.runesHelper.checkEnemyGroup(action.hiddenGroup);
           if(!check) return;
 
           let startTime = currentTime + action.preDelay + action.interval*i;
           lastTime = Math.max(lastTime, startTime);
-          action.actionType = AliasHelper(action.actionType, "actionType");
+          
 
           //"actionType": "DISPLAY_ENEMY_INFO"这个显示敌人信息的action
           //虽然不会加入波次里面，但是该算的preDelay还是要算的
@@ -491,6 +496,11 @@ class MapModel{
     let routeIndex = 0;
     const routes = [];
     Array.isArray(source) && source.forEach( (sourceRoute: any) =>{
+      if(!sourceRoute){
+        //sourceRoute是null
+        routeIndex++;
+        return;
+      }
       if(!Array.isArray(sourceRoute.checkpoints)){
         sourceRoute.checkpoints = [];
       }
