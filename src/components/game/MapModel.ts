@@ -23,6 +23,17 @@ import type {
   CheckPoint,
   EnemyRef
 } from "@/type";
+import type {
+  LevelDataJson,
+  WaveJson,
+  WaveFragmentJson,
+  WaveActionJson,
+  RouteJson,
+  CheckPointJson,
+  BranchPhaseJson,
+  RuneJson,
+  OverwrittenDataJson
+} from "@/type/LevelJson";
 import Global from "../utilities/Global";
 import { ExtraWaveData } from "@/type/Map";
 
@@ -37,11 +48,33 @@ interface Description{
   lineBreak?: boolean,     //是否换行
 }
 
+interface TokenCardData {
+  initialCnt: number;
+  hidden: boolean;
+  alias: string | null;
+  characterKey: string;
+  level: number;
+  mainSkillLvl: number;
+  cost: number;
+  respawntime: number;
+  url?: string;
+  texture?: THREE.Texture;
+  trapData?: trapData;
+}
+
+interface HiddenGroup {
+  key: string;
+  group: unknown | null;
+  runes: Record<string, unknown>[];
+  desc: string;
+  enemies?: EnemyData[];
+}
+
 //对地图json进行数据处理
 //保证这个类里面都是不会更改的纯数据，因为整个生命周期里面只会调用一次
 class MapModel{
-  public sourceData: any;
-  private extraRunes: {[key: string]: any};      //各种自选rune tag
+  public sourceData: LevelDataJson;
+  private extraRunes: { runesData?: string[]; matrixRunes?: RuneJson[] };
 
   public runesHelper: RunesHelper;
 
@@ -49,9 +82,9 @@ class MapModel{
   public squadNum: number;             //携带位
 
   public tileManager: TileManager; //地图tiles
-  public tokenCards: any[] = [];
+  public tokenCards: TokenCardData[] = [];
   public trapDatas: trapData[] = [];
-  public bossRushAreaData: any[] = [];
+  public bossRushAreaData: { start: number; end: number }[] = [];
 
   public waveDatas: WaveData[] = [];
   public extraWaves: ExtraWaveData[] = [];
@@ -63,10 +96,10 @@ class MapModel{
 
   public SPFA: SPFA;  //寻路对象
 
-  public hiddenGroups: any[];
+  public hiddenGroups: HiddenGroup[];
 
   public extraDescription: Description[] = [];  //额外地图描述
-  constructor(data: any, extraRunes: {[key: string]: any}){
+  constructor(data: LevelDataJson, extraRunes: { runesData?: string[]; matrixRunes?: RuneJson[] }){
     this.sourceData = data;
     this.extraRunes = extraRunes;
   }
@@ -256,7 +289,7 @@ class MapModel{
         })
       }
       if(spines){
-        const skelDatas: { [key:string]: any} = {};
+        const skelDatas: { [key: string]: spine.SkeletonData } = {};
         const skelNames = [];
         const atlasNames = [];
 
@@ -388,9 +421,9 @@ class MapModel{
   }
 
   //解析波次
-  private parseWaves(waves: any[]){ 
+  private parseWaves(waves: WaveJson[]){
     //waves:大波次(对应关卡检查点) fragments:中波次 actions:小波次
-    waves.forEach((wave: any) => {
+    waves.forEach((wave) => {
 
       //有时候会有空的wave 例如圣徒boss战
       if(wave.fragments.length === 0) return;
@@ -407,18 +440,18 @@ class MapModel{
 
   }
 
-  private parseActions(fragments: any[], currentTime: number, isExtra: boolean): ActionData[][]{
+  private parseActions(fragments: WaveFragmentJson[] | BranchPhaseJson[], currentTime: number, isExtra: boolean): ActionData[][]{
 
     const innerFragments: ActionData[][] = []
 
-    fragments.forEach((fragment: any) => { 
+    fragments.forEach((fragment) => {
       const innerActions: ActionData[] = [];
 
       currentTime += fragment.preDelay;
       let fragmentTime = currentTime;
       let lastTime = currentTime;//action波次的最后一只怪出现时间
 
-      fragment.actions.forEach((action: any) =>{
+      fragment.actions.forEach((action) =>{
         
         action.actionType = AliasHelper(action.actionType, "actionType");
         if(action.actionType === "PLAY_OPERA" && action.key === "move_camera"){
@@ -460,7 +493,7 @@ class MapModel{
             }
 
             let eAction: ActionData = {
-              actionType: action.actionType,
+              actionType: action.actionType as string,
               key: actionKey,
               routeIndex : action.routeIndex,
               startTime,
@@ -492,10 +525,10 @@ class MapModel{
   }
 
   //解析敌人路径
-  private parseEnemyRoutes(source){
+  private parseEnemyRoutes(source: RouteJson[]): EnemyRoute[]{
     let routeIndex = 0;
-    const routes = [];
-    Array.isArray(source) && source.forEach( (sourceRoute: any) =>{
+    const routes: EnemyRoute[] = [];
+    Array.isArray(source) && source.forEach( (sourceRoute) =>{
       if(!sourceRoute){
         //sourceRoute是null
         routeIndex++;
@@ -517,7 +550,7 @@ class MapModel{
 
         const route: EnemyRoute = {
           index: routeIndex,
-          allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径          
+          allowDiagonalMove: sourceRoute.allowDiagonalMove,  //是否允许斜角路径
           visitEveryTileCenter: sourceRoute.visitEveryTileCenter,
           visitEveryNodeCenter: sourceRoute.visitEveryNodeCenter,
           visitEveryNodeStably: !sourceRoute.checkpoints || sourceRoute.checkpoints.length === 0,
@@ -529,8 +562,8 @@ class MapModel{
           spawnRandomRange: sourceRoute.spawnRandomRange,
           checkpoints: []
         }
-        
-        sourceRoute.checkpoints.forEach((cp: any) => {
+
+        sourceRoute.checkpoints.forEach((cp) => {
           const checkpoint: CheckPoint = {
             type: AliasHelper(cp.type, "checkPointType"),
             position: RowColToVec2(cp.position),
@@ -560,21 +593,24 @@ class MapModel{
   }
 
   //覆盖数据
-  private overwriteData(rawData, overwrittenData){
+  private overwriteData(rawData: EnemyData, overwrittenData: OverwrittenDataJson){
     Object.keys(rawData).forEach(key => {
       if(key === "name" || key === "description") return;
-      if(overwrittenData[key]?.m_defined){
-        rawData[key] = overwrittenData[key].m_value;
+      const overwrite = overwrittenData[key as keyof OverwrittenDataJson] as { m_defined?: boolean; m_value?: unknown };
+      if(overwrite?.m_defined){
+        (rawData as Record<string, unknown>)[key] = overwrite.m_value;
       }
     })
 
     //覆盖属性
-    Object.keys(overwrittenData["attributes"]).forEach(key => {
-      const attr = overwrittenData["attributes"][key];
-      if(attr.m_defined){
-        rawData["attributes"][key] = attr.m_value;
-      }
-    })
+    if(overwrittenData.attributes) {
+      Object.keys(overwrittenData.attributes).forEach(key => {
+        const attr = overwrittenData.attributes[key as keyof typeof overwrittenData.attributes] as { m_defined?: boolean; m_value?: unknown };
+        if(attr?.m_defined){
+          (rawData.attributes as unknown as Record<string, unknown>)[key] = attr.m_value;
+        }
+      })
+    }
 
     //覆盖天赋
     overwrittenData.talentBlackboard?.forEach(talent => {
@@ -594,7 +630,7 @@ class MapModel{
 
     //覆盖技能
     overwrittenData.skills?.forEach(skill => {
-      const index = rawData.skills.findIndex(findSkill => findSkill.prefabKey === skill.prefabKey);
+      const index = rawData.skills?.findIndex(findSkill => findSkill.prefabKey === skill.prefabKey) ?? -1;
       if(index > -1){
         rawData.skills[index] = skill;
       }
@@ -615,11 +651,11 @@ class MapModel{
     const extraEnemies: EnemyRef[] = [];
 
     enemyDbRefs.forEach((enemyRef: EnemyRef) => {
-      const prefabKey = enemyRef.overwrittenData?.prefabKey;
+      const prefabKey = enemyRef.overwrittenData?.prefabKey as { m_defined: boolean; m_value: string } | undefined;
       let toAdd: EnemyRef = enemyRef;
       if(prefabKey?.m_defined){
-        
-        toAdd = enemyDbRefs.find(ref => ref.id === prefabKey.m_value);
+
+        toAdd = enemyDbRefs.find(ref => ref.id === prefabKey.m_value) ?? enemyRef;
         extraEnemies.push(enemyRef);
 
         //没有添加关卡魔改过的怪物的原数据引用的情况，就手动加个引用
@@ -639,41 +675,41 @@ class MapModel{
     })
 
     const enemyRefReq = Array.from(enemies);
-    
 
-    const res: any = await getEnemiesData( enemyRefReq );
+
+    const res: { data: { EnemyDatas: EnemyData[] } } = await getEnemiesData( enemyRefReq );
     const enemyDatas: EnemyData[] = res.data.EnemyDatas;
-    
+
     enemies.forEach((enemyDbRef: EnemyRef) => {
       let enemyData = enemyDatas.find(enemyData => enemyData.key === enemyDbRef.id);
 
-      if(!enemyData ) return;     
+      if(!enemyData ) return;
 
       const overwrittenData = enemyDbRef.overwrittenData;
-      
+
       if(overwrittenData){
-        
+
         if(!enemyData) {
-          enemyData = {};
+          enemyData = {} as EnemyData;
           this.enemyDatas.push(enemyData);
         }
 
         this.overwriteData(enemyData, overwrittenData);
       }
-      
+
       enemyData.waveKey = enemyData.key;
       enemyData.icon = GameConfig.BASE_URL + "enemy_icon/" + enemyData.key + ".png";
-      
+
       enemyData.count = 0;
 
     })
-    
+
 
     //关卡魔改后的敌人
     extraEnemies.forEach((enemyDbRef: EnemyRef) => {
 
       const overwrittenData = enemyDbRef?.overwrittenData;
-      const extraKey = overwrittenData.prefabKey.m_value;
+      const extraKey = (overwrittenData?.prefabKey as { m_defined: boolean; m_value: string })?.m_value;
 
       const baseEnemy: EnemyData = enemyDatas.find(e => e.key === extraKey);
       const extraEnemy = { ...baseEnemy };
@@ -708,7 +744,7 @@ class MapModel{
       this.runesHelper.checkEnemyAttribute(enemyData);
 
       enemyData.talents = parseTalent(enemyData);
-      enemyData.skills = parseSkill(enemyData); 
+      enemyData.skills = parseSkill(enemyData);
 
       enemyData.immunes = [];
       //异常抗性
@@ -960,7 +996,7 @@ class MapModel{
                       }
                     ]
                   }],
-                  desc: [""],
+                  desc: "",
                   enemies: [ enemy ]
                 });
               }
@@ -986,7 +1022,7 @@ class MapModel{
       })
 
       delete group.enemies;
-      Object.values(enemies).forEach((enemy: any) => {
+      Object.values(enemies).forEach((enemy: { name: string; count: number }) => {
         group.desc += `额外出现${enemy.count}个${enemy.name} `
       });
 

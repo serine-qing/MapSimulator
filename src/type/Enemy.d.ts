@@ -1,5 +1,6 @@
 import { LevelType } from "@/components/utilities/Enum";
 import { Vec2 } from "./Base";
+import { OverwrittenDataJson } from "./EnemyJson";
 
 // ==========================================
 // 属性相关
@@ -87,7 +88,7 @@ export interface EnemyData {
 export interface EnemyRef {
   id: string;
   level: number;
-  overwrittenData: any;
+  overwrittenData: OverwrittenDataJson | null;
   useDb: boolean;
 }
 

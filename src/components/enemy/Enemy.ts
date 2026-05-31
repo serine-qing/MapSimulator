@@ -78,10 +78,11 @@ interface DetectionParam{
   key: string,                //唯一标识
   enemyKeys?: string[],
   excludeEnemyKeys?: string[],
+  tileKeys?: string[],
   detectionRadius: number,    //检测半径
   duration: number,           //检测间隔
   every: boolean,             //检测到第一个就停下，还是检测所有的
-  callback: Function,  
+  callback: Function,
 }
 
 interface DetectionTileParam{

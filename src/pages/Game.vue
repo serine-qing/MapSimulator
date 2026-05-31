@@ -13,6 +13,7 @@ import SandTable from "@/pages/SandTable.vue"
 import CombatMatrix from "@/pages/CombatMatrix.vue"
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
+import type { EnemyData } from "@/type";
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 
 import btnPause from '@/assets/images/btn_pause.png';

@@ -29,3 +29,34 @@ export type { ActionData } from "./Action";
 
 // Buff - Buff数据
 export type { Buff, BuffParam } from "./Buff";
+
+// LevelJson - 关卡 JSON 数据类型
+export type {
+  TileDataJson,
+  RouteJson,
+  CheckPointJson,
+  WaveJson,
+  WaveActionJson,
+  WaveFragmentJson,
+  BranchJson,
+  BranchPhaseJson,
+  BranchesJson,
+  RuneJson,
+  PredefinesJson,
+  PredefinedInstanceJson,
+  PredefinedCardJson,
+  MapDataJson,
+  LevelDataJson,
+  LevelOptionsJson,
+  EnemyDbRefJson,
+  OverwrittenDataJson
+} from "./LevelJson";
+
+// EnemyJson - 敌人 JSON 数据类型
+export type {
+  EnemyDataEntryJson,
+  EnemyLevelDataJson,
+  EnemyAttributesJson,
+  EnemySkillJson,
+  AbilityItemJson
+} from "./EnemyJson";

@@ -107,7 +107,7 @@ class Gractrl{
             x: tile.position.x,
             y: tile.position.y,
             callback: (enemy) => {
-
+              if(!('attributes' in enemy)) return;
               if(enemy.attributes.massLevel >= 3){
 
                 if(tile.tileKey === "tile_grvtybtn_up"){
@@ -127,6 +127,7 @@ class Gractrl{
             x: tile.position.x,
             y: tile.position.y,
             callback: (enemy) => {
+              if(!('attributes' in enemy)) return;
               if(enemy.attributes.massLevel >= 3){
 
                 if(tile.tileKey === "tile_grvtybtn_up"){
@@ -134,7 +135,7 @@ class Gractrl{
                 }else{
                   this.downTriggerNum -= 1;
                 }
-                
+
                 this.handleChangeGractrl();
               }
             }
@@ -258,7 +259,7 @@ class Gractrl{
     }
   }
 
-  set(state){
+  set(state: { direction: Direction; upTriggerNum: number; downTriggerNum: number }){
     this.direction = state.direction;
     this.upTriggerNum = state.upTriggerNum;
     this.downTriggerNum = state.downTriggerNum;

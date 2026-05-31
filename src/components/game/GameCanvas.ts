@@ -11,7 +11,7 @@ class GameCanvas{
   public renderer: THREE.WebGLRenderer;
   private width: number;
   private height: number;
-  private debounce: NodeJS.Timeout; //防抖
+  private debounce: ReturnType<typeof setTimeout>; //防抖
 
   //鼠标的世界坐标
   public mouse = new THREE.Vector2();

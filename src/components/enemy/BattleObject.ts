@@ -4,7 +4,6 @@ import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "./DataObject";
 import { isNumber } from "element-plus/es/utils/types.mjs";
-import { stat } from "fs";
 
 const spBarWidth = getPixelSize(5/7);
 const spBarGeometry = new PlaneGeometry(spBarWidth, 0.4);
