@@ -5,9 +5,9 @@ const routes = [
   {
     path:"/", component: IndexView
   },
-  // {
-  //   path:"/cc", component: () => import("@/pages/CrisisContractMap.vue")
-  // }
+  {
+    path:"/cc", component: () => import("@/pages/CrisisContractMap.vue")
+  }
 ]
 
 const router = createRouter({

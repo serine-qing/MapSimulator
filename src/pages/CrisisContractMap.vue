@@ -5,18 +5,8 @@
       <div class="left-section">
         <div class="back-btn">←</div>
         <div class="map-info">
-          <div class="map-name">滞空焦点</div>
-          <div class="map-code">哥伦比亚</div>
-        </div>
-      </div>
-      <div class="right-section">
-        <div class="best-record">
-          <div class="record-label">Best Record</div>
-          <div class="record-score">625</div>
-        </div>
-        <div class="missions">
-          <div class="mission-label">Combat Missions</div>
-          <div class="mission-count">7/14 >></div>
+          <div class="map-name">{{ mapStageData?.name || '未知地图' }}</div>
+          <div class="map-code">{{ mapStageData?.code || '' }}</div>
         </div>
       </div>
     </div>
@@ -96,6 +86,14 @@
 
     <!-- 底部栏 -->
     <div class="bottom-bar">
+      <!-- 缩放控制 -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" @click="zoomOut" :disabled="zoomLevel <= MIN_ZOOM">-</button>
+        <span class="zoom-level">{{ zoomPercentage }}</span>
+        <button class="zoom-btn" @click="zoomIn" :disabled="zoomLevel >= MAX_ZOOM">+</button>
+        <button class="zoom-btn reset" @click="resetZoom">重置</button>
+      </div>
+      
       <div class="current-score">
         <div class="score-value">{{ currentScore }}</div>
         <div class="score-label">Current Score</div>
@@ -162,16 +160,55 @@ const currentScore = ref(0)
 const packBonusScore = ref(0)  // 指标集奖励分数
 const globalYOffset = ref(0)  // 全局 Y 轴偏移（让所有内容向上移动）
 
-const canvasWidth = ref(3000)
-const canvasHeight = ref(1500)
-const offsetX = 200
-const offsetY = 800
-const scale = 1.5
+// ==================== 画布和布局常量 ====================
+const canvasWidth = ref(3000)      // Canvas 宽度（像素），会根据内容自动调整
+const canvasHeight = ref(1500)     // Canvas 高度（像素），会根据内容自动调整
+const offsetX = 10                 // 水平偏移量（像素）：所有节点/道路/指示器的基准 X 偏移
+const offsetY = 800                // 垂直偏移量（像素）：JSON 坐标系原点在屏幕上的 Y 位置
+const scale = 1.5                  // 缩放比例：JSON 坐标到屏幕像素的转换比例
 
+// ==================== 缩放控制 ====================
+const zoomLevel = ref(1.0)         // 缩放级别：1.0 = 100%，范围 0.5 - 2.0
+const MIN_ZOOM = 0.5               // 最小缩放比例
+const MAX_ZOOM = 2.0               // 最大缩放比例
+const ZOOM_STEP = 0.1              // 每次缩放步长
+
+// 当前地图ID
+const CURRENT_MAP_ID = 'crisis_v2_04-01'  // 当前显示的地图标识符，用于从 JSON 获取对应数据
+
+// 地图内容样式（包含缩放变换）
 const mapContentStyle = computed(() => ({
   width: `${canvasWidth.value}px`,
-  height: `${canvasHeight.value}px`
+  height: `${canvasHeight.value}px`,
+  transform: `scale(${zoomLevel.value})`,
+  transformOrigin: 'top left',  // 以左上角为缩放基准点
+  transition: 'transform 0.2s ease'  // 平滑过渡动画
 }))
+
+// 缩放控制函数
+function zoomIn() {
+  if (zoomLevel.value < MAX_ZOOM) {
+    zoomLevel.value = Math.min(zoomLevel.value + ZOOM_STEP, MAX_ZOOM)
+  }
+}
+
+function zoomOut() {
+  if (zoomLevel.value > MIN_ZOOM) {
+    zoomLevel.value = Math.max(zoomLevel.value - ZOOM_STEP, MIN_ZOOM)
+  }
+}
+
+function resetZoom() {
+  zoomLevel.value = 1.0
+}
+
+// 格式化缩放比例显示（如 100%、150%）
+const zoomPercentage = computed(() => Math.round(zoomLevel.value * 100) + '%')
+
+// 从 JSON 获取地图阶段数据（用于显示地图名称和代码）
+const mapStageData = computed(() => {
+  return (jsonData as any).info?.mapStageDataMap?.[CURRENT_MAP_ID] || null
+})
 
 // 节点高度（用于计算 Y 轴占据区间）
 const NODE_HEIGHT = 80
@@ -212,10 +249,23 @@ const yAxisCompression = computed(() => {
     }
   })
   
-  // 2. 转换为数组并排序
+  // 2. 转换为数组并排序（排除 null pack，即 START 节点）
   const sortedPacks = Array.from(packIntervals.entries())
     .map(([packId, interval]) => ({packId, ...interval}))
+    .filter(p => p.packId !== null)  // 排除无 pack 的节点
     .sort((a, b) => a.minY - b.minY)
+  
+  // 如果没有 pack（如 crisis_v2_01-03_b 地图），直接返回空压缩
+  if (sortedPacks.length === 0) {
+    console.log('警告：该地图没有 pack 数据，跳过 Y 轴压缩')
+    return {
+      getOffset: () => 0,
+      maxOffset: 0,
+      gaps: [],
+      sortedPacks: [],
+      packOffsets: new Map()
+    }
+  }
   
   // 3. 找出所有空隙（>40px 的）
   const gaps: Array<{start: number, end: number, size: number}> = []
@@ -239,9 +289,49 @@ const yAxisCompression = computed(() => {
   const firstPackTop = sortedPacks[0]?.minY || 0
   const extraTopOffset = Math.max(0, firstPackTop - TARGET_TOP) // 第一个 pack 上方需要剪掉的空间
   
+  // 调试：打印所有 pack 和 gap 信息
+  const debugInfo = {
+    currentMap: CURRENT_MAP_ID,
+    firstPackTop: Math.round(firstPackTop),
+    targetTop: TARGET_TOP,
+    extraTopOffset: Math.round(extraTopOffset),
+    packs: sortedPacks.map(p => ({ 
+      packId: p.packId, 
+      minY: Math.round(p.minY), 
+      maxY: Math.round(p.maxY),
+      height: Math.round(p.maxY - p.minY)
+    })),
+    gaps: gaps.map(g => ({
+      start: Math.round(g.start),
+      end: Math.round(g.end),
+      size: Math.round(g.size)
+    })),
+    nodeCount: nodes.value.size,
+    packCount: packDataMap.value.size,
+    rawNodes: Array.from(nodes.value.entries()).map(([id, data]) => ({
+      id,
+      type: data.nodeType,
+      slotPackId: data.slotPackId,
+      pos: nodePosMap.value.get(id)
+    })).slice(0, 10) // 只显示前10个节点
+  }
+  
+  // 存储到全局，方便复制
+  ;(window as any).lastDebugInfo = debugInfo
+  
+  console.log('=== Y轴压缩调试 ===')
+  console.log(debugInfo)
+  console.log('提示：使用 copy(lastDebugInfo) 可复制此对象')
+  
+  // 如果 gap 太大，可能是数据问题
+  const maxGap = Math.max(...gaps.map(g => g.size), 0)
+  if (maxGap > 500) {
+    console.warn('警告：检测到超大间隙:', maxGap, 'px，请检查地图数据!')
+  }
+  
   const packOffsets = new Map<string | null, number>()
   
-  sortedPacks.forEach(pack => {
+  sortedPacks.forEach((pack, index) => {
     let offset = extraTopOffset // 所有 pack 都加上顶部偏移
     for (const gap of gaps) {
       if (pack.minY > gap.start) {
@@ -250,7 +340,31 @@ const yAxisCompression = computed(() => {
       }
     }
     packOffsets.set(pack.packId, offset)
+    
+    // 调试：打印每个 pack 的偏移量
+    const packInfo = pack.packId ? packDataMap.value.get(pack.packId as string) : null
+    const packName = packInfo?.slotPackFullName || packInfo?.slotPackName || pack.packId || 'START'
+    console.log(`Pack ${index} (${packName}): minY=${pack.minY}, offset=${offset}, 新位置=${pack.minY - offset}`)
   })
+  
+  // 计算压缩后的 pack 间距
+  console.log('=== 压缩后的 pack 间距 ===')
+  const compressedPacks = sortedPacks.map(p => ({
+    packId: p.packId,
+    originalMinY: p.minY,
+    compressedMinY: p.minY - (packOffsets.get(p.packId) || 0),
+    originalMaxY: p.maxY,
+    compressedMaxY: p.maxY - (packOffsets.get(p.packId) || 0)
+  }))
+  
+  for (let i = 1; i < compressedPacks.length; i++) {
+    const prev = compressedPacks[i - 1]
+    const curr = compressedPacks[i]
+    const gap = curr.compressedMinY - prev.compressedMaxY
+    const prevInfo = prev.packId ? packDataMap.value.get(prev.packId as string) : null
+    const currInfo = curr.packId ? packDataMap.value.get(curr.packId as string) : null
+    console.log(`${prevInfo?.slotPackFullName || prev.packId} -> ${currInfo?.slotPackFullName || curr.packId}: 间距=${gap}px`)
+  }
   
   // 5. 创建 getOffset 函数
   // 对于有 pack 的节点，使用 pack 的偏移量
@@ -366,11 +480,14 @@ const displayNodes = computed(() => {
     const offsetX_val = type === 'start' || type === 'keypoint' ? dotSize / 2 : cardWidth / 2
     const offsetY_val = type === 'start' || type === 'keypoint' ? dotSize / 2 : cardHeight / 2
     
+    // 应用全局 Y 轴偏移（让内容从顶部开始）
+    const finalY = compressedY + globalYOffset.value
+    
     result.push({
       id,
       type,
       x: centerX - offsetX_val,
-      y: compressedY - offsetY_val,
+      y: finalY - offsetY_val,
       runeName: runeInfo.name,
       score: runeInfo.score,
       targetScore: getKeypointScore(id),
@@ -451,11 +568,12 @@ const packIndicators = computed(() => {
     })
     
     // 指示器放在最上方节点上方（留出足够空间：指示器高度28 + 间距62 = 90px）
+    // 应用全局 Y 轴偏移
     result.push({
       id: packId,
       name: packData.slotPackFullName || packData.slotPackName,
       x: avgX - 180,
-      y: minY - 90, // 指示器高度28 + 间距62（再加10px）
+      y: minY - 90 + globalYOffset.value, // 指示器高度28 + 间距62 + 全局偏移
       isActive,
       nodeIds: packNodeIds
     })
@@ -490,14 +608,14 @@ const displayRoads = computed(() => {
     
     const isActive = actives.has(road.start.id) && actives.has(road.end.id)
     
-    // 计算道路起点和终点的绝对坐标（应用 Y 轴压缩）
+    // 计算道路起点和终点的绝对坐标（应用 Y 轴压缩 + 全局偏移）
     const sx = (roadPos.centerPos.x + roadPos.startPos.x) * scale + offsetX
     const originalSy = -(roadPos.centerPos.y + roadPos.startPos.y) * scale + offsetY
-    const sy = getRoadCompressedY(originalSy, road.start.id)
+    const sy = getRoadCompressedY(originalSy, road.start.id) + globalYOffset.value
     
     const ex = (roadPos.centerPos.x + roadPos.endPos.x) * scale + offsetX
     const originalEy = -(roadPos.centerPos.y + roadPos.endPos.y) * scale + offsetY
-    const ey = getRoadCompressedY(originalEy, road.end.id)
+    const ey = getRoadCompressedY(originalEy, road.end.id) + globalYOffset.value
     
     // 构建路径：如果有拐点，使用拐点
     let path = `M ${sx} ${sy}`
@@ -508,7 +626,7 @@ const displayRoads = computed(() => {
         const ix = (roadPos.centerPos.x + inflection.cornerPos.x) * scale + offsetX
         const originalIy = -(roadPos.centerPos.y + inflection.cornerPos.y) * scale + offsetY
         // 拐点属于起点节点
-        const iy = getRoadCompressedY(originalIy, road.start.id)
+        const iy = getRoadCompressedY(originalIy, road.start.id) + globalYOffset.value
         path += ` L ${ix} ${iy}`
       })
     }
@@ -635,9 +753,13 @@ onMounted(() => {
       }
     })
     
+    // 从 packDataMap 获取指标集名称
+    const pack9Info = packDataMap.value.get('pack_9')
+    const pack9Name = pack9Info?.slotPackFullName || pack9Info?.slotPackName || 'pack_9'
+    
     return {
       packId: 'pack_9',
-      packName: '指标集：应变',
+      packName: pack9Name,
       packOffset: pack9Offset,
       totalNodes: pack9Nodes.length,
       nodes: pack9Nodes.map(n => ({
@@ -745,9 +867,13 @@ onMounted(() => {
       }
     })
     
+    // 从 packDataMap 获取指标集名称
+    const pack8Info = packDataMap.value.get('pack_8')
+    const pack8Name = pack8Info?.slotPackFullName || pack8Info?.slotPackName || 'pack_8'
+    
     return {
       packId: 'pack_8',
-      packName: '指标集：约束',
+      packName: pack8Name,
       packOffset: pack8Offset,
       totalNodes: pack8Nodes.length,
       nodes: pack8Nodes.map(n => ({
@@ -1067,7 +1193,7 @@ onMounted(() => {
 })
 
 function loadData() {
-  const detail = (jsonData as any).info.mapDetailDataMap['crisis_v2_04-01']
+  const detail = (jsonData as any).info.mapDetailDataMap[CURRENT_MAP_ID]
   if (!detail) {
     console.error('Map data not found')
     return
@@ -1114,13 +1240,45 @@ function loadData() {
 }
 
 function calculateCanvasSize() {
+  // 计算所有节点压缩后的位置范围
   let minX = Infinity, maxX = -Infinity
 
-  nodePosMap.value.forEach((pos) => {
-    minX = Math.min(minX, pos.x)
-    maxX = Math.max(maxX, pos.x)
+  nodes.value.forEach((nodeData, nodeId) => {
+    const pos = nodePosMap.value.get(nodeId)
+    if (!pos) return
+    
+    // 计算 X 坐标（CSS left）
+    const centerX = pos.x * scale + offsetX
+    const type = getNodeType(nodeData.nodeType)
+    const isSmall = type === 'start' || type === 'keypoint'
+    const offsetX_val = isSmall ? 12 : 40
+    const cssLeft = centerX - offsetX_val
+    const cssRight = cssLeft + (isSmall ? 24 : 80)
+    
+    minX = Math.min(minX, cssLeft)
+    maxX = Math.max(maxX, cssRight)
   })
-
+  
+  // 考虑道路的端点
+  roadPosMap.value.forEach((roadPos: any, roadId: string) => {
+    const road = roads.value.find((r: any) => r.id === roadId || r.roadId === roadId)
+    if (!road || road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
+    
+    const sx = (roadPos.centerPos.x + roadPos.startPos.x) * scale + offsetX
+    const ex = (roadPos.centerPos.x + roadPos.endPos.x) * scale + offsetX
+    
+    minX = Math.min(minX, sx, ex)
+    maxX = Math.max(maxX, sx, ex)
+    
+    if (roadPos.inflectionList && roadPos.inflectionList.length > 0) {
+      roadPos.inflectionList.forEach((inflection: any) => {
+        const ix = (roadPos.centerPos.x + inflection.cornerPos.x) * scale + offsetX
+        minX = Math.min(minX, ix)
+        maxX = Math.max(maxX, ix)
+      })
+    }
+  })
+  
   // 计算压缩后的 canvas 高度
   let minY = Infinity
   let maxY = -Infinity
@@ -1196,20 +1354,16 @@ function calculateCanvasSize() {
     }
   })
   
-  // 目标：让第一个指标集顶部对齐到 40px
+  // 目标：让所有内容顶部对齐到 40px
   // 计算需要额外减去的偏移量（使 minY 变成 40）
   const targetTop = 40
   const extraOffset = minY - targetTop
   
   console.log('Canvas size calc:', { minY, maxY, extraOffset, targetTop })
   
-  // 如果有额外偏移，需要调整所有元素的 Y 坐标
-  if (extraOffset > 0) {
-    // 更新全局偏移量，让所有内容向上移动
-    globalYOffset.value = -extraOffset
-  } else {
-    globalYOffset.value = 0
-  }
+  // 总是应用偏移，让内容从顶部开始（对于没有pack的地图，minY可能很大）
+  // 更新全局偏移量，让所有内容向上移动
+  globalYOffset.value = -extraOffset
   
   // 重新计算调整后的 maxY
   const adjustedMaxY = maxY + globalYOffset.value
@@ -1218,7 +1372,10 @@ function calculateCanvasSize() {
 
   console.log('Final canvas size:', { adjustedMaxY, finalHeight })
   
-  canvasWidth.value = (maxX - minX) * scale + offsetX * 2 + 400
+  // 添加边距
+  const leftMargin = 20
+  const rightMargin = 20
+  canvasWidth.value = (maxX - minX) + leftMargin + rightMargin
   canvasHeight.value = Math.max(finalHeight, 2500)
   
   console.log('Final canvas size:', canvasWidth.value, canvasHeight.value)
@@ -1611,18 +1768,6 @@ function handlePackClick(pack: PackIndicator) {
   color: #aaa;
 }
 
-.right-section {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.best-record, .missions {
-  text-align: center;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-}
 
 .record-label, .mission-label {
   font-size: 10px;
@@ -1829,11 +1974,57 @@ function handlePackClick(pack: PackIndicator) {
 /* 底部栏 */
 .bottom-bar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
   background: rgba(0, 0, 0, 0.4);
   border-top: 1px solid #555;
+}
+
+/* 缩放控制 */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.zoom-btn.reset {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.zoom-level {
+  min-width: 50px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
 }
 
 .current-score {
