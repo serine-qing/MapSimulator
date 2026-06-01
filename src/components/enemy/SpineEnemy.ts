@@ -30,6 +30,13 @@ class SpineEnemy extends Enemy{
     //从数据创建SkeletonMesh并将其附着到场景
     this.skeletonMesh = this.getMesh({depthTest});
 
+    // 如果指定了 skin，则切换到对应的 skin
+    const { skinName } = this.enemyData;
+    if(skinName){
+      this.skeletonMesh.skeleton.setSkinByName(skinName);
+      this.skeletonMesh.skeleton.setSlotsToSetupPose();
+    }
+
     const motion = this.initialState?.motion || "WALK";
     let isGroundUnit = motion === "WALK"; //是否是地面单位
     if(this.key.includes("enemy_3005_lpeopl")) isGroundUnit = true;  //修道院居民在boss关是空中单位

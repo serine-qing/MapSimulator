@@ -74,6 +74,7 @@ export interface EnemyData {
   skelUrl?: string;
   atlasUrl?: string;
   skeletonData?: any;
+  skinName?: string;
   fbxMesh?: any;
   skelHeight: number;
   skelWidth: number;

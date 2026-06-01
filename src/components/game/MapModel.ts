@@ -834,6 +834,18 @@ class MapModel{
         const idleAnimate = getAnimation(key, skeletonData.animations, "Idle");
 
         data.skeletonData = skeletonData;
+
+        //todo 也许自己控制skinName比较好？
+        // 检测可用的 skin 列表，优先选择非 default 的 skin
+        const skins = skeletonData.skins;
+        if(skins && skins.length > 1){
+          // 查找第一个非 default 的 skin
+          const nonDefaultSkin = skins.find((s: any) => s.name !== "default");
+          if(nonDefaultSkin){
+            data.skinName = nonDefaultSkin.name;
+          }
+        }
+
         data.moveAnimate = moveAnimate;
         data.idleAnimate = idleAnimate;
         data.animations = data.skeletonData.animations.map( animation => {
