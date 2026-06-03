@@ -210,7 +210,6 @@ const newGame = async (map) => {
   reset();
   
   sandTableData.value = mapData.sandTable;
-
   gameSpeed.value = GameConfig.GAME_SPEED;
 
   gameManager.init(mapModel);

@@ -103,8 +103,172 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import jsonData from './cc4.json'
+import { ref, shallowRef, computed, onMounted } from 'vue'
+
+// ==================== 模拟后端数据处理 ====================
+// 注意：实际项目中，这部分逻辑应该在后端完成
+
+// 后端返回的数据结构
+interface MapDataResponse {
+  mapId: string
+  mapName: string
+  mapCode: string
+  nodes: {
+    id: string
+    nodeType: 'START' | 'NORMAL' | 'KEYPOINT' | 'TREASURE'
+    runeId: string | null
+    slotPackId: string | null
+    mutualExclusionGroup: string | null
+    position: { x: number; y: number }
+  }[]
+  roads: {
+    id: string
+    startId: string
+    endId: string
+    positions: any // RoadPosition
+  }[]
+  packs: {
+    id: string
+    slotPackType: string
+    slotPackName: string
+    slotPackFullName: string
+    rewardScore: number
+    isDaily: boolean
+    sortId: number
+  }[]
+  runes: {
+    runeId: string
+    runeGroupId: string
+    runeIcon: string
+    runeName: string
+    score: number
+    description: any // 已处理的字符串数组
+    packedRune: {
+      id: string
+      points: number
+      mutexGroupKey: string | null
+      runes: {
+        key: string
+        blackboard: { key: string; value?: number; valueStr?: string }[]
+      }[]
+    }
+  }[]
+}
+
+// 模拟后端处理 cc4.json（实际在后端完成）
+async function processMapData(mapId: string): Promise<MapDataResponse> {
+  // 实际项目中，这里从数据库或文件读取 cc4.json
+  // 前端模拟：动态导入 cc4.json
+  const rawData = await import('./cc4.json')
+  const detail = (rawData as any).default?.info?.mapDetailDataMap?.[mapId]
+  
+  if (!detail) {
+    throw new Error(`Map ${mapId} not found`)
+  }
+
+  // 处理节点数据
+  const nodes = Object.entries(detail.nodeDataMap || {}).map(([id, data]: [string, any]) => {
+    const pos = detail.nodeViewData?.nodePosMap?.[id]?.position || { x: 0, y: 0 }
+    return {
+      id,
+      nodeType: data.nodeType,
+      runeId: data.runeId || null,
+      slotPackId: data.slotPackId || null,
+      mutualExclusionGroup: data.mutualExclusionGroup || null,
+      position: pos
+    }
+  })
+
+  // 处理道路数据（只保留有有效位置数据且两端节点都存在的 road）
+  const roads = Object.entries(detail.roadRelationDataMap || {})
+    .filter(([id, data]: [string, any]) => {
+      // 过滤条件：
+      // 1. 必须有有效的 roadPos 数据
+      // 2. 两端节点必须在 nodeDataMap 中存在（可以是 NODE/START/KEYPOINT 等任何类型）
+      const roadPos = detail.nodeViewData?.roadPosMap?.[id]
+      const startId = data.start?.id
+      const endId = data.end?.id
+      
+      // 检查两端节点是否在 nodeDataMap 中存在（不限制类型）
+      const startIsValidNode = startId && detail.nodeDataMap?.[startId]
+      const endIsValidNode = endId && detail.nodeDataMap?.[endId]
+      
+      return roadPos && 
+             roadPos.centerPos && 
+             roadPos.startPos && 
+             roadPos.endPos &&
+             startIsValidNode &&
+             endIsValidNode
+    })
+    .map(([id, data]: [string, any]) => {
+      const roadPos = detail.nodeViewData.roadPosMap[id]
+      return {
+        id,
+        startId: data.start.id,
+        endId: data.end.id,
+        positions: roadPos
+      }
+    })
+
+  // 处理指标集数据
+  const packs = Object.entries(detail.bagDataMap || {}).map(([id, data]: [string, any]) => ({
+    id,
+    slotPackType: data.slotPackType || '',
+    slotPackName: data.slotPackName || '',
+    slotPackFullName: data.slotPackFullName || '',
+    rewardScore: data.rewardScore || 0,
+    isDaily: data.isDaily || false,
+    sortId: data.sortId || 0
+  }))
+
+  // 处理词条数据（包含 description 预处理）
+  const runes = Object.entries(detail.runeDataMap || {}).map(([id, data]: [string, any]) => {
+    // 预处理 description
+    let description = data.packedRune?.description || ''
+    if (typeof description === 'string') {
+      // 简单的预处理示例，实际可能在后端做更复杂的处理
+      description = description.split('\r\n').filter((line: string) => line.trim() !== '')
+    }
+    
+    return {
+      runeId: id,
+      runeGroupId: data.runeGroupId || '',
+      runeIcon: data.runeIcon || '',
+      runeName: data.runeName || '',
+      score: data.score || 0,
+      description,
+      packedRune: {
+        id: data.packedRune?.id || id,
+        points: data.packedRune?.points || 0,
+        mutexGroupKey: data.packedRune?.mutexGroupKey || null,
+        runes: (data.packedRune?.runes || []).map((rune: any) => ({
+          key: rune.key,
+          blackboard: rune.blackboard || []
+        }))
+      }
+    }
+  })
+
+  // 获取地图信息
+  const stageData = (rawData as any).default?.info?.mapStageDataMap?.[mapId]
+
+  return {
+    mapId,
+    mapName: stageData?.name || '未知地图',
+    mapCode: stageData?.code || '',
+    nodes,
+    roads,
+    packs,
+    runes
+  }
+}
+
+// 模拟 API 调用（实际项目中，这里调用后端接口）
+async function fetchMapData(mapId: string): Promise<MapDataResponse> {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 100))
+  return processMapData(mapId)
+}
 
 // 类型定义
 interface NodeItem {
@@ -149,13 +313,16 @@ interface PackIndicator {
   nodeIds: string[]
 }
 
-const mapData = ref<any>(null)
-const nodePosMap = ref<Map<string, {x: number, y: number}>>(new Map())
-const roadPosMap = ref<Map<string, any>>(new Map())
-const nodes = ref<Map<string, any>>(new Map())
-const roads = ref<any[]>([])
-const packDataMap = ref<Map<string, PackData>>(new Map())  // 指标集数据
-const selectedRuneNodes = ref<Set<string>>(new Set())
+// 大型数据结构使用 shallowRef 提升性能（不会深层监听）
+const mapData = shallowRef<any>(null)
+const nodePosMap = shallowRef<Map<string, {x: number, y: number}>>(new Map())
+const roadPosMap = shallowRef<Map<string, any>>(new Map())
+const nodes = shallowRef<Map<string, any>>(new Map())
+const roads = shallowRef<any[]>([])
+const packDataMap = shallowRef<Map<string, PackData>>(new Map())  // 指标集数据
+const selectedRuneNodes = shallowRef<Set<string>>(new Set())
+
+// 基础类型使用 ref
 const currentScore = ref(0)
 const packBonusScore = ref(0)  // 指标集奖励分数
 const globalYOffset = ref(0)  // 全局 Y 轴偏移（让所有内容向上移动）
@@ -205,9 +372,109 @@ function resetZoom() {
 // 格式化缩放比例显示（如 100%、150%）
 const zoomPercentage = computed(() => Math.round(zoomLevel.value * 100) + '%')
 
-// 从 JSON 获取地图阶段数据（用于显示地图名称和代码）
+// ==================== RuneData 类型定义 ====================
+
+// Blackboard 项
+interface BlackboardItem {
+  key: string
+  value?: number
+  valueStr?: string
+}
+
+// Rune 配置项（在 packedRune.runes 数组中）
+interface RuneConfig {
+  key: string
+  blackboard: BlackboardItem[]
+}
+
+// PackedRune 数据
+interface PackedRune {
+  id: string
+  points: number
+  mutexGroupKey: string | null
+  description: any  // 包含占位符如 {atk:0%}
+  runes: RuneConfig[]
+}
+
+// 完整的 RuneData（来自 runeDataMap）
+interface RuneData {
+  runeId: string
+  runeGroupId: string
+  runeIcon: string
+  runeName: string
+  score: number
+  dimension: number
+  packedRune: PackedRune
+  sortId: number
+}
+
+const blue = "#0080ff";
+const red = "#ff2020";
+// 获取所有选中节点对应的 runeDataMap 数据
+function getSelectedRunesData(): RuneData[] {
+  const selectedRunes: RuneData[] = []
+  
+  selectedRuneNodes.value.forEach(nodeId => {
+    const nodeData = nodes.value.get(nodeId)
+    if (nodeData?.runeId) {
+      const runeData = mapData.value?.runeDataMap?.[nodeData.runeId]
+      if (runeData) {
+        runeData.packedRune.description = parseDescription(runeData.packedRune);
+        selectedRunes.push(runeData as RuneData)
+      }
+    }
+  })
+  
+  return selectedRunes
+}
+
+const parseDescription = (packedRune: PackedRune) => {
+  const descArr = packedRune.description
+    .replaceAll(`<@crisisv2.pos>`, `<span style="color:${blue}">`)
+    .replaceAll(`<@crisisv2.nag>`, `<span style="color:${red}">`)
+    .replaceAll(`</>`, `</span>`)
+    .split("\r\n");
+
+  descArr.forEach((text, index) => {
+    const regex = /{([^:}+]+)(?::\d+%?)?}/g;
+    let match;
+    
+    while(match = regex.exec(text)){
+      const hasPercent = match[0].includes("%");   //是否有百分号
+      const hasColon = match[0].includes(":0");   //是否有:0
+
+      let key = match[1];
+            
+      let value;
+
+      packedRune.runes.find((rune: any) => {
+        value = rune.blackboard.find((item: any) => item.key === key)?.value;
+        return value;
+      })
+
+
+
+      if(value){
+        descArr[index] = hasPercent? 
+          descArr[index].replace(`{${key}:0%}`, parseFloat((value * 100).toFixed(3)) + "%")  //防止出现很长的小数
+          : hasColon ? descArr[index].replace(`{${key}:0}`, value) 
+            : descArr[index].replace(`{${key}}`, value);
+      }
+    }
+  })
+
+  return descArr;
+}
+
+
+
+// 从 API 数据获取地图阶段信息
 const mapStageData = computed(() => {
-  return (jsonData as any).info?.mapStageDataMap?.[CURRENT_MAP_ID] || null
+  if (!mapData.value) return null
+  return {
+    name: mapData.value.mapName,
+    code: mapData.value.mapCode
+  }
 })
 
 // 节点高度（用于计算 Y 轴占据区间）
@@ -289,7 +556,8 @@ const yAxisCompression = computed(() => {
   const firstPackTop = sortedPacks[0]?.minY || 0
   const extraTopOffset = Math.max(0, firstPackTop - TARGET_TOP) // 第一个 pack 上方需要剪掉的空间
   
-  // 调试：打印所有 pack 和 gap 信息
+  // 调试：打印所有 pack 和 gap 信息（已禁用）
+  /*
   const debugInfo = {
     currentMap: CURRENT_MAP_ID,
     firstPackTop: Math.round(firstPackTop),
@@ -313,42 +581,48 @@ const yAxisCompression = computed(() => {
       type: data.nodeType,
       slotPackId: data.slotPackId,
       pos: nodePosMap.value.get(id)
-    })).slice(0, 10) // 只显示前10个节点
+    })).slice(0, 10)
   }
   
-  // 存储到全局，方便复制
   ;(window as any).lastDebugInfo = debugInfo
   
   console.log('=== Y轴压缩调试 ===')
   console.log(debugInfo)
   console.log('提示：使用 copy(lastDebugInfo) 可复制此对象')
   
-  // 如果 gap 太大，可能是数据问题
   const maxGap = Math.max(...gaps.map(g => g.size), 0)
   if (maxGap > 500) {
     console.warn('警告：检测到超大间隙:', maxGap, 'px，请检查地图数据!')
   }
   
-  const packOffsets = new Map<string | null, number>()
-  
   sortedPacks.forEach((pack, index) => {
-    let offset = extraTopOffset // 所有 pack 都加上顶部偏移
+    let offset = extraTopOffset
     for (const gap of gaps) {
       if (pack.minY > gap.start) {
-        // 这个 pack 在 gap 下方，需要向上移动
         offset += gap.size
       }
     }
     packOffsets.set(pack.packId, offset)
     
-    // 调试：打印每个 pack 的偏移量
     const packInfo = pack.packId ? packDataMap.value.get(pack.packId as string) : null
     const packName = packInfo?.slotPackFullName || packInfo?.slotPackName || pack.packId || 'START'
     console.log(`Pack ${index} (${packName}): minY=${pack.minY}, offset=${offset}, 新位置=${pack.minY - offset}`)
   })
   
-  // 计算压缩后的 pack 间距
   console.log('=== 压缩后的 pack 间距 ===')
+  */
+  
+  const packOffsets = new Map<string | null, number>()
+  
+  sortedPacks.forEach((pack) => {
+    let offset = extraTopOffset
+    for (const gap of gaps) {
+      if (pack.minY > gap.start) {
+        offset += gap.size
+      }
+    }
+    packOffsets.set(pack.packId, offset)
+  })
   const compressedPacks = sortedPacks.map(p => ({
     packId: p.packId,
     originalMinY: p.minY,
@@ -357,13 +631,14 @@ const yAxisCompression = computed(() => {
     compressedMaxY: p.maxY - (packOffsets.get(p.packId) || 0)
   }))
   
+  // 调试输出已删除
   for (let i = 1; i < compressedPacks.length; i++) {
     const prev = compressedPacks[i - 1]
     const curr = compressedPacks[i]
     const gap = curr.compressedMinY - prev.compressedMaxY
     const prevInfo = prev.packId ? packDataMap.value.get(prev.packId as string) : null
     const currInfo = curr.packId ? packDataMap.value.get(curr.packId as string) : null
-    console.log(`${prevInfo?.slotPackFullName || prev.packId} -> ${currInfo?.slotPackFullName || curr.packId}: 间距=${gap}px`)
+    // console.log(`${prevInfo?.slotPackFullName || prev.packId} -> ${currInfo?.slotPackFullName || curr.packId}: 间距=${gap}px`)
   }
   
   // 5. 创建 getOffset 函数
@@ -606,6 +881,11 @@ const displayRoads = computed(() => {
     if (!road) return
     if (road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
     
+    // 检查 roadPos 是否有效
+    if (!roadPos || !roadPos.centerPos || !roadPos.startPos || !roadPos.endPos) {
+      return
+    }
+    
     const isActive = actives.has(road.start.id) && actives.has(road.end.id)
     
     // 计算道路起点和终点的绝对坐标（应用 Y 轴压缩 + 全局偏移）
@@ -639,604 +919,86 @@ const displayRoads = computed(() => {
   return result
 })
 
-onMounted(() => {
-  loadData()
-  
-  // 添加调试函数到 window，方便在控制台调用
-  ;(window as any).debugCompression = () => {
-    const compression = yAxisCompression.value
-    const debugData = collectDebugData()
-    
-    console.log('=== 完整调试数据 ===')
-    console.log(JSON.stringify(debugData, null, 2))
-    ;(window as any).fullDebugData = debugData
-    return debugData
-  }
-  
-  // 专门调试 pack_8（指标集：约束）
-  ;(window as any).debugPack8 = () => {
-    const pack8Data = collectPack8DebugData()
-    console.log('=== PACK_8 详细调试数据 ===')
-    console.log(JSON.stringify(pack8Data, null, 2))
-    ;(window as any).pack8DebugData = pack8Data
-    return pack8Data
-  }
-  
-  // 专门调试 pack_9（指标集：应变）
-  ;(window as any).debugPack9 = () => {
-    const pack9Data = collectPack9DebugData()
-    console.log('=== PACK_9 详细调试数据 ===')
-    console.log(JSON.stringify(pack9Data, null, 2))
-    ;(window as any).pack9DebugData = pack9Data
-    return pack9Data
-  }
-  
-  // 收集 pack_9 的详细调试数据
-  function collectPack9DebugData() {
-    const compression = yAxisCompression.value
-    
-    // 获取 pack_9 的所有节点（带详细信息）
-    const pack9Nodes: Array<{
-      id: string
-      type: string
-      runeName: string
-      runeId: string | null
-      originalY: number
-      screenOriginalY: number
-      screenCompressedY: number
-      offset: number
-      mutualExclusionGroup: string | null
-    }> = []
-    
-    nodes.value.forEach((nodeData, nodeId) => {
-      if (nodeData.slotPackId === 'pack_9') {
-        const pos = nodePosMap.value.get(nodeId)
-        if (pos) {
-          const screenOriginalY = -pos.y * scale + offsetY
-          const screenCompressedY = getCompressedY(screenOriginalY, 'pack_9')
-          const runeInfo = getRuneInfo(nodeData.runeId)
-          
-          pack9Nodes.push({
-            id: nodeId,
-            type: nodeData.nodeType,
-            runeName: runeInfo.name,
-            runeId: nodeData.runeId,
-            originalY: pos.y,
-            screenOriginalY,
-            screenCompressedY,
-            offset: screenOriginalY - screenCompressedY,
-            mutualExclusionGroup: nodeData.mutualExclusionGroup || null
-          })
-        }
-      }
-    })
-    
-    // 按原始 Y 坐标排序（从上往下）
-    pack9Nodes.sort((a, b) => a.originalY - b.originalY)
-    
-    // 计算 pack_9 的偏移量
-    const pack9Offset = compression.packOffsets.get('pack_9') || 0
-    
-    // 找出 pack_9 相关的道路
-    const pack9Roads: Array<{
-      id: string
-      startNode: string
-      endNode: string
-      startOriginalY: number
-      startCompressedY: number
-      endOriginalY: number
-      endCompressedY: number
-    }> = []
-    
-    roadPosMap.value.forEach((roadPos: any, roadId: string) => {
-      const road = roads.value.find((r: any) => r.id === roadId || r.roadId === roadId)
-      if (!road || road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
-      
-      const startInPack9 = pack9Nodes.some(n => n.id === road.start.id)
-      const endInPack9 = pack9Nodes.some(n => n.id === road.end.id)
-      
-      if (startInPack9 || endInPack9) {
-        const startOriginalY = -(roadPos.centerPos.y + roadPos.startPos.y) * scale + offsetY
-        const startCompressedY = getRoadCompressedY(startOriginalY, road.start.id)
-        const endOriginalY = -(roadPos.centerPos.y + roadPos.endPos.y) * scale + offsetY
-        const endCompressedY = getRoadCompressedY(endOriginalY, road.end.id)
-        
-        pack9Roads.push({
-          id: roadId,
-          startNode: road.start.id,
-          endNode: road.end.id,
-          startOriginalY,
-          startCompressedY,
-          endOriginalY,
-          endCompressedY
-        })
-      }
-    })
-    
-    // 从 packDataMap 获取指标集名称
-    const pack9Info = packDataMap.value.get('pack_9')
-    const pack9Name = pack9Info?.slotPackFullName || pack9Info?.slotPackName || 'pack_9'
-    
-    return {
-      packId: 'pack_9',
-      packName: pack9Name,
-      packOffset: pack9Offset,
-      totalNodes: pack9Nodes.length,
-      nodes: pack9Nodes.map(n => ({
-        id: n.id,
-        type: n.type,
-        runeName: n.runeName,
-        runeId: n.runeId,
-        originalY: n.originalY,
-        screenOriginalY: Math.round(n.screenOriginalY * 10) / 10,
-        screenCompressedY: Math.round(n.screenCompressedY * 10) / 10,
-        offset: Math.round(n.offset * 10) / 10,
-        mutualExclusionGroup: n.mutualExclusionGroup
-      })),
-      roads: pack9Roads.map(r => ({
-        id: r.id,
-        startNode: r.startNode,
-        endNode: r.endNode,
-        startOriginalY: Math.round(r.startOriginalY * 10) / 10,
-        startCompressedY: Math.round(r.startCompressedY * 10) / 10,
-        endOriginalY: Math.round(r.endOriginalY * 10) / 10,
-        endCompressedY: Math.round(r.endCompressedY * 10) / 10
-      }))
-    }
-  }
-  
-  // 收集 pack_8 的详细调试数据
-  function collectPack8DebugData() {
-    const compression = yAxisCompression.value
-    
-    // 获取 pack_8 的所有节点（带详细信息）
-    const pack8Nodes: Array<{
-      id: string
-      type: string
-      runeName: string
-      runeId: string | null
-      originalY: number
-      screenOriginalY: number
-      screenCompressedY: number
-      offset: number
-      mutualExclusionGroup: string | null
-    }> = []
-    
-    nodes.value.forEach((nodeData, nodeId) => {
-      if (nodeData.slotPackId === 'pack_8') {
-        const pos = nodePosMap.value.get(nodeId)
-        if (pos) {
-          const screenOriginalY = -pos.y * scale + offsetY
-          const screenCompressedY = getCompressedY(screenOriginalY, 'pack_8')
-          const runeInfo = getRuneInfo(nodeData.runeId)
-          
-          pack8Nodes.push({
-            id: nodeId,
-            type: nodeData.nodeType,
-            runeName: runeInfo.name,
-            runeId: nodeData.runeId,
-            originalY: pos.y,
-            screenOriginalY,
-            screenCompressedY,
-            offset: screenOriginalY - screenCompressedY,
-            mutualExclusionGroup: nodeData.mutualExclusionGroup || null
-          })
-        }
-      }
-    })
-    
-    // 按原始 Y 坐标排序（从上往下）
-    pack8Nodes.sort((a, b) => a.originalY - b.originalY)
-    
-    // 计算 pack_8 的偏移量
-    const pack8Offset = compression.packOffsets.get('pack_8') || 0
-    
-    // 找出 pack_8 相关的道路
-    const pack8Roads: Array<{
-      id: string
-      startNode: string
-      endNode: string
-      startOriginalY: number
-      startCompressedY: number
-      endOriginalY: number
-      endCompressedY: number
-    }> = []
-    
-    roadPosMap.value.forEach((roadPos: any, roadId: string) => {
-      const road = roads.value.find((r: any) => r.id === roadId || r.roadId === roadId)
-      if (!road || road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
-      
-      const startInPack8 = pack8Nodes.some(n => n.id === road.start.id)
-      const endInPack8 = pack8Nodes.some(n => n.id === road.end.id)
-      
-      if (startInPack8 || endInPack8) {
-        const startOriginalY = -(roadPos.centerPos.y + roadPos.startPos.y) * scale + offsetY
-        const startCompressedY = getRoadCompressedY(startOriginalY, road.start.id)
-        const endOriginalY = -(roadPos.centerPos.y + roadPos.endPos.y) * scale + offsetY
-        const endCompressedY = getRoadCompressedY(endOriginalY, road.end.id)
-        
-        pack8Roads.push({
-          id: roadId,
-          startNode: road.start.id,
-          endNode: road.end.id,
-          startOriginalY,
-          startCompressedY,
-          endOriginalY,
-          endCompressedY
-        })
-      }
-    })
-    
-    // 从 packDataMap 获取指标集名称
-    const pack8Info = packDataMap.value.get('pack_8')
-    const pack8Name = pack8Info?.slotPackFullName || pack8Info?.slotPackName || 'pack_8'
-    
-    return {
-      packId: 'pack_8',
-      packName: pack8Name,
-      packOffset: pack8Offset,
-      totalNodes: pack8Nodes.length,
-      nodes: pack8Nodes.map(n => ({
-        id: n.id,
-        type: n.type,
-        runeName: n.runeName,
-        runeId: n.runeId,
-        originalY: n.originalY,
-        screenOriginalY: Math.round(n.screenOriginalY * 10) / 10,
-        screenCompressedY: Math.round(n.screenCompressedY * 10) / 10,
-        offset: Math.round(n.offset * 10) / 10,
-        mutualExclusionGroup: n.mutualExclusionGroup
-      })),
-      roads: pack8Roads.map(r => ({
-        id: r.id,
-        startNode: r.startNode,
-        endNode: r.endNode,
-        startOriginalY: Math.round(r.startOriginalY * 10) / 10,
-        startCompressedY: Math.round(r.startCompressedY * 10) / 10,
-        endOriginalY: Math.round(r.endOriginalY * 10) / 10,
-        endCompressedY: Math.round(r.endCompressedY * 10) / 10
-      }))
-    }
-  }
-  
-  // 收集完整的调试数据
-  function collectDebugData() {
-    const compression = yAxisCompression.value
-    
-    // 1. 收集所有节点的数据
-    const nodeData: Array<{
-      id: string
-      type: string
-      packId: string | null
-      originalX: number
-      originalY: number
-      screenOriginalX: number
-      screenOriginalY: number
-      screenCompressedX: number
-      screenCompressedY: number
-      offsetX: number
-      offsetY: number
-      cssLeft: number
-      cssTop: number
-    }> = []
-    
-    nodes.value.forEach((nodeDataItem, id) => {
-      const pos = nodePosMap.value.get(id)
-      if (!pos) return
-      
-      // 原始屏幕坐标（偏移前）
-      const screenOriginalX = pos.x * scale + offsetX
-      const screenOriginalY = -pos.y * scale + offsetY
-      
-      // 压缩后的坐标
-      const screenCompressedX = screenOriginalX
-      const screenCompressedY = getCompressedY(screenOriginalY, nodeDataItem.slotPackId || null)
-      
-      // CSS 位置（左上角）
-      const type = getNodeType(nodeDataItem.nodeType)
-      const isSmall = type === 'start' || type === 'keypoint'
-      const offsetX_val = isSmall ? 12 : 40
-      const offsetY_val = isSmall ? 12 : 40
-      
-      nodeData.push({
-        id,
-        type: nodeDataItem.nodeType,
-        packId: nodeDataItem.slotPackId || null,
-        originalX: pos.x,
-        originalY: pos.y,
-        screenOriginalX,
-        screenOriginalY,
-        screenCompressedX,
-        screenCompressedY,
-        offsetX: 0,
-        offsetY: screenOriginalY - screenCompressedY,
-        cssLeft: screenCompressedX - offsetX_val,
-        cssTop: screenCompressedY - offsetY_val
-      })
-    })
-    
-    // 2. 收集所有道路的数据
-    const roadData: Array<{
-      id: string
-      startNode: string
-      endNode: string
-      startOriginalX: number
-      startOriginalY: number
-      startCompressedX: number
-      startCompressedY: number
-      endOriginalX: number
-      endOriginalY: number
-      endCompressedX: number
-      endCompressedY: number
-      inflections: Array<{
-        originalX: number
-        originalY: number
-        compressedX: number
-        compressedY: number
-      }>
-    }> = []
-    
-    roadPosMap.value.forEach((roadPos: any, roadId: string) => {
-      const road = roads.value.find((r: any) => r.id === roadId || r.roadId === roadId)
-      if (!road || road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
-      
-      // 起点
-      const startOriginalX = (roadPos.centerPos.x + roadPos.startPos.x) * scale + offsetX
-      const startOriginalY = -(roadPos.centerPos.y + roadPos.startPos.y) * scale + offsetY
-      const startCompressedX = startOriginalX
-      const startCompressedY = getRoadCompressedY(startOriginalY, road.start.id)
-      
-      // 终点
-      const endOriginalX = (roadPos.centerPos.x + roadPos.endPos.x) * scale + offsetX
-      const endOriginalY = -(roadPos.centerPos.y + roadPos.endPos.y) * scale + offsetY
-      const endCompressedX = endOriginalX
-      const endCompressedY = getRoadCompressedY(endOriginalY, road.end.id)
-      
-      // 拐点
-      const inflections: Array<any> = []
-      if (roadPos.inflectionList && roadPos.inflectionList.length > 0) {
-        roadPos.inflectionList.forEach((inflection: any) => {
-          const originalX = (roadPos.centerPos.x + inflection.cornerPos.x) * scale + offsetX
-          const originalY = -(roadPos.centerPos.y + inflection.cornerPos.y) * scale + offsetY
-          inflections.push({
-            originalX,
-            originalY,
-            compressedX: originalX,
-            compressedY: getRoadCompressedY(originalY, road.start.id)
-          })
-        })
-      }
-      
-      roadData.push({
-        id: roadId,
-        startNode: road.start.id,
-        endNode: road.end.id,
-        startOriginalX,
-        startOriginalY,
-        startCompressedX,
-        startCompressedY,
-        endOriginalX,
-        endOriginalY,
-        endCompressedX,
-        endCompressedY,
-        inflections
-      })
-    })
-    
-    // 3. 收集指标集数据
-    const packData: Array<{
-      id: string
-      name: string
-      offset: number
-      nodeIds: string[]
-      originalMinY: number
-      originalMaxY: number
-      compressedMinY: number
-      compressedMaxY: number
-    }> = []
-    
-    compression.sortedPacks.forEach(pack => {
-      if (pack.packId === null) return // 跳过无 pack 的节点
-      
-      const packInfo = packDataMap.value.get(pack.packId)
-      const offset = compression.packOffsets.get(pack.packId) || 0
-      
-      // 找出该 pack 的所有节点
-      const packNodeIds: string[] = []
-      let originalMinY = Infinity
-      let originalMaxY = -Infinity
-      
-      nodes.value.forEach((nodeData, nodeId) => {
-        if (nodeData.slotPackId === pack.packId) {
-          packNodeIds.push(nodeId)
-          const pos = nodePosMap.value.get(nodeId)
-          if (pos) {
-            const screenY = -pos.y * scale + offsetY
-            originalMinY = Math.min(originalMinY, screenY)
-            originalMaxY = Math.max(originalMaxY, screenY)
-          }
-        }
-      })
-      
-      packData.push({
-        id: pack.packId,
-        name: packInfo?.slotPackFullName || packInfo?.slotPackName || pack.packId,
-        offset,
-        nodeIds: packNodeIds,
-        originalMinY,
-        originalMaxY,
-        compressedMinY: originalMinY - offset,
-        compressedMaxY: originalMaxY - offset
-      })
-    })
-    
-    // 4. 计算统计信息
-    const originalHeight = Math.max(...nodeData.map(n => n.screenOriginalY)) - Math.min(...nodeData.map(n => n.screenOriginalY))
-    const compressedHeight = Math.max(...nodeData.map(n => n.screenCompressedY)) - Math.min(...nodeData.map(n => n.screenCompressedY))
-    
-    return {
-      summary: {
-        totalNodes: nodeData.length,
-        totalRoads: roadData.length,
-        totalPacks: packData.length,
-        originalHeight: Math.round(originalHeight),
-        compressedHeight: Math.round(compressedHeight),
-        compressionRatio: Math.round((compressedHeight / originalHeight) * 100) + '%'
-      },
-      nodes: nodeData,
-      roads: roadData,
-      packs: packData,
-      packOffsets: Object.fromEntries(compression.packOffsets),
-      sortedPacks: compression.sortedPacks.map(r => ({
-        packId: r.packId,
-        minY: r.minY,
-        maxY: r.maxY
-      }))
-    }
-  }
-  
-  // 专门调试 pack_8（指标集：约束）
-  setTimeout(() => {
-    // 获取 pack_8 的所有节点
-    const pack8Nodes: Array<{id: string, originalY: number, compressedY: number, type: string}> = []
-    nodes.value.forEach((nodeData, nodeId) => {
-      if (nodeData.slotPackId === 'pack_8') {
-        const pos = nodePosMap.value.get(nodeId)
-        if (pos) {
-          const originalY = -pos.y * scale + offsetY
-          const compressedY = getCompressedY(originalY)
-          pack8Nodes.push({
-            id: nodeId,
-            originalY: pos.y,
-            compressedY,
-            type: nodeData.nodeType
-          })
-        }
-      }
-    })
-    
-    // 按压缩后的 Y 坐标排序（与 yAxisCompression 一致）
-    pack8Nodes.sort((a, b) => a.compressedY - b.compressedY)
-    
-    // 计算相对位置（原始）
-    const originalDiffs: Array<{from: string, to: string, diff: number}> = []
-    for (let i = 1; i < pack8Nodes.length; i++) {
-      const diff = (pack8Nodes[i].originalY - pack8Nodes[i-1].originalY) * scale
-      originalDiffs.push({
-        from: pack8Nodes[i-1].id,
-        to: pack8Nodes[i].id,
-        diff
-      })
-    }
-    
-    // 计算相对位置（压缩后）
-    const compressedDiffs: Array<{from: string, to: string, diff: number}> = []
-    for (let i = 1; i < pack8Nodes.length; i++) {
-      const diff = pack8Nodes[i].compressedY - pack8Nodes[i-1].compressedY
-      compressedDiffs.push({
-        from: pack8Nodes[i-1].id,
-        to: pack8Nodes[i].id,
-        diff
-      })
-    }
-    
-    // 找出 pack_8 相关的道路
-    const pack8Roads: Array<{id: string, start: string, end: string, startY: number|string, endY: number|string}> = []
-    roads.value.forEach((road: any) => {
-      const startInPack8 = pack8Nodes.some(n => n.id === road.start?.id)
-      const endInPack8 = pack8Nodes.some(n => n.id === road.end?.id)
-      
-      if (startInPack8 || endInPack8) {
-        const startNode = pack8Nodes.find(n => n.id === road.start?.id)
-        const endNode = pack8Nodes.find(n => n.id === road.end?.id)
-        pack8Roads.push({
-          id: road.id,
-          start: road.start?.id || 'N/A',
-          end: road.end?.id || 'N/A',
-          startY: startNode ? startNode.compressedY : 'N/A',
-          endY: endNode ? endNode.compressedY : 'N/A'
-        })
-      }
-    })
-    
-    // 组装完整调试对象
-    const debugData = {
-      packId: 'pack_8',
-      packName: '指标集：约束',
-      nodes: pack8Nodes.map(n => ({
-        id: n.id,
-        type: n.type,
-        originalY: n.originalY,
-        compressedY: Math.round(n.compressedY * 10) / 10
-      })),
-      relativePositions: {
-        original: originalDiffs,
-        compressed: compressedDiffs.map(d => ({
-          from: d.from,
-          to: d.to,
-          diff: Math.round(d.diff * 10) / 10
-        }))
-      },
-      roads: pack8Roads,
-      comparison: originalDiffs.map((orig, i) => ({
-        pair: `${orig.from} -> ${orig.to}`,
-        originalDiff: Math.round(orig.diff * 10) / 10,
-        compressedDiff: compressedDiffs[i] ? Math.round(compressedDiffs[i].diff * 10) / 10 : null,
-        isEqual: compressedDiffs[i] ? Math.abs(orig.diff - compressedDiffs[i].diff) < 1 : false
-      }))
-    }
-    
-    console.log('=== PACK_8 (指标集：约束) 完整调试数据 ===')
-    console.log(JSON.stringify(debugData, null, 2))
-    ;(window as any).pack8DebugData = debugData
-  }, 1000)
+onMounted(async () => {
+  await loadData()
 })
 
-function loadData() {
-  const detail = (jsonData as any).info.mapDetailDataMap[CURRENT_MAP_ID]
-  if (!detail) {
-    console.error('Map data not found')
-    return
-  }
+async function loadData() {
+  try {
+    // 调用 API 获取处理后的数据（模拟前后端分离）
+    const apiData = await fetchMapData(CURRENT_MAP_ID)
+    
+    // 使用临时变量构建数据，最后一次性赋值给 shallowRef
+    const newNodePosMap = new Map<string, {x: number, y: number}>()
+    const newRoadPosMap = new Map<string, any>()
+    const newNodes = new Map<string, any>()
+    const newRoads: any[] = []
+    const newPackDataMap = new Map<string, PackData>()
 
-  mapData.value = detail
-
-  // 加载节点位置
-  const nvm = detail.nodeViewData?.nodePosMap || {}
-  Object.entries(nvm).forEach(([id, data]: [string, any]) => {
-    nodePosMap.value.set(id, data.position)
-  })
-
-  // 加载道路位置
-  const rpm = detail.nodeViewData?.roadPosMap || {}
-  Object.entries(rpm).forEach(([id, data]: [string, any]) => {
-    roadPosMap.value.set(id, data)
-  })
-
-  // 加载指标集（pack）数据 - 仅当存在时
-  const bdm = detail.bagDataMap || {}
-  Object.entries(bdm).forEach(([id, data]: [string, any]) => {
-    packDataMap.value.set(id, {
-      slotPackId: data.slotPackId || id,
-      slotPackType: data.slotPackType || '',
-      slotPackName: data.slotPackName || '',
-      slotPackFullName: data.slotPackFullName || '',
-      rewardScore: data.rewardScore || 0,
-      isDaily: data.isDaily || false,
-      sortId: data.sortId || 0
+    // 加载节点数据
+    apiData.nodes.forEach(node => {
+      newNodes.set(node.id, {
+        nodeType: node.nodeType,
+        runeId: node.runeId,
+        slotPackId: node.slotPackId,
+        mutualExclusionGroup: node.mutualExclusionGroup
+      })
+      newNodePosMap.set(node.id, node.position)
     })
-  })
 
-  Object.entries(detail.nodeDataMap || {}).forEach(([id, data]: [string, any]) => {
-    nodes.value.set(id, data)
-  })
+    // 加载道路数据
+    apiData.roads.forEach(road => {
+      newRoads.push({
+        id: road.id,
+        start: { type: 'NODE', id: road.startId },
+        end: { type: 'NODE', id: road.endId }
+      })
+      newRoadPosMap.set(road.id, road.positions)
+    })
 
-  // 加载道路，并给每个道路对象添加id属性
-  roads.value = Object.entries(detail.roadRelationDataMap || {}).map(([id, data]: [string, any]) => ({
-    id,
-    ...data
-  }))
-  calculateCanvasSize()
+    // 加载指标集（pack）数据
+    apiData.packs.forEach(pack => {
+      newPackDataMap.set(pack.id, {
+        slotPackId: pack.id,
+        slotPackType: pack.slotPackType,
+        slotPackName: pack.slotPackName,
+        slotPackFullName: pack.slotPackFullName,
+        rewardScore: pack.rewardScore,
+        isDaily: pack.isDaily,
+        sortId: pack.sortId
+      })
+    })
+
+    // 构建 mapData 结构（包含 runes）
+    const runeDataMap: Record<string, any> = {}
+    apiData.runes.forEach(rune => {
+      runeDataMap[rune.runeId] = {
+        runeId: rune.runeId,
+        runeGroupId: rune.runeGroupId,
+        runeIcon: rune.runeIcon,
+        runeName: rune.runeName,
+        score: rune.score,
+        packedRune: rune.packedRune
+      }
+    })
+
+    // 一次性赋值给 shallowRef，触发更新
+    mapData.value = {
+      mapId: apiData.mapId,
+      mapName: apiData.mapName,
+      mapCode: apiData.mapCode,
+      runeDataMap
+    }
+    nodePosMap.value = newNodePosMap
+    roadPosMap.value = newRoadPosMap
+    nodes.value = newNodes
+    roads.value = newRoads
+    packDataMap.value = newPackDataMap
+
+    calculateCanvasSize()
+  } catch (error) {
+    console.error('Failed to load map data:', error)
+  }
 }
 
 function calculateCanvasSize() {
@@ -1263,6 +1025,11 @@ function calculateCanvasSize() {
   roadPosMap.value.forEach((roadPos: any, roadId: string) => {
     const road = roads.value.find((r: any) => r.id === roadId || r.roadId === roadId)
     if (!road || road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
+    
+    // 检查 roadPos 是否有效
+    if (!roadPos || !roadPos.centerPos || !roadPos.startPos || !roadPos.endPos) {
+      return
+    }
     
     const sx = (roadPos.centerPos.x + roadPos.startPos.x) * scale + offsetX
     const ex = (roadPos.centerPos.x + roadPos.endPos.x) * scale + offsetX
@@ -1332,6 +1099,11 @@ function calculateCanvasSize() {
     const road = roads.value.find((r: any) => r.id === roadId || r.roadId === roadId)
     if (!road || road.start?.type !== 'NODE' || road.end?.type !== 'NODE') return
     
+    // 检查 roadPos 是否有效
+    if (!roadPos || !roadPos.centerPos || !roadPos.startPos || !roadPos.endPos) {
+      return
+    }
+    
     // 起点
     const startOriginalY = -(roadPos.centerPos.y + roadPos.startPos.y) * scale + offsetY
     const startCompressedY = getRoadCompressedY(startOriginalY, road.start.id)
@@ -1346,6 +1118,7 @@ function calculateCanvasSize() {
     // 拐点
     if (roadPos.inflectionList && roadPos.inflectionList.length > 0) {
       roadPos.inflectionList.forEach((inflection: any) => {
+        if (!inflection || !inflection.cornerPos) return
         const inflectionOriginalY = -(roadPos.centerPos.y + inflection.cornerPos.y) * scale + offsetY
         const inflectionCompressedY = getRoadCompressedY(inflectionOriginalY, road.start.id)
         minY = Math.min(minY, inflectionCompressedY)
@@ -1359,7 +1132,7 @@ function calculateCanvasSize() {
   const targetTop = 40
   const extraOffset = minY - targetTop
   
-  console.log('Canvas size calc:', { minY, maxY, extraOffset, targetTop })
+  // console.log('Canvas size calc:', { minY, maxY, extraOffset, targetTop })
   
   // 总是应用偏移，让内容从顶部开始（对于没有pack的地图，minY可能很大）
   // 更新全局偏移量，让所有内容向上移动
@@ -1370,7 +1143,7 @@ function calculateCanvasSize() {
   const bottomMargin = 50 // 减小底部间距，从 500 改为 50
   const finalHeight = (adjustedMaxY - targetTop) + bottomMargin
 
-  console.log('Final canvas size:', { adjustedMaxY, finalHeight })
+  // console.log('Final canvas size:', { adjustedMaxY, finalHeight })
   
   // 添加边距
   const leftMargin = 20
@@ -1378,7 +1151,7 @@ function calculateCanvasSize() {
   canvasWidth.value = (maxX - minX) + leftMargin + rightMargin
   canvasHeight.value = Math.max(finalHeight, 2500)
   
-  console.log('Final canvas size:', canvasWidth.value, canvasHeight.value)
+  // console.log('Final canvas size:', canvasWidth.value, canvasHeight.value)
 }
 
 function getNodeType(nodeType: string): 'start' | 'rune' | 'keypoint' | 'treasure' {
@@ -1523,27 +1296,34 @@ function computeValidNodes(currentSelections: Set<string>): Set<string> {
 function handleNodeClick(node: NodeItem) {
   if (node.type === 'start' || node.type === 'keypoint') return
   
-  if (selectedRuneNodes.value.has(node.id)) {
+  // 创建新的 Set 来触发 shallowRef 更新
+  const newSelected = new Set(selectedRuneNodes.value)
+  
+  if (newSelected.has(node.id)) {
     // 取消选中
-    selectedRuneNodes.value.delete(node.id)
+    newSelected.delete(node.id)
     
-    // 清理无效的选中节点
+    // 先更新状态，再清理
+    selectedRuneNodes.value = newSelected
     cleanupInvalidSelections()
   } else if (node.selectable) {
     // 选中
-    selectedRuneNodes.value.add(node.id)
+    newSelected.add(node.id)
     
     // 处理互斥组
     const nodeData = nodes.value.get(node.id)
     if (nodeData?.mutualExclusionGroup) {
-      for (const id of Array.from(selectedRuneNodes.value)) {
+      for (const id of Array.from(newSelected)) {
         if (id === node.id) continue
         const nd = nodes.value.get(id)
         if (nd?.mutualExclusionGroup === nodeData.mutualExclusionGroup) {
-          selectedRuneNodes.value.delete(id)
+          newSelected.delete(id)
         }
       }
     }
+    
+    // 赋值新 Set 触发更新
+    selectedRuneNodes.value = newSelected
   }
   
   updateScore()
@@ -1551,18 +1331,18 @@ function handleNodeClick(node: NodeItem) {
 
 // 清理无效的选中节点
 function cleanupInvalidSelections() {
-  let changed = true
-  while (changed) {
-    const validNodes = computeValidNodes(selectedRuneNodes.value)
-    
-    changed = false
-    for (const nodeId of Array.from(selectedRuneNodes.value)) {
-      if (!validNodes.has(nodeId)) {
-        selectedRuneNodes.value.delete(nodeId)
-        changed = true
-      }
+  const validNodes = computeValidNodes(selectedRuneNodes.value)
+  const newSelected = new Set<string>()
+  
+  // 只保留有效的节点
+  for (const nodeId of selectedRuneNodes.value) {
+    if (validNodes.has(nodeId)) {
+      newSelected.add(nodeId)
     }
   }
+  
+  // 赋值新 Set 触发更新
+  selectedRuneNodes.value = newSelected
 }
 
 // 计算指标集（pack）奖励分数
@@ -1653,10 +1433,13 @@ function updateScore() {
 
 // 处理指标集点击 - 批量开关节点
 function handlePackClick(pack: PackIndicator) {
+  // 创建新的 Set 来触发 shallowRef 更新
+  const newSelected = new Set(selectedRuneNodes.value)
+  
   if (pack.isActive) {
     // 已激活：关闭该 pack 下的所有节点
     pack.nodeIds.forEach(nodeId => {
-      selectedRuneNodes.value.delete(nodeId)
+      newSelected.delete(nodeId)
     })
   } else {
     // 未激活：迭代激活该 pack 下的所有可达节点
@@ -1696,13 +1479,47 @@ function handlePackClick(pack: PackIndicator) {
     let changed = true
     while (changed) {
       changed = false
-      const currentActives = activeNodes.value
+      // 使用当前的 newSelected 计算 activeNodes
+      const currentActives = new Set<string>()
+      
+      // 添加 START 节点
+      nodes.value.forEach((nodeData: any, id: string) => {
+        if (nodeData.nodeType === 'START') {
+          currentActives.add(id)
+        }
+      })
+      
+      // 添加已选中的节点
+      newSelected.forEach(id => currentActives.add(id))
+      
+      // 激活可达的 KEYPOINT
+      let kpChanged = true
+      while (kpChanged) {
+        kpChanged = false
+        nodes.value.forEach((nodeData: any, id: string) => {
+          if (nodeData.nodeType !== 'KEYPOINT') return
+          if (currentActives.has(id)) return
+          
+          const incomingRoads = roads.value.filter((r: any) => 
+            r.end.type === 'NODE' && r.end.id === id
+          )
+          
+          const shouldActivate = incomingRoads.some((r: any) => 
+            r.start.type === 'NODE' && currentActives.has(r.start.id)
+          )
+          
+          if (shouldActivate) {
+            currentActives.add(id)
+            kpChanged = true
+          }
+        })
+      }
       
       pendingNodes.forEach(nodeId => {
-        if (!selectedRuneNodes.value.has(nodeId)) {
+        if (!newSelected.has(nodeId)) {
           const nodeData = nodes.value.get(nodeId)
-          if (nodeData && checkSelectable(nodeId, nodeData, currentActives)) {
-            selectedRuneNodes.value.add(nodeId)
+          if (nodeData && checkSelectableWithActives(nodeId, nodeData, currentActives, newSelected)) {
+            newSelected.add(nodeId)
             changed = true
           }
         }
@@ -1710,8 +1527,30 @@ function handlePackClick(pack: PackIndicator) {
     }
   }
   
+  // 赋值新 Set 触发更新
+  selectedRuneNodes.value = newSelected
   cleanupInvalidSelections()
   updateScore()
+}
+
+// 辅助函数：检查节点是否可选（传入自定义的 actives 和 selected）
+function checkSelectableWithActives(nodeId: string, nodeData: any, actives: Set<string>, selected: Set<string>): boolean {
+  if (nodeData.nodeType === 'START') return false
+  if (nodeData.nodeType === 'KEYPOINT') return false
+  if (selected.has(nodeId)) return true
+
+  // 检查是否有激活的前置
+  const incomingRoads = roads.value.filter((r: any) => 
+    r.end.type === 'NODE' && r.end.id === nodeId && r.start.type === 'NODE'
+  )
+  
+  for (const road of incomingRoads) {
+    if (actives.has(road.start.id)) {
+      return true
+    }
+  }
+  
+  return false
 }
 </script>
 
