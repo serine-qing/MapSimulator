@@ -37,7 +37,7 @@ const getRecalRunes = (levelId: string) => {
 }
 
 //获取危机合约地图数据
-const getMapData = (mapId: string) => {
+const getCCBMapData = (mapId: string) => {
   return request({
     method: "post",
     url: "/ccb/getData",
@@ -47,4 +47,4 @@ const getMapData = (mapId: string) => {
   })
 }
 
-export { getStorys, getStageInfo, getEnemiesData, getRecalRunes, getMapData };
+export { getStorys, getStageInfo, getEnemiesData, getRecalRunes, getCCBMapData };

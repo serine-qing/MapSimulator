@@ -11,6 +11,7 @@ import DataTable from "@/pages/DataTable.vue"
 import TokenCards from "@/pages/TokenCards.vue"
 import SandTable from "@/pages/SandTable.vue"
 import CombatMatrix from "@/pages/CombatMatrix.vue"
+import CrisisContractMap from "./CrisisContractMap.vue";
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
 import type { EnemyData } from "@/type";
@@ -26,6 +27,7 @@ import btnSpeed4x from '@/assets/images/btn_speed_4x.png';
 import StageInfo from '@/pages/StageInfo.vue';
 import Notice from "@/pages/Notice.vue"
 import Global from "@/components/utilities/Global";
+import { getCCBMapData } from "@/api/stages.js";
 
 //#region 沙盘推演数据
 
@@ -38,11 +40,17 @@ const changeRunesData = (data) => {
 
 //#endregion
 
-//#region 全息作战矩阵
+//#region 全息作战矩阵和危机合约CCB2
 const isCombatMatrix = ref(false);
 let matrixRunes = []
+let ccbRunes = []
 const changeCombatRunes = (data) => {
   matrixRunes = data;
+  newGame(mapData)
+}
+
+const changeCCBRunes = (data) => {
+  ccbRunes = data;
   newGame(mapData)
 }
 //#endregion
@@ -52,6 +60,7 @@ let mapData = null;
 let mapModel: MapModel;
 let gameManager: GameManager;
 const levelId = ref("");
+const ccbId = ref("");      //危机合约使用的id
 
 const gameManagerRef = shallowRef();
 
@@ -88,6 +97,7 @@ const reset = () => {
   finishedEnemyCount.value = 0;
   runesData = [];
   matrixRunes = [];
+  ccbRunes = [];
   sandTableData.value = null;
   timeStop.value = false;
 }
@@ -183,7 +193,9 @@ const newGame = async (map) => {
   }
   mapData = map;
   levelId.value = mapData.levelId;
+  ccbId.value = mapData.id;
   mapData.levelCode = mapData.operation.replace(/[^a-zA-Z0-9-]/g, "");
+  
 
   if(
     mapData.levelId.includes("obt/recalrune")
@@ -199,9 +211,11 @@ const newGame = async (map) => {
   isFinished.value = false;
   loading.value = true;
 
+  const extraRunes = isCombatMatrix.value ? matrixRunes : ccbRunes;
+
   mapModel = new MapModel(mapData, {
     runesData,
-    matrixRunes
+    matrixRunes: extraRunes,
   });
 
   gameManager = new GameManager();
@@ -423,6 +437,12 @@ defineExpose({
     :levelId = "levelId"
     @changeCombatRunes = "changeCombatRunes"
   />
+  <CrisisContractMap
+    v-if="ccbId"
+    :map-id="ccbId"
+    @confirm="changeCCBRunes"
+  />
+  
   <SandTable
     v-show="sandTableData"
     :sandTableData = "sandTableData"
@@ -430,7 +450,7 @@ defineExpose({
   />
   <div class="game" >
     <div class="toolbar" v-show="isStart">  
-      <span class="lifepoint"> {{ finishedEnemyCount }} / {{maxEnemyCount}}</span>
+      <span class="lifepoint"> {{ finishedEnemyCount }} / {{ maxEnemyCount }}</span>
       <div class="time-slider">
         <el-slider 
           v-model = "sliderValue" 
@@ -623,6 +643,32 @@ select {
 
 .Speed02{
   margin-top: 5px;
+}
+
+.expand{
+  position: relative;
+}
+
+.expand-toggle{
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.expand-toggle:hover{
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
 }
 
 </style>

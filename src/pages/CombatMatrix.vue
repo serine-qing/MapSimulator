@@ -315,6 +315,8 @@ const getData = () => {
   const id = levelId.match(regex)[0];
   getRecalRunes(id).then(res => {
     const { parsedRunes} = res.data;
+    if(!parsedRunes) return;
+
     fixedRuneSeriesName.value = res.data.fixedRuneSeriesName;
     const baseTags = parsedRunes.filter(parsedRune => parsedRune.essential);
     const extraTags = parsedRunes.filter(parsedRune => !parsedRune.essential);
@@ -332,8 +334,7 @@ watch(() => levelId, () => {
   activeTags.value = [];
   currentActiveTags.value = [];
   if(
-    levelId.includes("obt/recalrune") ||
-    levelId.includes("obt/crisis")
+    levelId.includes("obt/recalrune")
   ){
     getData();
   }
