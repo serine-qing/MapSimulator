@@ -723,10 +723,6 @@ class Enemy extends BattleObject{
 
   //计算避障力
   public handleObstacleAvoidance(){
-    if(this.unitVector.equals(ZERO)){
-      this.obstacleAvoidanceVector = new THREE.Vector2(0, 0);
-      return;
-    }
     const closePoints = this.getClosePoints();
     const roundTile = this.getRoundTile();
 
@@ -734,7 +730,7 @@ class Enemy extends BattleObject{
     Object.keys(roundTile).forEach(key => {
       let closePoint: THREE.Vector2;
       const tile: Tile = roundTile[key];
-      if(tile && !tile.isPassable()){
+      if(tile && (!tile.isPassable() || tile.tileKey === "tile_hole")){
         
         switch (key) {
           case "leftTop":
@@ -796,10 +792,15 @@ class Enemy extends BattleObject{
 
     let projection;
     avoidances.normalize();
-    
-    projection = this.unitVector.clone().multiplyScalar(avoidances.dot(this.unitVector));;
 
-    this.obstacleAvoidanceVector = avoidances.addScaledVector(projection, -1);
+    //文章：将a减去它在当前给定方向上的投影，即得到避障力向量
+    //当unitVector为零时（惯性减速中），不做投影，保留完整避障力
+    if(!this.unitVector.equals(ZERO)){
+      projection = this.unitVector.clone().multiplyScalar(avoidances.dot(this.unitVector));
+      this.obstacleAvoidanceVector = avoidances.addScaledVector(projection, -1);
+    }else{
+      this.obstacleAvoidanceVector = avoidances;
+    }
   }
 
   public update(delta: number){
@@ -965,10 +966,23 @@ class Enemy extends BattleObject{
         //end 
 
         //给定方向向量
-        this.unitVector = new THREE.Vector2(
-          targetPos.x - this.cursorPosition.x,
-          targetPos.y - this.cursorPosition.y
-        ).normalize();
+        //文章：若自身光标坐标处于不可通行地块或无路线通往下一个目标点，则给定方向同样为0
+        const cursorTile = Global.tileManager.getTile(
+          Math.floor(this.cursorPosition.x + 0.5),
+          Math.floor(this.cursorPosition.y + 0.5)
+        );
+        const cursorImpassable = cursorTile && !cursorTile.isPassable();
+        const noPathToTarget = this.nextNode.nextNode === null &&
+          this.nextNode.distance >= 1000;
+
+        if(cursorImpassable || noPathToTarget){
+          this.unitVector = new THREE.Vector2(0, 0);
+        }else{
+          this.unitVector = new THREE.Vector2(
+            targetPos.x - this.cursorPosition.x,
+            targetPos.y - this.cursorPosition.y
+          ).normalize();
+        }
         break;
 
       case "WAIT_FOR_SECONDS":               //等待一定时间
@@ -1625,7 +1639,11 @@ class Enemy extends BattleObject{
   }
 
   protected move(delta: number){
-    if(this.forceMoved || !this.canMove()) return;
+    if(this.forceMoved || !this.canMove()){
+      //快速抵达(forceMoved)后清除惯性，防止传送后带着旧惯性继续移动
+      if(this.forceMoved) this.inertialVector.set(0, 0);
+      return;
+    }
     if(this.unitVector.equals(ZERO) && this.inertialVector.length() < 0.0001){
       //惯性低于万分之一后已经没有计算价值了
       return;
