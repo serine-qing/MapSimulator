@@ -77,13 +77,13 @@ const emit = defineEmits<{
 }>()
 
 //3级关卡菜单
-let activeEpisode = "act50side";
+let activeEpisode = "ccb5";
 
 switch (localStorage.currentLang) {
   case "EN":
   case "JP":
   case "KR":
-    activeEpisode = "act47side";
+    activeEpisode = "act48side";
     break;
 
 }

@@ -125,7 +125,6 @@ const toggleExpand = () => {
 // 从后端获取处理后的地图数据
 async function fetchCCData(mapId: string) {
   const { data } = await getCCBMapData(mapId)
-  console.log(data)
   return data
 }
 

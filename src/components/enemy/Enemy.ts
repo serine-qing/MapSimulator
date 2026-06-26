@@ -723,6 +723,11 @@ class Enemy extends BattleObject{
 
   //计算避障力
   public handleObstacleAvoidance(){
+    //文章：对于飞行单位，不存在任何障碍物
+    if(this.isFly()){
+      this.obstacleAvoidanceVector = new THREE.Vector2(0, 0);
+      return;
+    }
     const closePoints = this.getClosePoints();
     const roundTile = this.getRoundTile();
 
@@ -971,7 +976,8 @@ class Enemy extends BattleObject{
           Math.floor(this.cursorPosition.x + 0.5),
           Math.floor(this.cursorPosition.y + 0.5)
         );
-        const cursorImpassable = cursorTile && !cursorTile.isPassable();
+        //飞行单位不受地面不可通行地块影响
+        const cursorImpassable = !this.isFly() && cursorTile && !cursorTile.isPassable();
         const noPathToTarget = this.nextNode.nextNode === null &&
           this.nextNode.distance >= 1000;
 
