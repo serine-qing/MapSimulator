@@ -185,21 +185,10 @@ class RunesHelper{
     
     
     //让加算排前面，加乘排中间,乘算排后面
+    const calOrder: Record<string, number> = { "add": 0, "addmul": 1, "mul": 2 };
     this.attrChanges.sort((a, b) => {
-      if(a.calMethod !== b.calMethod){
-        if(a.calMethod === "add"){
-          return -1;
-        }else if(a.calMethod === "addmul"){
-          return -1;
-        }else{
-          return 1;
-        }
-
-      }else{
-        return 0;
-      }
+      return (calOrder[a.calMethod] ?? 3) - (calOrder[b.calMethod] ?? 3);
     })
-
     //各种计算类型
     // console.log(this.attrChanges)
     //需要放在其他rune解析完后处理
@@ -366,7 +355,7 @@ class RunesHelper{
   }
 
   public checkEnemyAttribute(enemyData: EnemyData){
-    const { key , attributes, baseAttributes, levelType } = enemyData;
+    const { key , attributes, levelType } = enemyData;
     
     this.attrChanges.forEach(attrChange => {
       
@@ -393,6 +382,7 @@ class RunesHelper{
       
     })
 
+    const addmulMultipliers: Record<string, number> = {};
     enemyData.attrChanges.forEach(attrChange => {
       switch(attrChange.calMethod){
         case "add":
@@ -406,12 +396,19 @@ class RunesHelper{
           })
           break;
         case "addmul":
+          //先收集总倍率，forEach结束后统一乘，避免attributes在遍历中变动
           attrChange.blackboards.forEach(bb => {
-            attributes[bb.key] += baseAttributes[bb.key] * bb.value;
+            if(!addmulMultipliers[bb.key]) addmulMultipliers[bb.key] = 1;
+            addmulMultipliers[bb.key] += bb.value;
           })
           break;
       }
     })
+
+    //统一应用addmul倍率
+    for(const key in addmulMultipliers){
+      attributes[key] *= addmulMultipliers[key];
+    }
 
     for(const key in attributes){
       //消除乘完后可能会出现的很长小数

@@ -70,11 +70,6 @@
             <div v-if="node.hasConflict" class="conflict-badge">OR</div>
           </template>
 
-          <!-- KEYPOINT 节点 - 样式与START相同 -->
-          <template v-else-if="node.type === 'keypoint'">
-            <div class="start-dot"></div>
-          </template>
-
         </div>
       </div>
     </div>
@@ -131,14 +126,13 @@ async function fetchCCData(mapId: string) {
 // 类型定义
 interface NodeItem {
   id: string
-  type: 'start' | 'rune' | 'keypoint' | 'treasure'
+  type: 'start' | 'rune' | 'treasure'
   x: number
   y: number
   runeName: string
   score: number
   targetScore: number
   hasConflict: boolean
-  claimable: boolean
   selectable: boolean
   locked: boolean
   runeId: string | null
@@ -279,39 +273,16 @@ const sortedPacks = ref<Array<{ packId: string, minY: number, maxY: number }>>([
 const activeNodes = computed(() => {
   const active = new Set<string>()
   
-  // 1. 添加所有START节点
+  // 1. 添加所有START和KEYPOINT节点（KEYPOINT视同START）
   nodes.value.forEach((nodeData: any, id: string) => {
-    if (nodeData.nodeType === 'START') {
+    if (nodeData.nodeType === 'START' || nodeData.nodeType === 'KEYPOINT') {
       active.add(id)
     }
   })
-  
+
   // 2. 添加用户选中的RUNE节点
   selectedRuneNodes.value.forEach(id => active.add(id))
-  
-  // 3. 自动激活所有可达的KEYPOINT
-  let changed = true
-  while (changed) {
-    changed = false
-    nodes.value.forEach((nodeData: any, id: string) => {
-      if (nodeData.nodeType !== 'KEYPOINT') return
-      if (active.has(id)) return
-      
-      const incomingRoads = roads.value.filter((r: any) => 
-        r.end.type === 'NODE' && r.end.id === id
-      )
-      
-      const shouldActivate = incomingRoads.some((r: any) => 
-        r.start.type === 'NODE' && active.has(r.start.id)
-      )
-      
-      if (shouldActivate) {
-        active.add(id)
-        changed = true
-      }
-    })
-  }
-  
+
   return active
 })
 
@@ -361,8 +332,8 @@ const displayNodes = computed(() => {
     const compressedY = getCompressedY(originalCenterY, nodeData.slotPackId || null)
     
     // 根据节点类型使用不同的偏移
-    const offsetX_val = type === 'start' || type === 'keypoint' ? dotSize / 2 : cardWidth / 2
-    const offsetY_val = type === 'start' || type === 'keypoint' ? dotSize / 2 : cardHeight / 2
+    const offsetX_val = type === 'start' ? dotSize / 2 : cardWidth / 2
+    const offsetY_val = type === 'start' ? dotSize / 2 : cardHeight / 2
     
     // 应用全局 Y 轴偏移（让内容从顶部开始）
     const finalY = compressedY + globalYOffset.value
@@ -376,7 +347,6 @@ const displayNodes = computed(() => {
       score: runeInfo.score,
       targetScore: getKeypointScore(id),
       hasConflict: !!nodeData.mutualExclusionGroup,
-      claimable: type === 'treasure' && currentScore.value >= getKeypointScore(id),
       selectable: isSelectable,
       locked: !isActive && !isSelectable,
       runeId: nodeData.runeId,
@@ -648,7 +618,7 @@ function calculateCanvasSize() {
     // 计算 X 坐标（CSS left）
     const centerX = pos.x * scale + offsetX
     const type = getNodeType(nodeData.nodeType)
-    const isSmall = type === 'start' || type === 'keypoint'
+    const isSmall = type === 'start'
     const offsetX_val = isSmall ? 12 : 40
     const cssLeft = centerX - offsetX_val
     const cssRight = cssLeft + (isSmall ? 24 : 80)
@@ -672,7 +642,7 @@ function calculateCanvasSize() {
     
     // 根据节点类型计算实际的 CSS top 值
     const type = getNodeType(nodeData.nodeType)
-    const isSmall = type === 'start' || type === 'keypoint'
+    const isSmall = type === 'start'
     const offsetY_val = isSmall ? 12 : 40 // 圆点/卡片高度的一半
     
     // CSS top 值
@@ -765,10 +735,10 @@ function calculateCanvasSize() {
   // console.log('Final canvas size:', canvasWidth.value, canvasHeight.value)
 }
 
-function getNodeType(nodeType: string): 'start' | 'rune' | 'keypoint' | 'treasure' {
+function getNodeType(nodeType: string): 'start' | 'rune' | 'treasure' {
   switch (nodeType) {
     case 'START': return 'start'
-    case 'KEYPOINT': return 'keypoint'
+    case 'KEYPOINT': return 'start'  // KEYPOINT 视同 START
     case 'TREASURE': return 'treasure'
     default: return 'rune'
   }
@@ -789,32 +759,27 @@ function getKeypointScore(nodeId: string): number {
 }
 
 function checkSelectable(nodeId: string, nodeData: any, actives: Set<string>): boolean {
-  if (nodeData.nodeType === 'START') return false
-  if (nodeData.nodeType === 'KEYPOINT') return false
+  if (nodeData.nodeType === 'START' || nodeData.nodeType === 'KEYPOINT') return false
   if (selectedRuneNodes.value.has(nodeId)) return true
 
-  // 检查是否有激活的前置或连接的KEYPOINT
-  const incomingRoads = roads.value.filter((r: any) => 
+  // 检查是否有激活的前置（入边）
+  const incomingRoads = roads.value.filter((r: any) =>
     r.end.type === 'NODE' && r.end.id === nodeId && r.start.type === 'NODE'
   )
-  
-  // 有直接前置激活
+
   for (const road of incomingRoads) {
     if (actives.has(road.start.id)) {
       return true
     }
   }
-  
-  // 或者与激活的KEYPOINT相连
-  const connectedRoads = roads.value.filter((r: any) => 
-    (r.start.type === 'NODE' && r.start.id === nodeId && r.end.type === 'NODE') ||
-    (r.end.type === 'NODE' && r.end.id === nodeId && r.start.type === 'NODE')
+
+  // 检查是否有激活的后继（出边），支持从右往左激活
+  const outgoingRoads = roads.value.filter((r: any) =>
+    r.start.type === 'NODE' && r.start.id === nodeId && r.end.type === 'NODE'
   )
-  
-  for (const road of connectedRoads) {
-    const otherId = road.start.id === nodeId ? road.end.id : road.start.id
-    const otherNode = nodes.value.get(otherId)
-    if (otherNode?.nodeType === 'KEYPOINT' && actives.has(otherId)) {
+
+  for (const road of outgoingRoads) {
+    if (actives.has(road.end.id)) {
       return true
     }
   }
@@ -836,7 +801,7 @@ function computeValidNodes(currentSelections: Set<string>): Set<string> {
   
   // 初始化：所有START节点都有效
   nodes.value.forEach((nodeData: any, id: string) => {
-    if (nodeData.nodeType === 'START') {
+    if (nodeData.nodeType === 'START' || nodeData.nodeType === 'KEYPOINT') {
       valid.add(id)
     }
   })
@@ -880,21 +845,16 @@ function computeValidNodes(currentSelections: Set<string>): Set<string> {
           }
         }
         
-        // 检查与KEYPOINT的连接（双向）
-        const connectedRoads = roads.value.filter((r: any) => 
-          (r.start.type === 'NODE' && r.start.id === id && r.end.type === 'NODE') ||
-          (r.end.type === 'NODE' && r.end.id === id && r.start.type === 'NODE')
+        // 检查出边是否有有效后继（支持从右往左激活）
+        const outgoingRoads = roads.value.filter((r: any) =>
+          r.start.type === 'NODE' && r.start.id === id && r.end.type === 'NODE'
         )
-        
-        for (const road of connectedRoads) {
-          const otherId = road.start.id === id ? road.end.id : road.start.id
-          if (valid.has(otherId)) {
-            const otherNode = nodes.value.get(otherId)
-            if (otherNode?.nodeType === 'KEYPOINT') {
-              valid.add(id)
-              changed = true
-              return
-            }
+
+        for (const road of outgoingRoads) {
+          if (valid.has(road.end.id)) {
+            valid.add(id)
+            changed = true
+            return
           }
         }
       }
@@ -905,7 +865,7 @@ function computeValidNodes(currentSelections: Set<string>): Set<string> {
 }
 
 function handleNodeClick(node: NodeItem) {
-  if (node.type === 'start' || node.type === 'keypoint') return
+  if (node.type === 'start') return
   
   // 创建新的 Set 来触发 shallowRef 更新
   const newSelected = new Set(selectedRuneNodes.value)
@@ -1095,7 +1055,7 @@ function handlePackClick(pack: PackIndicator) {
       
       // 添加 START 节点
       nodes.value.forEach((nodeData: any, id: string) => {
-        if (nodeData.nodeType === 'START') {
+        if (nodeData.nodeType === 'START' || nodeData.nodeType === 'KEYPOINT') {
           currentActives.add(id)
         }
       })
@@ -1159,6 +1119,10 @@ function toggleAll() {
   if (packIndicators.value.length > 0) {
     // 有指标集：遍历所有 pack 切换
     const allActive = packIndicators.value.every(p => p.isActive)
+    if (!allActive) {
+      // 全选：先清空所有选中，再逐个激活 pack
+      selectedRuneNodes.value = new Set()
+    }
     packIndicators.value.forEach(p => {
       if (allActive ? p.isActive : !p.isActive) {
         handlePackClick(p)
@@ -1208,7 +1172,7 @@ function toggleAll() {
         const currentActives = new Set<string>()
 
         nodes.value.forEach((nodeData: any, id: string) => {
-          if (nodeData.nodeType === 'START') currentActives.add(id)
+          if (nodeData.nodeType === 'START' || nodeData.nodeType === 'KEYPOINT') currentActives.add(id)
         })
         newSelected.forEach(id => currentActives.add(id))
 
@@ -1249,21 +1213,31 @@ function toggleAll() {
 
 // 辅助函数：检查节点是否可选（传入自定义的 actives 和 selected）
 function checkSelectableWithActives(nodeId: string, nodeData: any, actives: Set<string>, selected: Set<string>): boolean {
-  if (nodeData.nodeType === 'START') return false
-  if (nodeData.nodeType === 'KEYPOINT') return false
+  if (nodeData.nodeType === 'START' || nodeData.nodeType === 'KEYPOINT') return false
   if (selected.has(nodeId)) return true
 
-  // 检查是否有激活的前置
-  const incomingRoads = roads.value.filter((r: any) => 
+  // 检查是否有激活的前置（入边）
+  const incomingRoads = roads.value.filter((r: any) =>
     r.end.type === 'NODE' && r.end.id === nodeId && r.start.type === 'NODE'
   )
-  
+
   for (const road of incomingRoads) {
     if (actives.has(road.start.id)) {
       return true
     }
   }
-  
+
+  // 检查是否有激活的后继（出边），支持从右往左激活
+  const outgoingRoads = roads.value.filter((r: any) =>
+    r.start.type === 'NODE' && r.start.id === nodeId && r.end.type === 'NODE'
+  )
+
+  for (const road of outgoingRoads) {
+    if (actives.has(road.end.id)) {
+      return true
+    }
+  }
+
   return false
 }
 </script>
