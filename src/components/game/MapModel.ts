@@ -839,6 +839,7 @@ class MapModel{
         // 检测可用的 skin 列表，优先选择非 default 的 skin
         const skins = skeletonData.skins;
         if(skins && skins.length > 1){
+          console.log(`敌人 ${data.name} (${skins})`);
           // 查找第一个非 default 的 skin
           const nonDefaultSkin = skins.find((s: any) => s.name !== "default");
           if(nonDefaultSkin){

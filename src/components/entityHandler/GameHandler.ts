@@ -178,6 +178,11 @@ class GameHandler implements Handler{
         enemy.dontBlockWave = true;
         enemy.notCountInTotal = true;
         break;
+      case "enemy_1514_smephi": //梅菲斯特，“歌者”
+        enemy.unMoveable = true;
+        enemy.dontBlockWave = true;
+        enemy.notCountInTotal = true;
+        break;
     }
 
     //判断是否是近地悬浮

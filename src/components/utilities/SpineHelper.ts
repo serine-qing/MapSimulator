@@ -12,6 +12,7 @@ const specialMove = {
   enemy_10010_sgnja: "Move",        //"市井盗贼"
   enemy_10010_sgnja_2: "Move", 
   enemy_10072_mpprhd: "Idle",       //侵入式调用
+  enemy_1531_bbrain: "Idle",       //“唤醒”
 }
 
 export const getAnimation = (key: string, animations: any, state: string) => {
