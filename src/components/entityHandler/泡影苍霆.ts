@@ -36,6 +36,10 @@ class act50side implements Handler{
           this.pycpokStartTrans(enemy);
         }
         break;
+      case "enemy_10134_pycspy":  //影丝蛛
+      case "enemy_10134_pycspy_2":
+        enemy.unMoveable = true;
+        break;
 
       case "enemy_1573_pyczog": //“雷之主”
         this.bossStart();
