@@ -6,6 +6,7 @@ import Trap from "../game/Trap";
 import Handler from "./Handler";
 import type { CheckPoint, Buff, BuffParam, ActionData, trapData } from "@/type";
 
+import BlinkEnemy from "./BlinkEnemy";
 import act1vhalfidle from "./次生预案";
 import act24side from "./落叶逐火";
 import act29side from "./崔林特尔梅之金";
@@ -35,6 +36,7 @@ import main17 from "./17章";
 class GameHandler implements Handler{
   private handlers: Handler[] = [];
   constructor(){
+    this.handlers.push(new BlinkEnemy());
     this.handlers.push(new act24side());
     this.handlers.push(new act29side());
     this.handlers.push(new act35side());
@@ -175,11 +177,6 @@ class GameHandler implements Handler{
         enemy.notCountInTotal = true;
         break;
       case "enemy_1588_ubbphw": //临时处理
-        enemy.dontBlockWave = true;
-        enemy.notCountInTotal = true;
-        break;
-      case "enemy_1514_smephi": //梅菲斯特，“歌者”
-        enemy.unMoveable = true;
         enemy.dontBlockWave = true;
         enemy.notCountInTotal = true;
         break;

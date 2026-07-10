@@ -178,6 +178,15 @@ class Enemy extends BattleObject{
 
   talents: any[];          //天赋
   skills: EnemySkill[];           //技能
+
+  blinkCooldowns: number[];        //闪烁冷却时间间隔数组
+  currentBlinkIndex: number = 0;   //当前闪烁执行次数
+  blinkAnimations: {
+    begin: string;
+    loop: string;
+    end: string;
+    idle: string;
+  };
   
   spawnOffset: THREE.Vector2;             //出生点偏移
   cursorPosition: THREE.Vector2;          //光标坐标
@@ -1797,6 +1806,64 @@ class Enemy extends BattleObject{
     }
   }
 
+  /**
+   * 初始化闪烁传送技能（通用方法）
+   * @param skillKey 技能的 prefabKey，用于读取冷却时间数据
+   * @param animations 闪烁动画名配置
+   */
+  public initBlink(skillKey: string, animations: { begin: string; loop: string; end: string; idle: string }){
+    this.unMoveable = true;
+    const skill = this.getSkill(skillKey);
+    this.blinkCooldowns = Object.entries(skill.blackboard)
+      .filter(([key]) => key.startsWith("cooldown_"))
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, value]) => value);
+    this.blinkCooldowns.unshift(skill.initCooldown);
+    this.blinkCooldowns.push(skill.cooldown);
+    this.blinkAnimations = animations;
+    this.setBlinkCountdown();
+  }
+
+  /**
+   * 设置下一次闪烁的倒计时
+   */
+  private setBlinkCountdown(){
+    const cooldown = this.blinkCooldowns[this.currentBlinkIndex];
+    this.countdown.addCountdown({
+      name: "blink0",
+      initCountdown: cooldown,
+      callback: () => {
+        this.animationStateTransition({
+          isWaitTrans: false,
+          transAnimation: this.blinkAnimations.begin,
+          idleAnimate: this.blinkAnimations.loop,
+          callback: () => {
+            this.executeBlink();
+            this.animationStateTransition({
+              isWaitTrans: false,
+              transAnimation: this.blinkAnimations.end,
+              idleAnimate: this.blinkAnimations.idle
+            })
+          }
+        });
+        this.currentBlinkIndex = Math.min(
+          this.blinkCooldowns.length - 1,
+          this.currentBlinkIndex + 1
+        );
+        this.setBlinkCountdown();
+      }
+    })
+  }
+
+  /**
+   * 执行闪烁传送：传送到当前检查点位置并推进到下一个检查点
+   */
+  private executeBlink(){
+    const position = this.currentCheckPoint().position;
+    this.setPosition(position.x, position.y);
+    this.nextCheckPoint();
+  }
+
   //动画状态机发生转换
   public animationStateTransition(transition: AnimateTransition){
     //transAnimation: 是否有过渡动画
@@ -2087,6 +2154,7 @@ class Enemy extends BattleObject{
       unBalanceSpeed: this.unBalanceSpeed,
       unBalanceVector: this.unBalanceVector,
       boundCrashed: this.boundCrashed,
+      currentBlinkIndex: this.currentBlinkIndex,
       attributes: {
         moveSpeed: this.attributes.moveSpeed       //目前只存moveSpeed
       },
@@ -2103,13 +2171,13 @@ class Enemy extends BattleObject{
   public set(state){
     super.set(state);
 
-    const {cursorPosition, 
+    const {cursorPosition,
       acceleration,
       inertialVector,
-      checkPointIndex, 
+      checkPointIndex,
       faceToward,
       nextNode,
-      isStarted, 
+      isStarted,
       isFinished,
       animateState,
       currentAnimation,
@@ -2148,6 +2216,7 @@ class Enemy extends BattleObject{
       unBalanceSpeed,
       unBalanceVector,
       boundCrashed,
+      currentBlinkIndex,
       attributes,
       passengers,
       changeTileEvents,
@@ -2197,6 +2266,7 @@ class Enemy extends BattleObject{
     this.unBalanceSpeed = unBalanceSpeed;
     this.unBalanceVector = unBalanceVector;
     this.boundCrashed = boundCrashed;
+    this.currentBlinkIndex = currentBlinkIndex;
     this.attributes.moveSpeed = attributes.moveSpeed;
     this.passengers = [...passengers];
     this.changeTileEvents = [...changeTileEvents],
