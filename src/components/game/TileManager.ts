@@ -134,18 +134,33 @@ class TileManager{
     this.initEvents();
   }
 
-  //计算兔子洞出口概率：直接显示prob值
+  //计算兔子洞出口概率：根据权重计算百分比
   private calcRabbitholeProbs(){
+    // 先收集所有出口tile及其权重
+    const exits: {tile: Tile, weight: number}[] = [];
     this.flatTiles.forEach(tile => {
       if(!tile.tileKey.startsWith("tile_rabbithole_out")) return;
-
       const probVal = tile.blackboard?.find(b => b.key === "prob")?.value;
-      if(probVal === undefined){
+      if(probVal !== undefined){
+        exits.push({tile, weight: probVal});
+      }
+    });
+
+    // 计算总权重
+    const totalWeight = exits.reduce((sum, e) => sum + e.weight, 0);
+
+    // 计算并显示每个出口的概率
+    exits.forEach(({tile, weight}) => {
+      if(totalWeight <= 0){
         tile.probStr = "";
-      }else if(probVal <= 1){
-        tile.probStr = Math.round(probVal * 100) + "%";
+      }else if(weight <= 1 && totalWeight === 1){
+        // 原始小数概率模式（兼容旧数据）
+        const pct = weight * 100;
+        tile.probStr = (Number.isInteger(pct) ? pct : parseFloat(pct.toFixed(1))) + "%";
       }else{
-        tile.probStr = String(probVal) + "%";
+        // 权重模式：计算百分比
+        const pct = weight / totalWeight * 100;
+        tile.probStr = (Number.isInteger(pct) ? pct : parseFloat(pct.toFixed(1))) + "%";
       }
     });
   }
