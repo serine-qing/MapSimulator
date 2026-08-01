@@ -49,6 +49,7 @@ class Tile extends DataObject{
   topMaterial: Material;
 
   isBanned: boolean = false;    //该格子是否被ban了
+  probStr: string = "";          //兔子洞出口概率字符串
 
   trap: Trap = null;   //当前地块上的装置
   constructor(tileData: TileData , position: Vec2){
@@ -200,6 +201,40 @@ class Tile extends DataObject{
         this.object.add(holeMesh);
         break;
       default:
+        //兔子洞：纯色底 + 文字标签（入口 / 出口X + 概率）
+        if(this.tileKey.startsWith("tile_rabbithole")){
+          const num = this.tileKey.match(/_(\d+)$/)?.[1] || "";
+          const isOut = this.tileKey.includes("_out");
+          const label = isOut ? "出口" + num : "入口";
+
+          const canvas = document.createElement("canvas");
+          canvas.width = 256;
+          canvas.height = 256;
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, 256, 256);
+          ctx.fillStyle = isOut ? "#90d090" : "#d4c0a0";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          //标签
+          ctx.font = "bold 64px Arial";
+          ctx.fillText(label, 128, this.probStr ? 100 : 128);
+          //概率（出口才显示）
+          if(this.probStr){
+            ctx.font = "bold 72px Arial";
+            ctx.fillStyle = "#ffcc00";
+            ctx.fillText(this.probStr, 128, 178);
+          }
+
+          const tex = new THREE.CanvasTexture(canvas);
+          const geo = new THREE.PlaneGeometry(
+            getPixelSize(this.width * 0.9),
+            getPixelSize(this.width * 0.9)
+          );
+          const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.z = getPixelSize(this.height / 2) + 0.1;
+          this.object.add(mesh);
+        }
         break;
       
     }

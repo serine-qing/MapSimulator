@@ -10,6 +10,7 @@ interface TileTexture{
   hole?: any,
   yin?: THREE.MeshBasicMaterial,
   yang?: THREE.MeshBasicMaterial,
+  rabbithole?: "in" | "out",
 }
 //静态数据
 const sea = new THREE.MeshBasicMaterial( {color: "#086e8d"} );
@@ -118,6 +119,14 @@ const tileTextures: {[key: string]: TileTexture} = {
     top: green,
     side: darkGray
   },
+  //兔子洞入口
+  tile_rabbithole_in:{
+    top: new THREE.MeshBasicMaterial({ color: "#2a1e14" }),
+  },
+  //兔子洞出口
+  tile_rabbithole_out:{
+    top: new THREE.MeshBasicMaterial({ color: "#1a2e1a" }),
+  },
 }
 
 //不需要的材质设置为透明，防止射线检测出错
@@ -219,7 +228,12 @@ const getTile = (key: string, buildableType: string, heightType: string): any =>
     }
   }
 
-  const tileTexture = tileTextures[key]? tileTextures[key] : defaultMat;
+  // 兔子洞地块带数字后缀（如 tile_rabbithole_in_1），需要去掉后缀查找基础材质
+  let tileTexture = tileTextures[key];
+  if(!tileTexture && key.startsWith("tile_rabbithole")){
+    tileTexture = tileTextures[key.replace(/_\d+$/, "")];
+  }
+  tileTexture = tileTexture ?? defaultMat;
 
   return tileTexture;
 }

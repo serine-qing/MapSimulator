@@ -501,6 +501,18 @@ const tilesall ={
       "description": "进入通道的敌方单位会从此处再度出现",
       "isFunctional": true
     },
+    "tile_rabbithole_in": {
+      "tileKey": "tile_rabbithole_in",
+      "name": "兔子洞入口",
+      "description": "敌方会从此处进入兔子洞，从对应编号的出口出现",
+      "isFunctional": true
+    },
+    "tile_rabbithole_out": {
+      "tileKey": "tile_rabbithole_out",
+      "name": "兔子洞出口",
+      "description": "进入兔子洞的敌方单位会从此处再度出现",
+      "isFunctional": true
+    },
     "tile_volcano": {
       "tileKey": "tile_volcano",
       "name": "热泵通道",

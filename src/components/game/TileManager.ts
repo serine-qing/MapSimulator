@@ -130,7 +130,24 @@ class TileManager{
 
     Global.gameHandler.afterTilesInit(this.flatTiles);
 
+    this.calcRabbitholeProbs();
     this.initEvents();
+  }
+
+  //计算兔子洞出口概率：直接显示prob值
+  private calcRabbitholeProbs(){
+    this.flatTiles.forEach(tile => {
+      if(!tile.tileKey.startsWith("tile_rabbithole_out")) return;
+
+      const probVal = tile.blackboard?.find(b => b.key === "prob")?.value;
+      if(probVal === undefined){
+        tile.probStr = "";
+      }else if(probVal <= 1){
+        tile.probStr = Math.round(probVal * 100) + "%";
+      }else{
+        tile.probStr = String(probVal) + "%";
+      }
+    });
   }
 
   //根据xy坐标获取地图tile（x：朝右坐标轴 y：朝上坐标轴）

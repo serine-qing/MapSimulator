@@ -22,6 +22,7 @@ import act48side from "./雅赛努斯复仇记";
 import act49side from "./辞岁行";
 import act50side from "./泡影苍霆";
 import act51side from "./人们，我们";
+import act53side from "./直到大地变成一颗酸橙";
 import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
@@ -29,6 +30,7 @@ import RunesHelper from "../game/RunesHelper";
 import { LevelType } from "../utilities/Enum";
 import { ExtraWaveData } from "@/type/Map";
 import main17 from "./17章";
+
 
 
 //todo 从雪山降临1101活动开始 将Handler转为实例化的类，前面的Handler就慢慢改了
@@ -51,11 +53,13 @@ class GameHandler implements Handler{
     this.handlers.push(new act49side());
     this.handlers.push(new act50side());
     this.handlers.push(new act51side());
+    this.handlers.push(new act53side());
     this.handlers.push(new main11());
     this.handlers.push(new main15());
     this.handlers.push(new main16());
     this.handlers.push(new main17());
     this.handlers.push(new act1vhalfidle());
+    
   }
 
   public parseRunes(runesHelper: RunesHelper) {
@@ -218,7 +222,9 @@ class GameHandler implements Handler{
       case "enemy_1302_ymtro_2":    //“越长尘”
       case "enemy_1263_durbus":     //沙滩车
       case "enemy_1263_durbus_2":     //沙滩车
-        const bus = enemy.getTalent("bus");
+      case "enemy_10225_agpbus":     //欢乐校车
+      case "enemy_10225_agpbus_2":
+        const bus = enemy?.getTalent("bus");
         const busCount = bus?.max_cnt;
         if(busCount){
           enemy.maxPickUpCount = busCount;
@@ -229,7 +235,9 @@ class GameHandler implements Handler{
             every: true,
             callback: (find: Enemy) => {
               //是否是领袖以外的非机械敌人
-              if(find.levelType !== LevelType.BOSS && !find.enemyTags?.includes("machine")){
+              if(find.motion === "WALK" &&
+                find.levelType !== LevelType.BOSS &&
+                !(Array.isArray(find.enemyTags) && find.enemyTags.includes("machine"))){
                 enemy.pickUp(find);
               }
             }
