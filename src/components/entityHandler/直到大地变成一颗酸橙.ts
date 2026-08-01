@@ -86,6 +86,7 @@ class act53side implements Handler{
               isWaitTrans: true
             });
             find.finishedMap();
+            enemy.removeDetection("agtski");
           }
         });
         break;
