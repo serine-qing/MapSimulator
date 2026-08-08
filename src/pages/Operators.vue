@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import { recognizeImage } from '@/api/ocr'
 
 interface Operator {
@@ -17,8 +18,8 @@ const loading = ref(true)
 const loadError = ref('')
 const recognizing = ref(false)
 const recognizeStatus = ref('')
+const pasteTarget = ref<HTMLTextAreaElement>()
 const fileInput = ref<HTMLInputElement>()
-// 0 = 图标模式, 1 = 文字+图标模式
 const skillDisplayMode = ref<0 | 1>(0)
 
 const selectedStars = reactive(new Set<string>(JSON.parse(localStorage.getItem('operatorFilter_stars') || '[]')))
@@ -30,7 +31,6 @@ const e1Mode = ref(localStorage.getItem('operatorFilter_e1Mode') === 'true')
 watch(e1Mode, (val) => {
   localStorage.setItem('operatorFilter_e1Mode', String(val))
   if (val) {
-    // 切换到精一模式时，将选中第3个技能的干员改为选中第2个技能
     const toSwitch: string[] = []
     selectedSkills.forEach(skillKey => {
       const [opName, skillName] = skillKey.split('::')
@@ -166,7 +166,6 @@ function toggleOperator(op: Operator) {
 
 function toggleSkill(opName: string, skillKey: string) {
   if (selectedSkills.has(skillKey)) {
-    // 再次点击已选中的技能 = 取消选中该干员（同时清除技能）
     selectedOperators.delete(opName)
     const op = findOperatorByName(opName)
     if (op) {
@@ -176,11 +175,9 @@ function toggleSkill(opName: string, skillKey: string) {
     }
     return
   }
-  // 选中技能 = 同时选中干员
   if (!selectedOperators.has(opName)) {
     selectedOperators.add(opName)
   }
-  // 清除同一干员下的其他技能选中，切换到新技能
   const op = findOperatorByName(opName)
   if (op) {
     op.skills.forEach(skill => {
@@ -219,7 +216,6 @@ function isClassActive(p: string) {
 
 async function handleGenerate() {
   const parts: string[] = []
-  // 有技能选中的干员
   selectedSkills.forEach(skillKey => {
     const [opName, skillName] = skillKey.split('::')
     const op = findOperatorByName(opName)
@@ -228,7 +224,6 @@ async function handleGenerate() {
       parts.push(opName + idx)
     }
   })
-  // 没有技能的干员（只显示干员名）
   selectedOperators.forEach(opName => {
     const hasSkill = Array.from(selectedSkills).some(key => key.startsWith(opName + '::'))
     if (!hasSkill) {
@@ -239,7 +234,7 @@ async function handleGenerate() {
   const text = parts.join('+')
   try {
     await navigator.clipboard.writeText(text)
-    alert('已复制到剪贴板：' + text)
+    ElMessage({ message: '已复制到剪贴板：' + text, type: 'success', duration: 2000 })
   } catch {
     const textarea = document.createElement('textarea')
     textarea.value = text
@@ -247,10 +242,9 @@ async function handleGenerate() {
     textarea.style.opacity = '0'
     document.body.appendChild(textarea)
     textarea.select()
-    // @ts-ignore - execCommand is deprecated but needed as fallback
     document.execCommand('copy')
     document.body.removeChild(textarea)
-    alert('已复制到剪贴板：' + text)
+    ElMessage({ message: '已复制到剪贴板：' + text, type: 'success', duration: 2000 })
   }
 }
 
@@ -264,30 +258,35 @@ function clearClasses() {
   saveFilters()
 }
 
-function triggerRecognize() {
+function triggerPaste() {
+  pasteTarget.value?.focus()
+}
+
+function triggerUpload() {
   fileInput.value?.click()
 }
 
-async function handleRecognize(e: Event) {
+function handleFileUpload(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
-  if (!file) return
   input.value = ''
+  if (!file) return
+  processImage(file)
+}
 
-    recognizing.value = true
-    recognizeStatus.value = '正在识别文字...'
+async function processImage(file: File) {
+  recognizing.value = true
+  ElMessage({ message: '正在识别文字...', type: 'info', duration: 2000 })
 
   try {
     const base64 = await new Promise<string>((resolve) => {
       const reader = new FileReader()
       reader.onload = () => {
         const dataUrl = reader.result as string
-        // 如果原始图片小于800KB就不压缩
         if (file.size < 800 * 1024) {
           resolve(dataUrl)
           return
         }
-        // 大图才压缩
         const img = new Image()
         img.onload = () => {
           const canvas = document.createElement('canvas')
@@ -332,8 +331,7 @@ async function handleRecognize(e: Event) {
     }
 
     if (matchedOps.length === 0) {
-      recognizeStatus.value = '未识别到干员，请确认截图中有干员名字'
-      setTimeout(() => { recognizeStatus.value = '' }, 3000)
+      ElMessage({ message: '未识别到干员，请确认截图中有干员名字', type: 'warning', duration: 2000 })
       return
     }
 
@@ -345,14 +343,28 @@ async function handleRecognize(e: Event) {
       }
     })
 
-    recognizeStatus.value = '已识别 ' + matchedOps.length + ' 个干员：' + matchedOps.join('、')
-    setTimeout(() => { recognizeStatus.value = '' }, 4000)
+    ElMessage({ message: '已识别 ' + matchedOps.length + ' 个干员：' + matchedOps.join('、'), type: 'success', duration: 2000 })
   } catch (err: any) {
-    recognizeStatus.value = '识别失败：' + (err.message || '未知错误')
-    setTimeout(() => { recognizeStatus.value = '' }, 3000)
+    ElMessage({ message: '识别失败：' + (err.message || '未知错误'), type: 'error', duration: 2000 })
   } finally {
     recognizing.value = false
   }
+}
+
+async function handlePaste(e: ClipboardEvent) {
+  const items = e.clipboardData?.items
+  if (!items) return
+
+  let file: File | null = null
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      file = item.getAsFile()
+      break
+    }
+  }
+  if (!file) return
+  e.preventDefault()
+  processImage(file)
 }
 
 function resetSelection() {
@@ -363,7 +375,6 @@ function resetSelection() {
 function handleImgError(e: Event) {
   const img = e.target as HTMLImageElement
   img.style.display = 'none'
-  // Show placeholder
   const placeholder = img.parentElement?.querySelector('.avatar-placeholder') as HTMLElement
   if (placeholder) placeholder.style.display = 'flex'
 }
@@ -383,135 +394,74 @@ onMounted(async () => {
 
 <template>
   <div class="operators-page">
-    <!-- 精一模式按钮 -->
-    <button
-      class="mode-toggle-btn e1-btn"
-      :class="{ active: e1Mode }"
-      @click="e1Mode = !e1Mode"
-    >
-      {{ e1Mode ? '精一模式' : '精二模式' }}
-    </button>
-    <!-- 右上角切换按钮 -->
-    <button
-      class="mode-toggle-btn mode-btn"
-      :title="skillDisplayMode === 0 ? '切换到文字模式' : '切换到图标模式'"
-      @click="skillDisplayMode = skillDisplayMode === 0 ? 1 : 0"
-    >
-      {{ skillDisplayMode === 0 ? '☰ 文字' : '▣ 图标' }}
-    </button>
-
-    <!-- 顶部筛选栏 -->
     <div class="filter-bar">
-      <div class="filter-section">
-        <span class="filter-label">星级</span>
-        <div class="filter-group">
-          <button
-            v-for="(r, i) in RARITIES"
-            :key="r"
-            class="filter-btn"
-            :class="['star-' + (i + 1), { active: isStarActive(r) }]"
-            @click="toggleStar(r)"
-          >
-            {{ i + 1 }}★
-          </button>
-          <button class="filter-btn" :class="{ active: selectedStars.size === 0 }" @click="clearStars" title="不限星级">不限</button>
+      <div class="filter-left">
+        <div class="filter-row">
+          <span class="filter-label">星级</span>
+          <div class="filter-group">
+            <button v-for="(r, i) in RARITIES" :key="r" class="filter-btn" :class="['star-' + (i + 1), { active: isStarActive(r) }]" @click="toggleStar(r)">
+              {{ i + 1 }}★
+            </button>
+            <button class="filter-btn" :class="{ active: selectedStars.size === 0 }" @click="clearStars" title="不限星级">不限</button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">职业</span>
+          <div class="filter-group">
+            <button v-for="p in PROFESSIONS" :key="p" class="filter-btn" :class="{ active: isClassActive(p) }" @click="toggleClass(p)">
+              {{ p }}
+            </button>
+            <button class="filter-btn" :class="{ active: selectedClasses.size === 0 }" @click="clearClasses" title="不限职业">不限</button>
+          </div>
         </div>
       </div>
-      <div class="filter-section">
-        <span class="filter-label">职业</span>
-        <div class="filter-group">
-          <button
-            v-for="p in PROFESSIONS"
-            :key="p"
-            class="filter-btn"
-            :class="{ active: isClassActive(p) }"
-            @click="toggleClass(p)"
-          >
-            {{ p }}
-          </button>
-          <button class="filter-btn" :class="{ active: selectedClasses.size === 0 }" @click="clearClasses" title="不限职业">不限</button>
+      <div class="filter-right">
+        <div class="filter-row">
+          <button class="mode-toggle-btn" :class="{ active: e1Mode }" @click="e1Mode = !e1Mode">{{ e1Mode ? '精一模式' : '精二模式' }}</button>
+          <button class="mode-toggle-btn" :class="{ active: skillDisplayMode === 1 }" @click="skillDisplayMode = skillDisplayMode === 0 ? 1 : 0">{{ skillDisplayMode === 0 ? '☰ 文字' : '▣ 图标' }}</button>
+        </div>
+        <div class="filter-row">
+          <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="handleFileUpload" />
+          <div class="paste-group">
+            <button class="upload-btn" @click="triggerUpload" :disabled="recognizing" title="上传图片">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </button>
+            <textarea ref="pasteTarget" class="paste-input" :placeholder="recognizing ? '识别中...' : '粘贴图片进行识别'" :disabled="recognizing" @paste="handlePaste" readonly></textarea>
+          </div>
+          <button class="reset-selection-btn" @click="resetSelection" :disabled="selectedOperators.size === 0">重置选中</button>
+          <button class="generate-btn" @click="handleGenerate" :disabled="selectedOperators.size === 0">生成</button>
         </div>
       </div>
-      <button class="recognize-btn" @click="triggerRecognize" :disabled="recognizing">{{ recognizing ? '识别中...' : '图像识别' }}</button>
-      <input ref="fileInput" type="file" accept="image/*" style="display:none" @change="handleRecognize" />
-      <div class="recognize-status" v-if="recognizeStatus">{{ recognizeStatus }}</div>
-      <button class="reset-selection-btn" @click="resetSelection" :disabled="selectedOperators.size === 0">重置选中</button>
-      <button class="generate-btn" @click="handleGenerate" :disabled="selectedOperators.size === 0">生成</button>
     </div>
 
-    <!-- 统计栏 -->
     <div class="stats-bar">
       <span>显示: <span class="count">{{ displayCount }}</span> / {{ totalCount }} 干员</span>
       <span class="selected-info" v-if="selectedInfo">{{ selectedInfo }}</span>
     </div>
 
-    <!-- 加载状态 -->
     <div v-if="loading" class="empty-state">加载中...</div>
     <div v-else-if="loadError" class="empty-state">加载 operators.json 失败: {{ loadError }}</div>
 
-    <!-- 干员网格 -->
     <div v-else class="operators-grid" :class="{ 'e1-mode': e1Mode }">
       <template v-for="{ rarity, op } in filteredOperators" :key="op.name">
-        <div
-          class="operator-card"
-          :class="{ selected: isSelected(op.name) }"
-          :data-rarity="getRarityNum(rarity)"
-          @click="toggleOperator(op)"
-        >
+        <div class="operator-card" :class="{ selected: isSelected(op.name) }" :data-rarity="getRarityNum(rarity)" @click="toggleOperator(op)">
           <div class="avatar-wrapper">
             <div class="rarity-badge">★{{ getRarityNum(rarity) }}</div>
-            <img
-              :src="getAvatarUrl(op.avatar_url)"
-              :alt="op.name"
-              loading="lazy"
-              @error="handleImgError"
-            />
-            <div class="avatar-placeholder" style="display: none">
-              {{ getFirstChar(op.name) }}
-            </div>
+            <img :src="getAvatarUrl(op.avatar_url)" :alt="op.name" loading="lazy" @error="handleImgError" />
+            <div class="avatar-placeholder" style="display: none">{{ getFirstChar(op.name) }}</div>
           </div>
           <div class="operator-info">
             <div class="operator-name" :title="op.name">{{ op.name }}</div>
             <div class="operator-profession">{{ op.profession }}</div>
-            <!-- 图标模式：精二固定3个槽位，精一固定2个槽位 -->
             <div v-if="skillDisplayMode === 0" class="skills-icon-row">
-              <div
-                v-for="idx in (e1Mode ? 2 : 3)"
-                :key="idx"
-                class="skill-icon-slot"
-                :class="{
-                  empty: !getVisibleSkills(op)[idx - 1],
-                  selected: getVisibleSkills(op)[idx - 1] && isSkillSelected(op.name + '::' + getVisibleSkills(op)[idx - 1])
-                }"
-                @click.stop="getVisibleSkills(op)[idx - 1] && toggleSkill(op.name, op.name + '::' + getVisibleSkills(op)[idx - 1])"
-              >
-                <img
-                  v-if="getVisibleSkills(op)[idx - 1]"
-                  :src="getSkillIconUrl(op.name, getVisibleSkills(op)[idx - 1])"
-                  :alt="getVisibleSkills(op)[idx - 1]"
-                  :title="getVisibleSkills(op)[idx - 1]"
-                  class="skill-icon-img"
-                  @error="($event.target as HTMLImageElement).style.display='none'"
-                />
+              <div v-for="idx in (e1Mode ? 2 : 3)" :key="idx" class="skill-icon-slot" :class="{ empty: !getVisibleSkills(op)[idx - 1], selected: getVisibleSkills(op)[idx - 1] && isSkillSelected(op.name + '::' + getVisibleSkills(op)[idx - 1]) }" @click.stop="getVisibleSkills(op)[idx - 1] && toggleSkill(op.name, op.name + '::' + getVisibleSkills(op)[idx - 1])">
+                <img v-if="getVisibleSkills(op)[idx - 1]" :src="getSkillIconUrl(op.name, getVisibleSkills(op)[idx - 1])" :alt="getVisibleSkills(op)[idx - 1]" :title="getVisibleSkills(op)[idx - 1]" class="skill-icon-img" @error="($event.target as HTMLImageElement).style.display='none'" />
               </div>
             </div>
-            <!-- 文字+图标模式 -->
             <div v-else class="skills-list">
               <template v-if="getVisibleSkills(op).length > 0">
-                <span
-                  v-for="skill in getVisibleSkills(op)"
-                  :key="skill"
-                  class="skill-tag"
-                  :class="{ selected: isSkillSelected(op.name + '::' + skill) }"
-                  :title="skill"
-                  @click.stop="toggleSkill(op.name, op.name + '::' + skill)"
-                >
-                  <img
-                    :src="getSkillIconUrl(op.name, skill)"
-                    :alt="skill"
-                    class="skill-icon"
-                    @error="($event.target as HTMLImageElement).style.display='none'"
-                  />
+                <span v-for="skill in getVisibleSkills(op)" :key="skill" class="skill-tag" :class="{ selected: isSkillSelected(op.name + '::' + skill) }" :title="skill" @click.stop="toggleSkill(op.name, op.name + '::' + skill)">
+                  <img :src="getSkillIconUrl(op.name, skill)" :alt="skill" class="skill-icon" @error="($event.target as HTMLImageElement).style.display='none'" />
                   {{ skill }}
                 </span>
               </template>
@@ -520,568 +470,89 @@ onMounted(async () => {
           </div>
         </div>
       </template>
-
-      <div v-if="filteredOperators.length === 0" class="empty-state">
-        没有符合条件的干员
-      </div>
+      <div v-if="filteredOperators.length === 0" class="empty-state">没有符合条件的干员</div>
       <div class="bottom-spacer"></div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.operators-page {
-  min-height: 100vh;
-  background: #1a1a2e;
-  color: #e0e0e0;
-  position: relative;
-}
-
-/* 右上角按钮 */
-.mode-toggle-btn {
-  position: fixed;
-  top: 12px;
-  z-index: 200;
-  padding: 6px 14px;
-  border: 1px solid #445577;
-  border-radius: 6px;
-  background: #1e2a45;
-  color: #aaccee;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-}
-
-.mode-btn {
-  right: 16px;
-}
-
-.e1-btn {
-  right: 110px;
-}
-
-.mode-toggle-btn:hover {
-  background: #2a3a5a;
-  border-color: #6688bb;
-  color: #ffffff;
-}
-
-.mode-toggle-btn.active {
-  background: #0f3460;
-  border-color: #2980b9;
-  color: #ffffff;
-}
-
-/* 顶部筛选栏 */
-.filter-bar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: #16213e;
-  border-bottom: 2px solid #0f3460;
-  padding: 16px 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.filter-section {
-  margin-bottom: 10px;
-}
-
-.filter-section:last-child {
-  margin-bottom: 0;
-}
-
-.filter-label {
-  display: inline-block;
-  font-size: 13px;
-  color: #8899aa;
-  margin-right: 10px;
-  min-width: 50px;
-  vertical-align: middle;
-  user-select: none;
-}
-
-.filter-group {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  vertical-align: middle;
-  align-items: center;
-}
-
-.filter-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 14px;
-  border: 1px solid #334466;
-  border-radius: 4px;
-  background: #1a1a2e;
-  color: #99aabb;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  user-select: none;
-  white-space: nowrap;
-}
-
-.filter-btn:hover {
-  border-color: #5588bb;
-  color: #ccddeeff;
-  background: #223355;
-}
-
-.filter-btn.active {
-  background: #0f3460;
-  border-color: #2980b9;
-  color: #ffffff;
-  box-shadow: 0 0 8px rgba(41, 128, 185, 0.3);
-}
-
-.star-1.active {
-  background: #555555;
-  border-color: #888888;
-}
-.star-2.active {
-  background: #5a7a3a;
-  border-color: #88aa55;
-}
-.star-3.active {
-  background: #3a5a7a;
-  border-color: #5588bb;
-}
-.star-4.active {
-  background: #6a4a8a;
-  border-color: #9966cc;
-}
-.star-5.active {
-  background: #8a7a2a;
-  border-color: #ccaa33;
-}
-.star-6.active {
-  background: #8a4a2a;
-  border-color: #ff8833;
-}
-
-.reset-selection-btn {
-  position: absolute;
-  right: 108px;
-  bottom: 12px;
-  padding: 6px 16px;
-  border: 1px solid #445566;
-  border-radius: 4px;
-  background: #1a2a3e;
-  color: #99aabb;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.reset-selection-btn:hover:not(:disabled) {
-  background: #223344;
-  border-color: #557788;
-  color: #ccddeeff;
-}
-
-.reset-selection-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.generate-btn {
-  position: absolute;
-  right: 20px;
-  bottom: 12px;
-  padding: 6px 20px;
-  border: 1px solid #2980b9;
-  border-radius: 4px;
-  background: #0f3460;
-  color: #ffffff;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.generate-btn:hover:not(:disabled) {
-  background: #2980b9;
-  box-shadow: 0 0 8px rgba(41, 128, 185, 0.4);
-}
-
-.generate-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.recognize-btn {
-  position: absolute;
-  right: 204px;
-  bottom: 12px;
-  padding: 6px 16px;
-  border: 1px solid #445566;
-  border-radius: 4px;
-  background: #1a2a3e;
-  color: #99aabb;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.recognize-btn:hover:not(:disabled) {
-  background: #223344;
-  border-color: #557788;
-  color: #ccddeeff;
-}
-
-.recognize-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.recognize-status {
-  position: absolute;
-  right: 340px;
-  bottom: 16px;
-  font-size: 12px;
-  color: #88aacc;
-  white-space: nowrap;
-  max-width: 300px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 统计栏 */
-.stats-bar {
-  padding: 10px 20px;
-  background: #1a1a2e;
-  font-size: 13px;
-  color: #667788;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid #222244;
-}
-
-.stats-bar .count {
-  color: #2980b9;
-  font-weight: bold;
-}
-
-.selected-info {
-  margin-left: auto;
-  font-size: 12px;
-  color: #889;
-}
-
-/* 干员网格 */
-.operators-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
-  padding: 16px 20px;
-}
-
-/* 干员卡片 */
-.operator-card {
-  background: #1e2a40;
-  border: 2px solid #2a3a55;
-  border-radius: 8px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-}
-
-
-.operator-card.selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 12px rgba(255, 102, 0, 0.3);
-}
-
-.operator-card.selected::after {
-  content: '✓';
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 16px;
-  color: #ff6600;
-  font-weight: bold;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-  z-index: 2;
-}
-
-/* 星级边框颜色 */
-.operator-card[data-rarity='1'] {
-  border-color: #444;
-}
-.operator-card[data-rarity='2'] {
-  border-color: #556644;
-}
-.operator-card[data-rarity='3'] {
-  border-color: #335577;
-}
-.operator-card[data-rarity='4'] {
-  border-color: #664488;
-}
-.operator-card[data-rarity='5'] {
-  border-color: #887733;
-}
-.operator-card[data-rarity='6'] {
-  border-color: #885522;
-}
-
-.operator-card[data-rarity='1'].selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
-}
-.operator-card[data-rarity='2'].selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
-}
-.operator-card[data-rarity='3'].selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
-}
-.operator-card[data-rarity='4'].selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
-}
-.operator-card[data-rarity='5'].selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
-}
-.operator-card[data-rarity='6'].selected {
-  border-color: #ff6600;
-  box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
-}
-
-/* 头像区域 */
-.avatar-wrapper {
-  width: 100%;
-  aspect-ratio: 1;
-  background: #16213e;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.avatar-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  font-weight: bold;
-  color: #556677;
-  background: linear-gradient(135deg, #1a2a3e, #16213e);
-}
-
-.rarity-badge {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  color: #ffcc00;
-  font-weight: bold;
-  z-index: 1;
-}
-
-/* 干员信息区域 */
-.operator-info {
-  padding: 8px 4px;
-}
-
-.operator-name {
-  font-size: 13px;
-  font-weight: bold;
-  color: #ddeeff;
-  margin-bottom: 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.operator-profession {
-  font-size: 11px;
-  color: #7799aa;
-  margin-bottom: 6px;
-}
-
-/* 技能标签 */
-.skills-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.skill-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  background: #162838;
-  border: 1px solid #2a4055;
-  border-radius: 3px;
-  font-size: 13px;
-  color: #88aacc;
-  cursor: pointer;
-  transition: all 0.15s;
-  user-select: none;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.skill-tag:hover {
-  background: #1a3a55;
-  border-color: #4488aa;
-  color: #aaddee;
-}
-
-.skill-tag.selected {
-  background: #003318;
-  border-color: #00cc44;
-  color: #66ff99;
-  box-shadow: 0 0 6px rgba(0, 204, 68, 0.35), 0 0 12px rgba(0, 204, 68, 0.15);
-}
-
-.skill-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-/* 图标模式：3个固定位置 */
-.skills-icon-row {
-  display: flex;
-  gap: 4px;
-  padding: 2px;
-}
-
-.skill-icon-slot {
-  flex: 1;
-  background: #16213e;
-  border: 2px solid #2a3a55;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
-  position: relative;
-  padding: 0;
-  line-height: 0;
-}
-
-.skill-icon-slot.empty {
-  background: transparent;
-  border-color: transparent;
-  cursor: default;
-  pointer-events: none;
-}
-
-.skill-icon-slot:not(.empty):hover {
-  background: #1a3050;
-  border-color: #4488aa;
-}
-
-.e1-mode .skill-icon-slot:not(.empty) {
-  transform: scale(0.9);
-}
-
-.skill-icon-slot {
-  overflow: visible;
-}
-
-.skill-icon-slot.selected {
-  z-index: 1;
-  box-shadow: 0 0 8px rgba(0, 220, 80, 0.45), 0 0 16px rgba(0, 220, 80, 0.2);
-}
-
-.skill-icon-slot.selected .skill-icon-img {
-  transform: translateY(-4px);
-}
-
-.skill-icon-slot.selected::before {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: -2px;
-  right: -2px;
-  height: 4px;
-  background: #00cc44;
-  box-shadow: 0 0 6px rgba(0, 204, 68, 0.7), 0 0 12px rgba(0, 204, 68, 0.4);
-  z-index: 3;
-}
-
-
-.skill-icon-img {
-  display: block;
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
-  margin: -2px;
-  object-fit: contain;
-}
-
-.no-skills {
-  font-size: 11px;
-  color: #556;
-  font-style: italic;
-}
-
-/* 空状态 */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #556677;
-  font-size: 16px;
-  grid-column: 1 / -1;
-}
-
-/* 底部间距 */
-.bottom-spacer {
-  height: 40px;
-  grid-column: 1 / -1;
-}
-
-/* 响应式 */
+.operators-page { min-height: 100vh; background: #1a1a2e; color: #e0e0e0; position: relative; }
+.filter-bar { position: sticky; top: 0; z-index: 100; background: #16213e; border-bottom: 2px solid #0f3460; padding: 12px 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4); display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.filter-left { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.filter-right { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.filter-row { display: flex; align-items: center; gap: 10px}
+.mode-toggle-btn { padding: 5px 12px; border: 1px solid #445577; border-radius: 5px; background: #1e2a45; color: #aaccee; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.mode-toggle-btn:hover { background: #2a3a5a; border-color: #6688bb; color: #ffffff; }
+.mode-toggle-btn.active { background: #0f3460; border-color: #2980b9; color: #ffffff; }
+.filter-label { font-size: 13px; color: #8899aa; min-width: 50px; user-select: none; }
+.filter-group { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.filter-btn { display: inline-flex; align-items: center; padding: 5px 14px; border: 1px solid #334466; border-radius: 4px; background: #1a1a2e; color: #99aabb; font-size: 13px; cursor: pointer; transition: all 0.2s; user-select: none; white-space: nowrap; }
+.filter-btn:hover { border-color: #5588bb; color: #ccddeeff; background: #223355; }
+.filter-btn.active { background: #0f3460; border-color: #2980b9; color: #ffffff; box-shadow: 0 0 8px rgba(41, 128, 185, 0.3); }
+.star-1.active { background: #555555; border-color: #888888; }
+.star-2.active { background: #5a7a3a; border-color: #88aa55; }
+.star-3.active { background: #3a5a7a; border-color: #5588bb; }
+.star-4.active { background: #6a4a8a; border-color: #9966cc; }
+.star-5.active { background: #8a7a2a; border-color: #ccaa33; }
+.star-6.active { background: #8a4a2a; border-color: #ff8833; }
+.paste-group { display: flex; align-items: stretch; }
+.upload-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid #445566; border-right: none; border-radius: 4px 0 0 4px; background: #1e2a45; color: #aaccee; cursor: pointer; transition: all 0.2s; flex-shrink: 0; padding: 0; }
+.upload-btn:hover:not(:disabled) { background: #2a3a5a; color: #ffffff; }
+.upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.paste-input { width: 200px; height: 23px; line-height: 23px; padding: 4px 10px; border: 1px solid #445566; border-radius: 0 4px 4px 0; background: #1a1a2e; color: #aaccee; font-size: 13px; resize: none; outline: none; transition: border-color 0.2s; vertical-align: middle; }
+.paste-input:focus { border-color: #2980b9; box-shadow: 0 0 6px rgba(41, 128, 185, 0.3); }
+.paste-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.paste-input::placeholder { color: #556677; }
+.reset-selection-btn { padding: 6px 16px; border: 1px solid #445566; border-radius: 4px; background: #1a2a3e; color: #99aabb; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.reset-selection-btn:hover:not(:disabled) { background: #223344; border-color: #557788; color: #ccddeeff; }
+.reset-selection-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.generate-btn { margin-left: auto; padding: 6px 20px; border: 1px solid #2980b9; border-radius: 4px; background: #0f3460; color: #ffffff; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.generate-btn:hover:not(:disabled) { background: #2980b9; box-shadow: 0 0 8px rgba(41, 128, 185, 0.4); }
+.generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.stats-bar { padding: 10px 20px; background: #1a1a2e; font-size: 13px; color: #667788; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #222244; }
+.stats-bar .count { color: #2980b9; font-weight: bold; }
+.selected-info { margin-left: auto; font-size: 12px; color: #889; }
+.operators-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 16px 20px; }
+.operator-card { background: #1e2a40; border: 2px solid #2a3a55; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.2s; position: relative; }
+.operator-card.selected { border-color: #ff6600; box-shadow: 0 0 12px rgba(255, 102, 0, 0.3); }
+.operator-card.selected::after { content: '✓'; position: absolute; top: 6px; right: 8px; font-size: 16px; color: #ff6600; font-weight: bold; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); z-index: 2; }
+.operator-card[data-rarity='1'] { border-color: #444; }
+.operator-card[data-rarity='2'] { border-color: #556644; }
+.operator-card[data-rarity='3'] { border-color: #335577; }
+.operator-card[data-rarity='4'] { border-color: #664488; }
+.operator-card[data-rarity='5'] { border-color: #887733; }
+.operator-card[data-rarity='6'] { border-color: #885522; }
+.operator-card[data-rarity='1'].selected, .operator-card[data-rarity='2'].selected, .operator-card[data-rarity='3'].selected, .operator-card[data-rarity='4'].selected, .operator-card[data-rarity='5'].selected, .operator-card[data-rarity='6'].selected { border-color: #ff6600; box-shadow: 0 0 10px rgba(255, 102, 0, 0.3); }
+.avatar-wrapper { width: 100%; aspect-ratio: 1; background: #16213e; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+.avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: bold; color: #556677; background: linear-gradient(135deg, #1a2a3e, #16213e); }
+.rarity-badge { position: absolute; top: 4px; left: 4px; background: rgba(0, 0, 0, 0.7); padding: 1px 6px; border-radius: 3px; font-size: 11px; color: #ffcc00; font-weight: bold; z-index: 1; }
+.operator-info { padding: 8px 4px; }
+.operator-name { font-size: 13px; font-weight: bold; color: #ddeeff; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.operator-profession { font-size: 11px; color: #7799aa; margin-bottom: 6px; }
+.skills-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.skill-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; background: #162838; border: 1px solid #2a4055; border-radius: 3px; font-size: 13px; color: #88aacc; cursor: pointer; transition: all 0.15s; user-select: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-tag:hover { background: #1a3a55; border-color: #4488aa; color: #aaddee; }
+.skill-tag.selected { background: #003318; border-color: #00cc44; color: #66ff99; box-shadow: 0 0 6px rgba(0, 204, 68, 0.35), 0 0 12px rgba(0, 204, 68, 0.15); }
+.skill-icon { width: 18px; height: 18px; object-fit: contain; flex-shrink: 0; }
+.skills-icon-row { display: flex; gap: 4px; padding: 2px; }
+.skill-icon-slot { flex: 1; background: #16213e; border: 2px solid #2a3a55; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s; position: relative; padding: 0; line-height: 0; overflow: visible; }
+.skill-icon-slot.empty { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+.skill-icon-slot:not(.empty):hover { background: #1a3050; border-color: #4488aa; }
+.e1-mode .skill-icon-slot:not(.empty) { transform: scale(0.9); }
+.skill-icon-slot.selected { z-index: 1; box-shadow: 0 0 8px rgba(0, 220, 80, 0.45), 0 0 16px rgba(0, 220, 80, 0.2); }
+.skill-icon-slot.selected .skill-icon-img { transform: translateY(-4px); }
+.skill-icon-slot.selected::before { content: ''; position: absolute; bottom: -2px; left: -2px; right: -2px; height: 4px; background: #00cc44; box-shadow: 0 0 6px rgba(0, 204, 68, 0.7), 0 0 12px rgba(0, 204, 68, 0.4); z-index: 3; }
+.skill-icon-img { display: block; width: calc(100% + 4px); height: calc(100% + 4px); margin: -2px; object-fit: contain; }
+.no-skills { font-size: 11px; color: #556; font-style: italic; }
+.empty-state { text-align: center; padding: 60px 20px; color: #556677; font-size: 16px; grid-column: 1 / -1; }
+.bottom-spacer { height: 40px; grid-column: 1 / -1; }
 @media (max-width: 600px) {
-  .operators-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 8px;
-    padding: 10px;
-  }
-  .filter-bar {
-    padding: 10px 12px;
-  }
-  .filter-btn {
-    padding: 4px 10px;
-    font-size: 12px;
-  }
-  .operator-name {
-    font-size: 12px;
-  }
-  .skill-tag {
-    font-size: 10px;
-    padding: 1px 6px;
-  }
-  .mode-toggle-btn {
-    top: 8px;
-    right: 10px;
-    padding: 4px 10px;
-    font-size: 12px;
-  }
+  .operators-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; padding: 10px; }
+  .filter-bar { padding: 10px 12px; }
+  .filter-btn { padding: 4px 10px; font-size: 12px; }
+  .operator-name { font-size: 12px; }
+  .skill-tag { font-size: 10px; padding: 1px 6px; }
 }
 </style>
