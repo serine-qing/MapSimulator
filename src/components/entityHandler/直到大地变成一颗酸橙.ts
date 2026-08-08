@@ -71,7 +71,7 @@ class act53side implements Handler{
   handleEnemyStart(enemy: Enemy) {
     switch (enemy.key) {
       case "enemy_10222_agtski":
-      case "enemy_10222_agtski_2": //
+      case "enemy_10222_agtski_2": //矿工
         enemy.addDetection({
           key: "agtski",
           detectionRadius: 0.5,
@@ -89,6 +89,23 @@ class act53side implements Handler{
             enemy.removeDetection("agtski");
           }
         });
+        break;
+      case "enemy_10228_agball":
+      case "enemy_10228_agball_2": //美食的奴隶
+        const defup = enemy.getTalent("defup");
+        const moveUp = defup.move_speed;
+        if(moveUp){
+          enemy.addBuff({
+            id: "moveUp",
+            key: "moveUp",
+            overlay: false,
+            effect: [{
+              attrKey: "moveSpeed",
+              method: "mul",
+              value: moveUp
+            }]
+          })
+        }
         break;
     }
   }
