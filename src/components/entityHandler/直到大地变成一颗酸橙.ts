@@ -107,6 +107,9 @@ class act53side implements Handler{
           })
         }
         break;
+      case "enemy_10232_aglina":  //信使3安洁莉娜
+        enemy.dontBlockWave = true;
+        break;
     }
   }
   
