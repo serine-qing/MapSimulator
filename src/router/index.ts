@@ -6,7 +6,7 @@ const routes = [
     path:"/", component: IndexView
   },
   {
-    path:"/cc", component: () => import("@/pages/CrisisContractMap.vue")
+    path:"/operators", component: () => import("@/pages/Operators.vue")
   }
 ]
 
