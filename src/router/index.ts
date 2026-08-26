@@ -5,9 +5,9 @@ const routes = [
   {
     path:"/", component: IndexView
   },
-  {
-    path:"/operators", component: () => import("@/pages/Operators.vue")
-  }
+  // {
+  //   path:"/operators", component: () => import("@/pages/Operators.vue")
+  // }
 ]
 
 const router = createRouter({
