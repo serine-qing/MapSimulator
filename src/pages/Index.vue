@@ -1,36 +1,12 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
-import Menu from '@/pages/Menu.vue';
-import Game from "@/pages/Game.vue"
 import Header from "@/pages/Header.vue"
-
-const game = ref();
-const handleChangeStage = (map: any) => {
-  game.value.newGame(map);
-}
-
 </script>
 
 <template>
-
 <div class="index">
   <Header></Header>
-  <div class="content">
-    <Menu  @changeStage = "handleChangeStage"/>
-    <div class="main">
-      <Game 
-        ref="game"
-      />
-
-      <div class="beian">
-        <img src="/beian.png" alt="">
-        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=51011402000931" rel="noreferrer" target="_blank">川公网安备51011402000931号</a>
-      </div>
-    </div>
-  </div>
-
+  <router-view />
 </div>
-  
 </template>
 
 <style>

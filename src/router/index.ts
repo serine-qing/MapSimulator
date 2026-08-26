@@ -3,10 +3,22 @@ import IndexView from "@/pages/Index.vue"
 
 const routes = [
   {
-    path:"/", component: IndexView
-  },
-  {
-    path:"/operators", component: () => import("@/pages/Operators.vue")
+    path:"/",
+    component: IndexView,
+    children: [
+      {
+        path: "",
+        component: () => import("@/pages/Home.vue")
+      },
+      {
+        path: "sponsor",
+        component: () => import("@/pages/Sponsor.vue")
+      },
+      {
+        path: "operators",
+        component: () => import("@/pages/Operators.vue")
+      }
+    ]
   }
 ]
 

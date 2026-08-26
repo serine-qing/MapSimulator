@@ -1,79 +1,89 @@
 <template>
-  <div class="language">
-    <div 
-      v-for="language in languages"
-      :class="{active: currentLang === language.key}"
-      class="language-button"
-      @click="currentLang = language.key"
-    >{{language.name}}</div>
-  </div>
-  
+  <el-dropdown trigger="click" @command="handleCommand" size="small">
+    <span class="language-trigger">
+      <span>{{ currentLangLabel }}</span>
+      <el-icon class="arrow"><ArrowDown /></el-icon>
+    </span>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item
+          v-for="lang in languages"
+          :key="lang.key"
+          :command="lang.key"
+          :class="{ active: currentLang === lang.key }"
+        >
+          {{ lang.key }} {{ lang.name }}
+        </el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { ArrowDown } from '@element-plus/icons-vue';
 
 const languages = [
-  {
-    key: "CN",
-    name: "简体中文"
-  },
-  {
-    key: "JP",
-    name: "日本語"
-  },
-  {
-    key: "EN",
-    name: "English"
-  },
-  {
-    key: "KR",
-    name: "한국어"
-  },
+  { key: "CN", name: "简体中文" },
+  { key: "JP", name: "日本語" },
+  { key: "EN", name: "English" },
+  { key: "KR", name: "한국어" },
 ];
 
-if(!localStorage.currentLang){
+if (!localStorage.currentLang) {
   localStorage.currentLang = "CN";
 }
 
 const currentLang = ref(localStorage.currentLang);
 
+const currentLangLabel = computed(() => {
+  const lang = languages.find(l => l.key === currentLang.value);
+  return lang ? `${lang.key} ${lang.name}` : "CN 简体中文";
+});
+
+const handleCommand = (key: string) => {
+  currentLang.value = key;
+};
+
 watch(currentLang, () => {
   localStorage.currentLang = currentLang.value;
   window.location.reload();
 })
-
 </script>
 
 <style lang="scss" scoped>
-.language{
-  display: flex;
-  justify-content: center;
+.language-trigger {
+  display: inline-flex;
   align-items: center;
-  .title{
-    font-size: 18px;
-    color: #409eff;
-    margin: 4px 0;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 12px;
+  width: 100px;
+  background: var(--primary-light, #eef2ff);
+  border: 1px solid var(--primary, #4361ee);
+  border-radius: 6px;
+  color: var(--primary, #4361ee);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--primary, #4361ee);
+    color: white;
+  }
+
+  .arrow {
+    font-size: 12px;
+    margin-left: 2px;
   }
 }
 
-.language-button {
-  background: var(--primary-light);
-  border: 1px solid var(--border);
-  color: var(--primary);
-  padding: 8px 15px;
-  border-radius: 6px;
-  margin-right: 8px;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  font-size: 14px;
-  &.active, &:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px rgba(67, 97, 238, 0.3);
+:deep(.el-dropdown-menu__item) {
+  &.active {
+    color: var(--primary, #4361ee);
+    font-weight: 600;
+    background: var(--primary-light, #eef2ff);
   }
 }
 </style>

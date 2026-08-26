@@ -1,5 +1,7 @@
 <template>
   <div class="toolbar">
+    <router-link to="/" class="nav-link">模拟器</router-link>
+    <router-link to="/sponsor" class="nav-link">赞助我</router-link>
     <Language></Language>
     <div class="checkboxs">
 
@@ -66,6 +68,24 @@ eventBus.on("update:countDownIndet", (value) => {
 .toolbar{
   display: flex;
   align-items: center;
+  gap: 10px;
+}
+.nav-link {
+  padding: 6px 12px;
+  background: var(--primary-light, #eef2ff);
+  border: 1px solid var(--primary, #4361ee);
+  color: var(--primary, #4361ee);
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover {
+    background: var(--primary, #4361ee);
+    color: white;
+  }
 }
 .checkboxs{
   margin-left: 10px;
