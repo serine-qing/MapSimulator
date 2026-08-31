@@ -8,21 +8,26 @@
         <p class="tagline">您的赞助能维持我的服务器费用，并让我更好的开发模拟器</p>
       </div>
 
-      <!-- 赞助卡片 -->
-      <div class="cards">
-        <a href="https://afdian.com/a/lutonada" target="_blank" class="card-link">
-          <img src="/afdian.jpg" alt="爱发电" class="sponsor-img">
-        </a>
-      </div>
+      <!-- 内容区域：卡片和名单左右布局 -->
+      <div class="content-row">
+        <!-- 赞助卡片 -->
+        <div class="cards">
+          <a href="https://afdian.com/a/lutonada" target="_blank" class="card-link">
+            <img src="/afdian.jpg" alt="爱发电" class="sponsor-img">
+          </a>
+        </div>
 
-      <!-- 赞助名单 -->
-      <div class="donors-section" v-if="donors.length > 0">
-        <h2>赞助名单</h2>
-        <div class="donors-list">
-          <div v-if="donors.length === 0" class="empty">暂无赞助记录</div>
-          <div v-else class="donor-item" v-for="donor in donors" :key="donor.name">
-            <span class="donor-name">{{ donor.name }}</span>
-            <span class="donor-amount">{{ donor.amount }}</span>
+        <!-- 赞助名单 -->
+        <div class="donors-section">
+          <h2>感谢名单</h2>
+          <div class="donors-list">
+            <div v-if="loading" class="empty">加载中...</div>
+            <div v-else-if="donors.length === 0" class="empty">暂无赞助记录</div>
+            <div v-else class="donor-item" v-for="donor in donors" :key="donor.name">
+              <img v-if="donor.avatar" :src="donor.avatar" class="donor-avatar" alt="avatar">
+              <span class="donor-name">{{ donor.name }}</span>
+              <span class="donor-amount">{{ donor.amount }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -31,13 +36,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import request from '@/api/request';
 
-// 赞助名单 - 在这里添加赞助者信息
-const donors = ref([
-  // { name: "赞助者1", amount: "¥50" },
-  // { name: "赞助者2", amount: "¥100" },
-]);
+interface Donor {
+  name: string;
+  amount: string;
+  avatar?: string;
+}
+
+const donors = ref<Donor[]>([]);
+const loading = ref(true);
+
+const fetchSponsors = async () => {
+  try {
+    loading.value = true;
+    const { data } = await request.get('/sponsors');
+    // 按金额从高到低排序
+    donors.value = data.sort((a: Donor, b: Donor) => {
+      const amountA = parseFloat(a.amount.replace('¥', '')) || 0;
+      const amountB = parseFloat(b.amount.replace('¥', '')) || 0;
+      return amountB - amountA;
+    });
+  } catch (e) {
+    console.error('获取赞助名单失败:', e);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchSponsors();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -52,7 +82,18 @@ const donors = ref([
 
 .sponsor-container {
   width: 100%;
-  max-width: 420px;
+  max-width: 900px;
+}
+
+.content-row {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  height: 600px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 }
 
 .header {
@@ -86,17 +127,22 @@ const donors = ref([
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+
+  .sponsor-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
 .card-link {
   display: block;
   border-radius: 12px;
   overflow: hidden;
-
-  .sponsor-img {
-    width: 100%;
-    display: block;
-  }
+  flex: 1;
 }
 
 .footer {
@@ -116,11 +162,15 @@ const donors = ref([
 }
 
 .donors-section {
-  margin-top: 24px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 20px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   h2 {
     margin: 0 0 16px;
@@ -131,7 +181,7 @@ const donors = ref([
 }
 
 .donors-list {
-  max-height: 200px;
+  flex: 1;
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -146,8 +196,8 @@ const donors = ref([
 
 .donor-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 10px;
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
@@ -157,14 +207,28 @@ const donors = ref([
     margin-bottom: 0;
   }
 
+  .donor-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
   .donor-name {
     color: #fff;
     font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .donor-amount {
     color: #f5576c;
     font-weight: 600;
+    flex-shrink: 0;
   }
 }
 
