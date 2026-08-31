@@ -13,10 +13,6 @@ const routes = [
       {
         path: "sponsor",
         component: () => import("@/pages/Sponsor.vue")
-      },
-      {
-        path: "operators",
-        component: () => import("@/pages/Operators.vue")
       }
     ]
   }

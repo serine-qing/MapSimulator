@@ -5,6 +5,7 @@
     </div>
 
     <div class="right">
+      <a href="/operators" target="_blank" class="header-link">少人Wiki编队识别器</a>
       <ToolBar></ToolBar>
     </div>
   </div>
@@ -33,6 +34,15 @@ import ToolBar from "./ToolBar.vue"
       color: var(--primary);
     }
 
+  }
+  .right{
+    display: flex;
+    align-items: center;
+  }
+
+  .header-link{
+    font-size: 14px;
+    margin-right: 20px;
   }
 }
 </style>

@@ -1,7 +1,6 @@
 <template>
   <div class="toolbar">
-    <router-link to="/" class="nav-link">模拟器</router-link>
-    <router-link to="/sponsor" class="nav-link">赞助我</router-link>
+    <router-link :to="navLink.to" class="nav-link">{{ navLink.text }}</router-link>
     <Language></Language>
     <div class="checkboxs">
 
@@ -35,7 +34,17 @@
 <script lang="ts" setup>
 import eventBus from '@/components/utilities/EventBus';
 import Language from "@/pages/Language.vue"
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
+import { useRoute } from 'vue-router';
+
+const route = useRoute();
+
+const navLink = computed(() => {
+  if (route.path === '/sponsor') {
+    return { to: '/', text: '返回' };
+  }
+  return { to: '/sponsor', text: '赞助我' };
+});
 
 const attackRangeCheckAll = ref(false);
 const attackRangeIndet = ref(false);

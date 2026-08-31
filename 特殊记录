@@ -35,3 +35,5 @@ crisis_v2_table.json
 backend\src\scripts\story activity_table.json stage_table.json
 
 统一代码缩进与风格：Shift + Alt + F
+
+重启nginx：/usr/local/nginx/sbin/nginx -s reload
