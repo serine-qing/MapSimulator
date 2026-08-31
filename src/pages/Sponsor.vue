@@ -37,7 +37,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import request from '@/api/request';
 
 interface Donor {
   name: string;
@@ -48,16 +47,22 @@ interface Donor {
 const donors = ref<Donor[]>([]);
 const loading = ref(true);
 
+const apiUrl = import.meta.env.VITE_API_URL || '';
+
 const fetchSponsors = async () => {
   try {
     loading.value = true;
-    const { data } = await request.get('/sponsors');
-    // 按金额从高到低排序
-    donors.value = data.sort((a: Donor, b: Donor) => {
-      const amountA = parseFloat(a.amount.replace('¥', '')) || 0;
-      const amountB = parseFloat(b.amount.replace('¥', '')) || 0;
-      return amountB - amountA;
-    });
+    const res = await fetch(apiUrl + 'sponsors');
+    if (!res.ok) throw new Error('加载失败: ' + res.status);
+    const result = await res.json();
+    if (result.success) {
+      // 按金额从高到低排序
+      donors.value = result.data.sort((a: Donor, b: Donor) => {
+        const amountA = parseFloat(a.amount.replace('¥', '')) || 0;
+        const amountB = parseFloat(b.amount.replace('¥', '')) || 0;
+        return amountB - amountA;
+      });
+    }
   } catch (e) {
     console.error('获取赞助名单失败:', e);
   } finally {
