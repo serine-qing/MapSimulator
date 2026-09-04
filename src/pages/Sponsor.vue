@@ -24,7 +24,7 @@
             <div v-if="loading" class="empty">加载中...</div>
             <div v-else-if="donors.length === 0" class="empty">暂无赞助记录</div>
             <div v-else class="donor-item" v-for="donor in donors" :key="donor.name">
-              <img v-if="donor.avatar" :src="donor.avatar" class="donor-avatar" alt="avatar">
+              <img :src="donor.avatar || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22%3E%3Ccircle cx=%2220%22 cy=%2220%22 r=%2220%22 fill=%22%23ffffff%22/%3E%3C/svg%3E'" class="donor-avatar" alt="avatar">
               <span class="donor-name">{{ donor.name }}</span>
               <span class="donor-amount">{{ donor.amount }}</span>
             </div>
@@ -49,6 +49,11 @@ const loading = ref(true);
 
 const apiUrl = import.meta.env.VITE_API_URL || '';
 
+// 本地配置的赞助者（不在爱发电上的）
+const localDonors: Donor[] = [
+  { name: "薯条鹈鹕", amount: "¥50.00", avatar: "" },
+];
+
 const fetchSponsors = async () => {
   try {
     loading.value = true;
@@ -56,8 +61,10 @@ const fetchSponsors = async () => {
     if (!res.ok) throw new Error('加载失败: ' + res.status);
     const result = await res.json();
     if (result.success) {
+      // 合并本地赞助者和爱发电赞助者
+      const allDonors = [...localDonors, ...result.data];
       // 按金额从高到低排序
-      donors.value = result.data.sort((a: Donor, b: Donor) => {
+      donors.value = allDonors.sort((a: Donor, b: Donor) => {
         const amountA = parseFloat(a.amount.replace('¥', '')) || 0;
         const amountB = parseFloat(b.amount.replace('¥', '')) || 0;
         return amountB - amountA;
@@ -65,6 +72,8 @@ const fetchSponsors = async () => {
     }
   } catch (e) {
     console.error('获取赞助名单失败:', e);
+    // 接口失败时只显示本地赞助者
+    donors.value = localDonors;
   } finally {
     loading.value = false;
   }
