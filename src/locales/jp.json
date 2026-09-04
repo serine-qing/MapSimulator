@@ -50,7 +50,13 @@
     "AttackRange": "攻撃範囲",
     "AttackInterval": "攻撃間隔",
     "TargetValue": "目標価値",
-    "StatusRES": "状態異常耐性"
+    "StatusRES": "状態異常耐性",
+    "DamageType": "攻撃タイプ"
+  },
+  "damageType": {
+    "PHYSIC": "物理",
+    "MAGIC": "術",
+    "NO_DAMAGE": "無"
   },
   "game": {
     "Wave": "ウェーブ",

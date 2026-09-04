@@ -145,11 +145,35 @@
     <el-descriptions-item :label="$t('attr.WeightClass')">{{ dialogData.attributes.massLevel }}</el-descriptions-item>
     <el-descriptions-item :label="$t('attr.Speed')">{{ dialogData.attributes.moveSpeed }}</el-descriptions-item>
     <el-descriptions-item :label="$t('attr.AttackRange')">{{ dialogData.attributes.rangeRadius }}</el-descriptions-item>
-    <el-descriptions-item :label="$t('attr.AttackInterval')">{{ 
-      accuracyNum(dialogData.attributes['baseAttackTime'] * 100 /  dialogData.attributes['attackSpeed'])  
+    <el-descriptions-item :label="$t('attr.AttackInterval')">{{
+      accuracyNum(dialogData.attributes['baseAttackTime'] * 100 /  dialogData.attributes['attackSpeed'])
     }}</el-descriptions-item>
     <el-descriptions-item :label="$t('attr.TargetValue')">{{ dialogData.lifePointReduce }}</el-descriptions-item>
     <el-descriptions-item :label="$t('table.Type')">{{ levelType[dialogData.levelType] }}</el-descriptions-item>
+  </el-descriptions>
+
+  <el-descriptions
+    direction="vertical"
+    border
+  >
+    <el-descriptions-item :label="$t('attr.DamageType')">
+      <div v-if="dialogData.damageType?.length > 0">
+        <el-tag
+          v-for="(dtype, index) in dialogData.damageType"
+          :key="index"
+          size="large"
+          :type="damageTypeTagType[dtype]"
+          class="immune-tag"
+        >{{$t(`damageType.${dtype}`)}}</el-tag>
+      </div>
+      <div v-else>{{$t('info.None')}}</div>
+    </el-descriptions-item>
+  </el-descriptions>
+
+  <el-descriptions
+    direction="vertical"
+    border
+  >
     <el-descriptions-item :label="$t('table.Ability')">
       <div v-if="dialogData.abilityList?.length > 0">
         <p class="ability-line" v-for="(ability, index) in dialogData.abilityList">
@@ -163,7 +187,7 @@
       <div v-else>
         {{$t('info.None')}}
       </div>
-      
+
     </el-descriptions-item>
   </el-descriptions>
 
@@ -173,7 +197,7 @@
   >
     <el-descriptions-item :label="$t('attr.StatusRES')">
       <div v-if="dialogData.immunes.length > 0">
-        <el-tag 
+        <el-tag
           v-for="(immune, index) in dialogData.immunes"
           :key="index"
           size="large"
@@ -192,7 +216,7 @@
 
 <script setup lang="ts">
 import eventBus from '@/components/utilities/EventBus';
-import { immuneTable } from '@/type';
+import { immuneTable, damageTypeTagType } from '@/type';
 import { accuracyNum } from '@/components/utilities/utilities';
 import { ref, shallowRef } from 'vue';
 

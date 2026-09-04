@@ -2,7 +2,7 @@
 export type { Vec2, KeyValue, BlackBoard, Effect } from "./Base";
 
 // constants - 常量和扩展方法
-export { immuneTable, math_clamp, array_remove, array_equal } from "./constants";
+export { immuneTable, damageTypeTable, damageTypeTagType, math_clamp, array_remove, array_equal } from "./constants";
 
 // Stage - 关卡信息
 export type { Stage } from "./Stage";
@@ -12,6 +12,7 @@ export type { TileData, PathNode, PathMap, trapData } from "./Map";
 
 // Enemy - 敌人相关数据
 export type {
+  DamageType,
   AttrBlackboard,
   AttrChange,
   EnemyAttrChange,

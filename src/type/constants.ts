@@ -1,4 +1,5 @@
 import { LevelType } from "@/components/utilities/Enum";
+import type { DamageType } from "./Enemy";
 
 // ==========================================
 // 常量定义
@@ -15,6 +16,20 @@ export const immuneTable = {
   fearedImmune: "恐惧抗性",
   palsyImmune: "麻痹抗性",
   attractImmune: "诱导抗性"
+};
+
+// 伤害类型表
+export const damageTypeTable: Record<DamageType, string> = {
+  PHYSIC: "物理",
+  MAGIC: "法术",
+  NO_DAMAGE: "无"
+};
+
+// 伤害类型标签颜色
+export const damageTypeTagType: Record<DamageType, "" | "success" | "info" | "warning" | "danger"> = {
+  PHYSIC: "danger",
+  MAGIC: "warning",
+  NO_DAMAGE: "info"
 };
 
 // Math 扩展函数

@@ -50,7 +50,13 @@
     "AttackRange": "攻击范围",
     "AttackInterval": "攻击间隔",
     "TargetValue": "目标价值",
-    "StatusRES": "异常抗性"
+    "StatusRES": "异常抗性",
+    "DamageType": "攻击类型"
+  },
+  "damageType": {
+    "PHYSIC": "物理",
+    "MAGIC": "法术",
+    "NO_DAMAGE": "无"
   },
   "game": {
     "Wave": "波次",

@@ -50,7 +50,13 @@
     "AttackRange": "Attack Range",
     "AttackInterval": "Attack Interval",
     "TargetValue": "Target Value",
-    "StatusRES": "Status RES"
+    "StatusRES": "Status RES",
+    "DamageType": "Attack Type"
+  },
+  "damageType": {
+    "PHYSIC": "Physical",
+    "MAGIC": "Magic",
+    "NO_DAMAGE": "None"
   },
   "game": {
     "Wave": "Wave",

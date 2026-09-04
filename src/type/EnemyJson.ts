@@ -4,6 +4,7 @@
  */
 
 import { BlackBoard } from './Base';
+import type { DamageType } from './Enemy';
 
 // ==================== 敌人属性 ====================
 
@@ -99,6 +100,7 @@ export interface EnemyDataEntryJson {
   CNName: string;
   CNDescription: string;
   CNAbilityList: AbilityItemJson[];
+  damageType: DamageType[];
   JPName: string;
   JPDescription: string;
   JPAbilityList: AbilityItemJson[];

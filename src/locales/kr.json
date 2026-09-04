@@ -50,7 +50,13 @@
     "AttackRange": "공격 범위",
     "AttackInterval": "공격 간격",
     "TargetValue": "목표 가치",
-    "StatusRES": "이상 상태 저항"
+    "StatusRES": "이상 상태 저항",
+    "DamageType": "공격 유형"
+  },
+  "damageType": {
+    "PHYSIC": "물리",
+    "MAGIC": "마법",
+    "NO_DAMAGE": "없음"
   },
   "game": {
     "Wave": "웨이브",

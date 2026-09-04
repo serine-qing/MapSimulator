@@ -48,6 +48,8 @@ export interface EnemyAttributes {
   rangeRadius: number;
 }
 
+export type DamageType = "PHYSIC" | "MAGIC" | "NO_DAMAGE";
+
 export interface EnemyData {
   [x: string]: any;
   data: {};
@@ -84,6 +86,7 @@ export interface EnemyData {
   immunes: string[];
   abilityList: any;
   animations: any[];
+  damageType: DamageType[];
 }
 
 export interface EnemyRef {
