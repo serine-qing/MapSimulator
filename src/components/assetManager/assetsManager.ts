@@ -5,10 +5,12 @@ import GameConfig from '@/components/utilities/GameConfig';
 import * as THREE from "three"
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js'
 
-import { parseTexture } from "@/components/game/TextureHelper";
+import { parseTexture, addSingleTexture } from "@/components/game/TextureHelper";
 //@ts-ignore
 import texture1 from "@/assets/texture/tiles1.png"
 import sprite_sui from "@/assets/texture/sprite_sui.png"
+//@ts-ignore
+import tile_replace from "@/assets/texture/tile_replace.png"
 import { GC_Add } from "../game/GC";
 import { unitizeFbx } from "../game/FbxHelper";
 
@@ -61,6 +63,9 @@ class AssetsManager{
       parseTexture(textures);
     })
 
+    // 加载单个图片纹理
+    addSingleTexture("tile_replace_wall", tile_replace);
+    addSingleTexture("tile_replace_road", tile_replace);
   }
 
   loadTexture(textures: any[]){

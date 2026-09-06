@@ -159,6 +159,23 @@ textureMats["moonlight_shadow"] = new THREE.MeshBasicMaterial({
   transparent: true
 });
 
+const textureLoader = new THREE.TextureLoader();
+
+//添加单个图片纹理
+const addSingleTexture = (key: string, url: string): Promise<void> => {
+  return new Promise((resolve) => {
+    textureLoader.load(url, (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      textureMats[key] = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        depthWrite: false
+      });
+      resolve();
+    });
+  });
+}
+
 const parseTexture = (textures: {[key: string]: THREE.Texture} ) => {
   const {texture1, sprite_sui} = textures;
   texture1.colorSpace = THREE.SRGBColorSpace;
@@ -254,4 +271,4 @@ const getTexture = (name:string) => {
 
 }
 
-export{parseTexture, getTexture, getTile}
+export{parseTexture, getTexture, getTile, addSingleTexture}

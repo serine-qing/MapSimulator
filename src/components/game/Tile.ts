@@ -326,6 +326,11 @@ class Tile extends DataObject{
         opacity = 0.5;
         textureScale = 1;
         break;
+      case "tile_replace_wall":
+      case "tile_replace_road":
+        opacity = 1;
+        textureScale = 1;
+        break;
       default:
         opacity = 1;
         textureScale = 0.9;
