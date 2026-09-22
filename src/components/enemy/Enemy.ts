@@ -744,7 +744,8 @@ class Enemy extends BattleObject{
     Object.keys(roundTile).forEach(key => {
       let closePoint: THREE.Vector2;
       const tile: Tile = roundTile[key];
-      if(tile && (!tile.isPassable() || tile.tileKey === "tile_hole")){
+      // 装置(trap)不触发避障力，只检查地块本身是否不可通行或为坑洞
+      if(tile && (tile.passableMask === "FLY_ONLY" || tile.tileKey === "tile_hole")){
         
         switch (key) {
           case "leftTop":
@@ -980,24 +981,10 @@ class Enemy extends BattleObject{
         //end 
 
         //给定方向向量
-        //文章：若自身光标坐标处于不可通行地块或无路线通往下一个目标点，则给定方向同样为0
-        const cursorTile = Global.tileManager.getTile(
-          Math.floor(this.cursorPosition.x + 0.5),
-          Math.floor(this.cursorPosition.y + 0.5)
-        );
-        //飞行单位不受地面不可通行地块影响
-        const cursorImpassable = !this.isFly() && cursorTile && !cursorTile.isPassable();
-        const noPathToTarget = this.nextNode.nextNode === null &&
-          this.nextNode.distance >= 1000;
-
-        if(cursorImpassable || noPathToTarget){
-          this.unitVector = new THREE.Vector2(0, 0);
-        }else{
-          this.unitVector = new THREE.Vector2(
-            targetPos.x - this.cursorPosition.x,
-            targetPos.y - this.cursorPosition.y
-          ).normalize();
-        }
+        this.unitVector = new THREE.Vector2(
+          targetPos.x - this.cursorPosition.x,
+          targetPos.y - this.cursorPosition.y
+        ).normalize();
         break;
 
       case "WAIT_FOR_SECONDS":               //等待一定时间
@@ -1726,9 +1713,9 @@ class Enemy extends BattleObject{
 
     this.changeTowardBySpeed();
     this.updateShadowHeight();
-    
+
     this.velocity.x = 0;
-    this.velocity.y = 0; 
+    this.velocity.y = 0;
   }
 
   protected hasMoved(): boolean{
