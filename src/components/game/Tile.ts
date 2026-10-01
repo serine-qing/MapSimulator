@@ -322,7 +322,7 @@ class Tile extends DataObject{
         opacity = 0.7;
         textureScale = 1;
         break;
-      case "moonlight_shadow":
+      case "moonlight_shadow":  
         opacity = 0.5;
         textureScale = 1;
         break;

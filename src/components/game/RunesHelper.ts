@@ -4,7 +4,7 @@ import Tile from "./Tile";
 import act42side from "../entityHandler/众生行记";
 import act45side from "../entityHandler/无忧梦呓";
 import Global from "../utilities/Global";
-import { LevelType } from "../utilities/Enum";
+import type { LevelType } from "../utilities/Enum";
 import type { AttrBlackboard, AttrChange, BlackBoard, EnemyData, TileData, Vec2 } from "@/type";
 import { EnemyAttrKey } from "@/type/Enemy";
 
@@ -275,7 +275,7 @@ class RunesHelper{
           enemyExclude =  valueStr.split("|");
           break;
         case "enemyLevelType":
-          enemyLevelType = valueStr.split("|").map(str => str as unknown as LevelType);
+          enemyLevelType = valueStr.split("|").map(str => str as LevelType);
           break;
         case "runeAlias":    
           runeAlias = valueStr;

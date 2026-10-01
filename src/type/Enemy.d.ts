@@ -1,4 +1,4 @@
-import { LevelType } from "@/components/utilities/Enum";
+import type { LevelType } from "@/components/utilities/Enum";
 import { Vec2 } from "./Base";
 import { OverwrittenDataJson } from "./EnemyJson";
 

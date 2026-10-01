@@ -5,8 +5,5 @@ export enum Direction{
   LEFT
 }
 
-export enum LevelType{
-  NORMAL,
-  ELITE,
-  BOSS
-}
+/**敌人等级类型*/
+export type LevelType = "NORMAL" | "ELITE" | "BOSS";

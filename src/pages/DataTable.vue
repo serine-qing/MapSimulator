@@ -223,9 +223,10 @@ import { ref, shallowRef } from 'vue';
 import { JsonViewer } from "vue3-json-viewer"
 import { useI18n } from 'vue-i18n'
 import type { EnemyData, AttrChange } from '@/type';
+import type { LevelType } from '@/components/utilities/Enum';
 const { t } = useI18n();
 
-const levelType = {
+const levelType: Record<LevelType, string> = {
   NORMAL: t("table.Normal"),
   ELITE: t("table.Elite"),
   BOSS: t("table.BOSS"),

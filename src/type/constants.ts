@@ -1,4 +1,3 @@
-import { LevelType } from "@/components/utilities/Enum";
 import type { DamageType } from "./Enemy";
 
 // ==========================================

@@ -8,7 +8,7 @@ import Global from "../utilities/Global";
 import { getCoordinate, getPixelSize } from "../utilities/utilities";
 import BattleObject from "./BattleObject";
 import GameConfig from "../utilities/GameConfig";
-import { LevelType } from "../utilities/Enum";
+import type { LevelType } from "../utilities/Enum";
 import type {
   EnemyData,
   EnemyRoute,
@@ -586,7 +586,7 @@ class Enemy extends BattleObject{
     const healthBarShadow = new THREE.Mesh(HealThBarGeometry, HealThBarShadowMaterial);
     const healthBar = new THREE.Mesh(
       HealThBarGeometry, 
-      this.levelType === LevelType.BOSS ? BossHealThBarMaterial : HealThBarMaterial
+      this.levelType === "BOSS" ? BossHealThBarMaterial : HealThBarMaterial
     );
 
     healthBarShadow.position.y = getPixelSize(-0.4);

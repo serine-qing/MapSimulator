@@ -5,6 +5,7 @@
 
 import { BlackBoard } from './Base';
 import type { DamageType } from './Enemy';
+import type { LevelType } from "@/components/utilities/Enum";
 
 // ==================== 敌人属性 ====================
 
@@ -57,9 +58,6 @@ export interface EnemySkillJson {
 
 // ==================== 敌人等级数据 ====================
 
-/** 敌人等级类型 */
-export type EnemyLevelType = 'NORMAL' | 'ELITE' | 'BOSS';
-
 /** 攻击方式 */
 export type ApplyWay = 'MELEE' | 'RANGED' | 'NONE';
 
@@ -70,7 +68,7 @@ export type MotionType = 'WALK' | 'FLY';
 export interface EnemyLevelDataJson {
   key: string;
   attributes: EnemyAttributesJson;
-  levelType: EnemyLevelType;
+  levelType: LevelType;
   level: number;
   applyWay: ApplyWay;
   motion: MotionType;

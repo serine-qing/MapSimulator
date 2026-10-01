@@ -4,6 +4,7 @@
  */
 
 import { Vec2, BlackBoard } from './Base';
+import type { LevelType } from "@/components/utilities/Enum";
 
 // ==================== 地块相关 ====================
 
@@ -59,8 +60,6 @@ export interface RouteJson {
 // ==================== 敌人相关 ====================
 
 /** 敌人等级类型 */
-export type EnemyLevelType = 'NORMAL' | 'ELITE' | 'BOSS';
-
 /** 攻击方式 */
 export type ApplyWay = 'MELEE' | 'RANGED' | 'NONE';
 
@@ -116,7 +115,7 @@ export interface EnemySkillJson {
 export interface EnemyLevelDataJson {
   key: string;
   attributes: EnemyAttributesJson;
-  levelType: EnemyLevelType;
+  levelType: LevelType;
   level: number;
   applyWay: ApplyWay;
   motion: MotionType;

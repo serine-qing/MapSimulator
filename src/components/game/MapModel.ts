@@ -763,13 +763,18 @@ class MapModel{
     return find;
   }
 
+  /**获取敌人资源对应的mesh key，将矢量突破boss的id变为可用id，例如8010_mcnist_3改为8010_mcnist */
+  private getEnemyMeshKey(data: EnemyData): string {
+    const name = data.key.replace("enemy_", "");
+    if(data.levelType === "BOSS"){
+      return name.replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1');
+    }
+    return name;
+  }
+
   private async getEnemyMeshUrls(){
-    const sNames = this.enemyDatas.map(data => {
-        return data.key.replace("enemy_", "")
-        //将矢量突破boss的id变为可用id，例如8010_mcnist_3改为8010_mcnist
-        .replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1')
-      }
-    );
+    const sNames = this.enemyDatas.map(data => this.getEnemyMeshKey(data));
+    console.log(sNames)
     const res = await getMeshsKey(sNames);
     return res.data;
   }
@@ -813,7 +818,7 @@ class MapModel{
     const spineManager = assetsManager.spineManager;
     this.enemyDatas.forEach(data => {
       const {key} = data;
-      const find = urls.find(url => url.key === key.replace("enemy_", "").replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1'));
+      const find = urls.find(url => url.key === this.getEnemyMeshKey(data));
       if(find){
         const {atlasUrl, skelUrl} = find;
         //使用AssetManager中的name.atlas和name.png加载纹理图集。

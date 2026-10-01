@@ -27,7 +27,6 @@ import main11 from "./11章";
 import main15 from "./15章";
 import main16 from "./16章";
 import RunesHelper from "../game/RunesHelper";
-import { LevelType } from "../utilities/Enum";
 import { ExtraWaveData } from "@/type/Map";
 import main17 from "./17章";
 
@@ -216,7 +215,6 @@ class GameHandler implements Handler{
     /**
      * 装载敌人类，通用
      */
-    //todo LevelType改为type
     switch (enemy.key) {
       case "enemy_1302_ymtro":
       case "enemy_1302_ymtro_2":    //“越长尘”
@@ -236,7 +234,7 @@ class GameHandler implements Handler{
             callback: (find: Enemy) => {
               //是否是领袖以外的非机械敌人
               if(find.motion === "WALK" &&
-                find.levelType !== LevelType.BOSS &&
+                find.levelType !== "BOSS" &&
                 !(Array.isArray(find.enemyTags) && find.enemyTags.includes("machine"))){
                 enemy.pickUp(find);
               }
