@@ -774,7 +774,6 @@ class MapModel{
 
   private async getEnemyMeshUrls(){
     const sNames = this.enemyDatas.map(data => this.getEnemyMeshKey(data));
-    console.log(sNames)
     const res = await getMeshsKey(sNames);
     return res.data;
   }

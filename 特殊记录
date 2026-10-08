@@ -15,7 +15,7 @@ nohup npm run dev &  重新启动
 gems_type: 1 浅色结晶 2 深色结晶
 
 
-解包：敌人的spine在 arknights\refs\arts    boss是15XX开头
+解包：现在敌人的spine在 arknights\refs\arts    boss是15XX开头
 spritepack/icon_enemies.ab 敌人头像
 部分装置spine在 模拟器游戏文件的pkgrps中
 部分装置建模 arts\maps\common
