@@ -54,6 +54,20 @@ const localDonors: Donor[] = [
   { name: "薯条鹈鹕", amount: "¥50.00", avatar: "" },
 ];
 
+// 展示时覆盖赞助者信息：key 为接口返回的 name
+const donorOverrides: Record<string, Partial<Donor>> = {
+  "爱发电用户_b6c04": {
+    name: "EntitySlendy",
+    avatar: "/Sponsor/EntitySlendy.png",
+  },
+};
+
+const applyDonorOverrides = (list: Donor[]): Donor[] =>
+  list.map((d) => {
+    const override = donorOverrides[d.name];
+    return override ? { ...d, ...override } : d;
+  });
+
 const fetchSponsors = async () => {
   try {
     loading.value = true;
@@ -61,8 +75,8 @@ const fetchSponsors = async () => {
     if (!res.ok) throw new Error('加载失败: ' + res.status);
     const result = await res.json();
     if (result.success) {
-      // 合并本地赞助者和爱发电赞助者
-      const allDonors = [...localDonors, ...result.data];
+      // 合并本地赞助者和爱发电赞助者，再覆盖展示信息
+      const allDonors = applyDonorOverrides([...localDonors, ...result.data]);
       // 按金额从高到低排序
       donors.value = allDonors.sort((a: Donor, b: Donor) => {
         const amountA = parseFloat(a.amount.replace('¥', '')) || 0;
