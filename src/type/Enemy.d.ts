@@ -1,6 +1,6 @@
 import type { LevelType } from "@/components/utilities/Enum";
 import { Vec2 } from "./Base";
-import { OverwrittenDataJson } from "./EnemyJson";
+import { EnemySpData, OverwrittenDataJson } from "./EnemyJson";
 
 // ==========================================
 // 属性相关
@@ -87,6 +87,8 @@ export interface EnemyData {
   abilityList: any;
   animations: any[];
   damageType: DamageType[];
+  /** 敌人SP数据（来自关卡JSON的overwrittenData，数据库level数据无此字段） */
+  spData?: EnemySpData;
 }
 
 export interface EnemyRef {

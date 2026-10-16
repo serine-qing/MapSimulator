@@ -110,6 +110,14 @@ export interface EnemyDataEntryJson {
   KRAbilityList: AbilityItemJson[];
 }
 
+/** 敌人SP数据（来自关卡JSON的overwrittenData） */
+export interface EnemySpData {
+  spType: string;   // SP类型，如 INCREASE_WITH_TIME
+  maxSp: number;
+  initSp: number;
+  increment: number;
+}
+
 // ==================== 敌人数据库引用（来自关卡 JSON） ====================
 
 /** 覆盖数据 */
@@ -128,6 +136,8 @@ export interface OverwrittenDataJson {
     m_defined: boolean;
     m_value: string;
   };
+  /** 敌人SP数据（仅存在于关卡覆盖数据中，无m_defined包装，数据库level数据无此字段） */
+  spData?: EnemySpData;
   [key: string]: unknown;
 }
 

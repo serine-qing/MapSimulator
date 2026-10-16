@@ -635,6 +635,11 @@ class MapModel{
         rawData.skills[index] = skill;
       }
     })
+
+    //覆盖SP数据（数据库level数据无此字段，不会被上面的通用循环处理；关卡JSON中也无m_defined包装）
+    if(overwrittenData.spData){
+      rawData.spData = overwrittenData.spData;
+    }
   }
 
   /**
@@ -843,7 +848,6 @@ class MapModel{
         // 检测可用的 skin 列表，优先选择非 default 的 skin
         const skins = skeletonData.skins;
         if(skins && skins.length > 1){
-          console.log(`敌人 ${data.name} (${skins})`);
           // 查找第一个非 default 的 skin
           const nonDefaultSkin = skins.find((s: any) => s.name !== "default");
           if(nonDefaultSkin){
