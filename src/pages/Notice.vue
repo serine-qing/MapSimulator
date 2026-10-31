@@ -4,6 +4,7 @@
       class="box-item"
       placement="bottom-start"
       :width="600"
+      popper-class="notice-popover"
     >
       <template #reference> 
         <el-link type="danger">{{$t('info.UpdateNotice')}}</el-link>
@@ -102,4 +103,19 @@ const language = localStorage.getItem("currentLang") || "CN";
   padding-left: 20px;
 }
 
+// ===== 窄屏 =====
+@media (max-width: 768px){
+  .notice{
+    padding-left: 10px;
+  }
+}
+</style>
+
+<!-- popover teleport到body，scoped样式够不到 -->
+<style lang="scss">
+@media (max-width: 768px){
+  .notice-popover{
+    max-width: 90vw !important;
+  }
+}
 </style>

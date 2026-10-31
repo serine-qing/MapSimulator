@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import * as THREE from "three"
-import {setupCanvas} from '@/components/game/GameCanvas';
+import {setupCanvas, setMapFullscreenMode} from '@/components/game/GameCanvas';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { accuracyNum, timeFormat } from "@/components/utilities/utilities";
@@ -15,7 +15,7 @@ import CrisisContractMap from "./CrisisContractMap.vue";
 import MapModel from "@/components/game/MapModel";
 import GameManager from "@/components/game/GameManager";
 import type { EnemyData } from "@/type";
-import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 
 import btnPause from '@/assets/images/btn_pause.png';
 import btnPlay from '@/assets/images/btn_play.png';
@@ -177,8 +177,110 @@ const restart = () => {
   gameManager.restart();
 }
 
+//#region 全屏看图（手机端）
+const isFs = ref(false);
+//强制旋转横屏（CSS rotate）
+const isRotate = ref(false);
+
+//切换全屏UI：body.fs-map由全局样式隐藏header；GameCanvas标记让缩放走铺满适配
+const applyFsState = (on: boolean, landscapeLocked = false) => {
+  isFs.value = on;
+  document.body.classList.toggle("fs-map", on);
+  setMapFullscreenMode(on);
+  //Android锁横屏成功→真横屏，不用旋转；
+  //iOS/微信锁不了→把整个游戏区旋转90°，横着铺满屏幕
+  isRotate.value = on && !landscapeLocked;
+}
+
+const leaveFullscreen = async () => {
+  const doc = document as any;
+  try {
+    if(doc.fullscreenElement || doc.webkitFullscreenElement){
+      const exit = doc.exitFullscreen || doc.webkitExitFullscreen;
+      await exit?.call(document);
+    }
+  } catch(e){ /* 忽略：iOS本就没有真全屏 */ }
+  try { (screen.orientation as any)?.unlock?.(); } catch(e){ /* 忽略 */ }
+  applyFsState(false);
+}
+
+const toggleFullscreen = async () => {
+  //以UI状态为准：iOS伪全屏下fullscreenElement恒为null，不能用它判断
+  if(isFs.value){
+    await leaveFullscreen();
+    return;
+  }
+  const doc = document as any;
+  //优先真全屏（Android Chrome支持，可锁横屏）；iOS Safari不支持div全屏，静默降级为纯CSS覆盖模式
+  try {
+    const root = doc.documentElement;
+    const reqFs = root.requestFullscreen || root.webkitRequestFullscreen;
+    if(reqFs){ await reqFs.call(root); }
+  } catch(e){ /* 忽略 */ }
+  //尝试锁定横屏（仅Android支持；iOS/微信会抛错，静默处理，失败时用CSS强制旋转横屏兜底）
+  let locked = false;
+  try {
+    const orient = (screen.orientation as any);
+    if(orient?.lock){ await orient.lock("landscape"); locked = true; }
+  } catch(e){ /* 忽略 */ }
+  applyFsState(true, locked);
+}
+
+//系统手势/返回键退出真全屏时同步按钮状态
+const handleFsChange = () => {
+  const doc = document as any;
+  if(!(doc.fullscreenElement || doc.webkitFullscreenElement) && isFs.value){
+    try { (screen.orientation as any)?.unlock?.(); } catch(e){ /* 忽略 */ }
+    applyFsState(false);
+  }
+}
+
+//#region 旋转横屏模式的滑块拖动
+//CSS旋转90°后，el-slider内部用clientX相对rect计算位置会全部算错（表现为拖不动）。
+//所以在旋转模式下盖一层透明热区接管拖动，按与GameManager.getEventOffset相同的
+//逆变换换算成本地坐标；el-slider只负责显示进度
+const hitDragging = ref(false);
+const sliderHitSeek = (e: PointerEvent) => {
+  const el = e.currentTarget as HTMLElement;
+  const rect = el.getBoundingClientRect();
+  //本地x方向 = 屏幕y方向；布局宽 = 旋转后包围盒的高
+  const localX = e.clientY - rect.top;
+  const ratio = Math.max(0, Math.min(1, localX / Math.max(1, rect.height)));
+  const val = Math.round(ratio * maxSecond.value);
+  sliderValue.value = val;
+  changeSecond(val);   //内部会缓存暂停状态、置isSliding并jump到对应时间
+};
+const sliderHitDown = (e: PointerEvent) => {
+  e.preventDefault();
+  hitDragging.value = true;
+  try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch(err){ /* 忽略 */ }
+  sliderHitSeek(e);
+};
+const sliderHitMove = (e: PointerEvent) => {
+  if(!hitDragging.value) return;
+  sliderHitSeek(e);
+};
+const sliderHitUp = () => {
+  if(!hitDragging.value) return;
+  hitDragging.value = false;
+  endSlider();   //恢复拖动前的暂停状态
+};
+//#endregion
+//#endregion
+
 onMounted(() => {
   setupCanvas(wrapperRef.value);
+  document.addEventListener("fullscreenchange", handleFsChange);
+  document.addEventListener("webkitfullscreenchange", handleFsChange);
+})
+
+onUnmounted(() => {
+  document.removeEventListener("fullscreenchange", handleFsChange);
+  document.removeEventListener("webkitfullscreenchange", handleFsChange);
+  //路由离开时若还在全屏，恢复页面
+  if(document.body.classList.contains("fs-map")){
+    leaveFullscreen();
+  }
 })
 
 watch(pause, () => {
@@ -431,7 +533,7 @@ defineExpose({
 </script>
 
 <template>
-<div class="game-container" v-loading="loading">  
+<div class="game-container" :class="{ 'is-fullscreen': isFs, 'is-rotate': isRotate }" v-loading="loading">
   <CombatMatrix
     v-show="isCombatMatrix"
     :levelId = "levelId"
@@ -452,13 +554,23 @@ defineExpose({
     <div class="toolbar" v-show="isStart">  
       <span class="lifepoint"> {{ finishedEnemyCount }} / {{ maxEnemyCount }}</span>
       <div class="time-slider">
-        <el-slider 
-          v-model = "sliderValue" 
+        <el-slider
+          v-model = "sliderValue"
           :max = "maxSecond"
           :format-tooltip = "formatTooltip"
           @input = "changeSecond"
           @change = "endSlider"
         />
+        <!-- 旋转横屏模式：CSS旋转会让el-slider的clientX位置计算出错（拖不动），
+             盖透明热区按逆变换接管拖动 -->
+        <div
+          class="slider-hit"
+          v-if="isRotate"
+          @pointerdown="sliderHitDown"
+          @pointermove="sliderHitMove"
+          @pointerup="sliderHitUp"
+          @pointercancel="sliderHitUp"
+        ></div>
       </div>
 
       <div class="buttons">
@@ -504,7 +616,7 @@ defineExpose({
           @restart = "restart"
         ></GameOverMask>
       </div>
-      <div 
+      <div
         class="game-tools"
         v-show="tokenCards.length > 0"
       >
@@ -514,28 +626,42 @@ defineExpose({
           :gameManager = "gameManagerRef"
         ></TokenCards>
       </div>
+      <!-- 手机端：全屏看图按钮（悬浮地图右上角；全屏后原地变「退出全屏」，
+           位置见下方 .is-fullscreen/.is-rotate 规则） -->
+      <div class="fs-toggle" @click="toggleFullscreen">
+        <el-icon><FullScreen /></el-icon>
+        <span>{{ isFs ? "退出全屏" : "全屏" }}</span>
+      </div>
     </div>
 
 
   </div>
-  <StageInfo
-    :title = "title"
-    :challenge="challenge"
-    :character-limit="characterLimit"
-    :description="description"
-    :extra-description="extraDescription"
-    :level-code="levelCode"
-    :level-full-code="levelFullCode"
-    :level-name="levelName"
-    :squad-num="squadNum"
-    :stage-attr-info="stageAttrInfo"
-  ></StageInfo>
-  <DataTable
-    :enemyDatas = "enemyDatas"
-  >
-  </DataTable>
+  <!-- 手机端：地图下方的详情/表格独立滚动区；PC端display:contents保持原布局 -->
+  <div class="below-pane">
+    <StageInfo
+      :title = "title"
+      :challenge="challenge"
+      :character-limit="characterLimit"
+      :description="description"
+      :extra-description="extraDescription"
+      :level-code="levelCode"
+      :level-full-code="levelFullCode"
+      :level-name="levelName"
+      :squad-num="squadNum"
+      :stage-attr-info="stageAttrInfo"
+    ></StageInfo>
+    <DataTable
+      :enemyDatas = "enemyDatas"
+    >
+    </DataTable>
 
-  <Notice/>
+    <Notice/>
+
+    <div class="beian">
+      <img src="/beian.png" alt="">
+      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=51011402000931" rel="noreferrer" target="_blank">川公网安备51011402000931号</a>
+    </div>
+  </div>
 </div>
 
 
@@ -551,7 +677,9 @@ defineExpose({
 .game{
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 60px);
+  height: calc(100vh - var(--header-h, 60px));
+  //移动端浏览器地址栏动态伸缩，dvh更准确（不支持的浏览器回退到上一行）
+  height: calc(100dvh - var(--header-h, 60px));
   background-color: #AAAAAA;
   position: relative;
   .toolbar{
@@ -572,7 +700,10 @@ defineExpose({
       color: white;
     }
     .time-slider{
-      width: 600px;
+      //固定600px在手机上放不下，改为弹性宽度自适应
+      flex: 1;
+      max-width: 600px;
+      min-width: 0;
       margin-left: 20px;
     }
   }
@@ -623,6 +754,23 @@ canvas{
   bottom: 0;
 }
 
+//PC端：透明容器，StageInfo/DataTable等保持原来的直接排布
+.below-pane{
+  display: contents;
+}
+
+.beian{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  img{
+    margin-right: 2px;
+    height: 18px;
+  }
+}
+
 select {
   -moz-appearance: none;    /* Firefox */
   -webkit-appearance: none; /* Safari 和 Chrome */
@@ -669,6 +817,207 @@ select {
 .expand-toggle:hover{
   background: rgba(0, 0, 0, 0.8);
   color: #fff;
+}
+
+// ===== 窄屏（手机）：上地图、下表格的分栏结构 =====
+@media (max-width: 768px){
+  //整屏固定高度：上栏地图 + 下栏详情/表格各自滚动，页面本身不再整体滚动
+  .game-container{
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - var(--header-h, 60px));
+    height: calc(100dvh - var(--header-h, 60px));
+    overflow: hidden;
+  }
+
+  .game{
+    //上栏：常驻深色工具条 + 地图窗格
+    flex: none;
+    height: auto;
+    background-color: #1d1e22;
+
+    .toolbar{
+      //不再悬浮在画布上，改为常驻一行（与header同色，像手机App控制条）
+      position: static;
+      height: 56px;
+      .lifepoint{
+        font-size: 14px;
+        //悬浮眼睛按钮已移除（菜单入口在顶部header），左边距还原
+        margin-left: 8px;
+        width: auto;
+      }
+      .time-slider{
+        margin-left: 8px;
+        margin-right: 4px;
+      }
+    }
+
+    .content{
+      //必须去掉flex:1（basis 0会把下面显式height吃掉），高度才生效
+      flex: none;
+      //地图窗格：高度随屏宽计算（够地图平铺+少量留白），消灭上下大片空隙
+      height: min(calc(100vw / 1.55 + 28px), 50vh);
+      height: min(calc(100vw / 1.55 + 28px), 50dvh);
+      background-color: #AAAAAA;
+    }
+  }
+
+  //下栏：关卡详情 + 敌人表格 + 公告 + 备案号，独立滚动
+  .below-pane{
+    //必须取消PC端的display:contents，否则没有盒子、flex高度全部失效
+    display: block;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .buttons{
+    width: auto;
+    margin-left: 8px;
+    margin-right: 8px;
+
+    .button{
+      height: 44px;
+
+      img{
+        height: 50px !important;
+      }
+    }
+  }
+
+  .time-stop span{
+    font-size: 10px !important;
+    top: 4px;
+    left: 8px;
+    //宽度足够「0.2倍速」整词放一行，折行只在「开启」后断，不再切碎词
+    width: 58px;
+  }
+
+  //Token卡片：右侧竖条改为地图窗格底部横排悬浮，不再挤占画布宽度
+  .game .content .game-tools{
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    z-index: 999;
+    background-color: transparent;
+  }
+
+  .beian{
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+}
+
+// ===== 全屏看图（手机端地图右上角悬浮按钮）=====
+.fs-toggle{
+  //PC端不显示，完全不影响桌面布局
+  display: none;
+}
+
+@media (max-width: 768px){
+  .fs-toggle{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    z-index: 999;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    .el-icon{
+      font-size: 14px;
+    }
+  }
+}
+
+//全屏看图模式：地图窗格独占屏幕。
+//注意这些规则不能放进媒体查询——真全屏锁横屏后视口宽度可能超过768px
+.game-container.is-fullscreen{
+  height: 100vh;
+  height: 100dvh;
+  .game{
+    height: 100%;
+    //工具条（时间轴/倍速/暂停/时停）保持显示，全屏下也要能操作；
+    //手机端它本来就是地图上方的常驻深色条，直接复用
+    .toolbar{
+      //与屏幕顶部留出间距，别贴着边缘
+      margin-top: 20px;
+    }
+    .time-slider{
+      //给旋转模式的拖动热区做定位上下文
+      position: relative;
+    }
+    .content{
+      //地图窗格铺满剩余空间（覆盖媒体查询里的固定高度）
+      flex: 1;
+      height: auto;
+    }
+  }
+  //隐藏下方详情/表格
+  .below-pane{
+    display: none;
+  }
+}
+
+//旋转横屏模式下盖在el-slider上的拖动热区（仅此模式渲染，PC端不存在）
+.slider-hit{
+  position: absolute;
+  left: 0;
+  right: 0;
+  //上下各扩一点，热区更好点
+  top: -12px;
+  bottom: -12px;
+  z-index: 10;
+  //阻止浏览器把滑动当成页面滚动，否则pointer事件会被取消
+  touch-action: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+//全屏时按钮固定到屏幕右上角；3个类的选择器压过媒体查询里的1个类规则，
+//任何视口宽度下都显示（真全屏锁横屏后可能>768px，不能只靠媒体查询）
+.game-container.is-fullscreen .fs-toggle{
+  display: flex;
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 1003;
+}
+
+//旋转横屏模式：按钮在旋转容器内跟着一起转（用户看到的是正的），
+//容器有transform时fixed以容器本地坐标定位——本地右上角=用户视角右上角。
+//放在工具条下方（56px条+20px间距+8px），别压住「时停」按钮。
+//注意必须写在.is-fullscreen规则后面，同优先级下后者覆盖前者的top
+.game-container.is-rotate .fs-toggle{
+  top: 84px;
+  right: 8px;
+}
+
+//无法API锁横屏时（iOS/微信）的强制旋转横屏：
+//竖屏持机时把整个游戏区旋转90°，布局上做成「横屏画布」，正好铺满竖屏
+.game-container.is-rotate{
+  position: fixed;
+  top: 0;
+  left: 0;
+  //用视口高做布局宽、视口宽做布局高——布局上就是一块横屏画布
+  //(offsetWidth/offsetHeight不含transform，画布resize会按667×375这类横屏尺寸计算)
+  width: 100vh;
+  width: 100dvh;
+  height: 100vw;
+  z-index: 1002;
+  //先上移一个屏宽再顺时针转90°，正好盖满竖屏；
+  //触摸坐标逆变换见GameManager.getEventOffset
+  transform: rotate(90deg) translate(0, -100vw);
+  transform-origin: top left;
 }
 
 </style>

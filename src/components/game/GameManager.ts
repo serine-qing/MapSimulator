@@ -67,6 +67,9 @@ class GameManager extends DataObject{
 
   private mouseMoveProcessing: boolean = false;
 
+  //点击判定：按下记录起点，抬起时位移小于阈值才算点击（防止手指拖动误触）
+  private tapStart: { x: number; y: number; pointerId: number } | null = null;
+
   public gractrl: Gractrl;  //重力控制
   public gameHandler: GameHandler;
 
@@ -133,8 +136,8 @@ class GameManager extends DataObject{
 
       this.gameView.init();
 
-      this.handleMouseMove();
-      this.handleClick();
+      this.handlePointerMove();
+      this.handlePointerClick();
 
       this.restart();
       
@@ -290,17 +293,49 @@ class GameManager extends DataObject{
     return null;
   } 
 
-  private handleMouseMove(){
-    // 监听鼠标移动
-    gameCanvas.wrapper.onmousemove = (event) => {
+  //pointer/touch事件没有可靠的offsetX，统一用clientX相对wrapper计算
+  private getEventOffset(event: PointerEvent | MouseEvent | TouchEvent){
+    const rect = gameCanvas.wrapper.getBoundingClientRect();
+    let clientX: number;
+    let clientY: number;
+
+    if("touches" in event){
+      //TouchEvent兜底（正常走pointer事件不会到这里）
+      clientX = event.touches[0]?.clientX ?? event.changedTouches[0]?.clientX;
+      clientY = event.touches[0]?.clientY ?? event.changedTouches[0]?.clientY;
+    }else{
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+
+    //全屏强制旋转横屏模式下（CSS rotate(90deg)，见Game.vue的.is-rotate），
+    //rect是旋转后的屏幕包围盒，直接相减会得到错误坐标，需按旋转的逆变换映射回画布本地坐标：
+    //本地(x,y) → 屏幕(rect.right - y, rect.top + x)，下面是它的逆运算
+    if(document.querySelector(".game-container.is-rotate")){
+      return {
+        x: clientY - rect.top,
+        y: rect.right - clientX
+      };
+    }
+
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  private handlePointerMove(){
+    // 监听指针移动（鼠标hover + 触摸滑动共用）
+    gameCanvas.wrapper.onpointermove = (event) => {
       //控制事件 1帧只能触发一次
       if(this.mouseMoveProcessing) return;
 
       this.mouseMoveProcessing = true;
       this.tileManager.hiddenPreviewTextures();
-      
-      const find = this.intersectObjects(event.offsetX, event.offsetY);
-      
+
+      const { x, y } = this.getEventOffset(event);
+      const find = this.intersectObjects(x, y);
+
       if(find){
 
         switch (find.constructor) {
@@ -315,13 +350,16 @@ class GameManager extends DataObject{
             this.handleTileFocus(find);
             break;
         }
-        
+
       }
     };
   }
 
-  private handleClick(){
+  private handlePointerClick(){
+    // ===== 鼠标/触控笔：保持与旧版完全一致的onclick行为，不做任何位移判定 =====
     gameCanvas.wrapper.onclick = (event) => {
+      //触摸产生的兼容click由下方pointerup处理，这里忽略以防双触发
+      if((event as PointerEvent).pointerType === "touch") return;
 
       this.trapManager.resetSelected();
 
@@ -342,7 +380,62 @@ class GameManager extends DataObject{
         }
       }
 
-    }
+    };
+
+    // ===== 触摸：按下记录起点，抬起时位移小于阈值才算点击，防止手指拖动误放置 =====
+    gameCanvas.wrapper.onpointerdown = (event) => {
+      if(event.pointerType !== "touch" || !event.isPrimary) return;
+
+      //标签上的交互走各自的@click（原本靠click.stop隔离），这里同样排除
+      const target = event.target as HTMLElement;
+      if(target.closest(".label")) return;
+
+      //捕获指针，手指滑出canvas也不丢事件
+      try{
+        gameCanvas.wrapper.setPointerCapture(event.pointerId);
+      }catch(e){
+        //个别环境下pointerId已失效时会抛异常，忽略即可，不影响点击判定
+      }
+
+      this.tapStart = {
+        x: event.clientX,
+        y: event.clientY,
+        pointerId: event.pointerId
+      };
+    };
+
+    gameCanvas.wrapper.onpointerup = (event) => {
+      if(event.pointerType !== "touch") return;
+      if(!this.tapStart || event.pointerId !== this.tapStart.pointerId) return;
+
+      //位移超过10px视为拖动，不算点击
+      const dx = event.clientX - this.tapStart.x;
+      const dy = event.clientY - this.tapStart.y;
+      this.tapStart = null;
+
+      if(Math.hypot(dx, dy) > 10) return;
+
+      this.trapManager.resetSelected();
+
+      const { x, y } = this.getEventOffset(event);
+      const find = this.intersectObjects(x, y);
+
+      if(find){
+        switch (find.constructor) {
+          case SpineEnemy:
+          case FbxEnemy:
+            this.handleEnemyClick(find);
+            break;
+          case Trap:
+            this.handleTrapSelect(find);
+            break;
+          case Tile:
+            this.addTrapToTile(find);
+            break;
+        }
+      }
+
+    };
   }
 
   private handleEnemyClick(enemy: Enemy){
@@ -711,8 +804,11 @@ class GameManager extends DataObject{
     this.isFinished = true;
     eventBus.remove("jump_to_enemy_index");
     eventBus.remove("jump_to_time_index");
-    gameCanvas.wrapper.onmousemove = null;
     gameCanvas.wrapper.onclick = null;
+    gameCanvas.wrapper.onpointermove = null;
+    gameCanvas.wrapper.onpointerdown = null;
+    gameCanvas.wrapper.onpointerup = null;
+    this.tapStart = null;
 
     this.gameView?.destroy();
     this.waveManager?.destroy();

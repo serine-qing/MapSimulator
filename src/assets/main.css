@@ -1,3 +1,28 @@
-body{
+html, body {
+  height: 100%;
+}
+
+body {
   margin: 0;
+}
+
+#app {
+  height: 100%;
+}
+
+canvas {
+  touch-action: none;
+}
+
+/* ===== 以下仅窄屏（手机）生效，PC端保持原有行为 ===== */
+@media (max-width: 768px) {
+  html, body {
+    /* 防止长按选中、下拉刷新 */
+    overscroll-behavior: none;
+  }
+
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }

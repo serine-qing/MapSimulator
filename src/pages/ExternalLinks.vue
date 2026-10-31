@@ -72,4 +72,16 @@ watch(() => levelCode, () => {
 .arkrec{
   margin-left: 20px;
 }
+
+// ===== 窄屏：外链缩小 =====
+@media (max-width: 768px){
+  .external-links{
+    a{
+      font-size: 12px;
+    }
+    .arkrec{
+      margin-left: 10px;
+    }
+  }
+}
 </style>

@@ -86,4 +86,21 @@ watch(currentLang, () => {
     background: var(--primary-light, #eef2ff);
   }
 }
+
+// ===== 窄屏：深色顶栏上的紧凑触发器 =====
+@media (max-width: 768px) {
+  .language-trigger {
+    width: auto;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: transparent;
+    border-color: #5a5d66;
+    color: #d8dbe2;
+
+    &:hover {
+      background: #2c2e34;
+      color: #fff;
+    }
+  }
+}
 </style>

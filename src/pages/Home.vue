@@ -14,10 +14,6 @@ const handleChangeStage = (map: any) => {
   <Menu @changeStage="handleChangeStage"/>
   <div class="main">
     <Game ref="game" />
-    <div class="beian">
-      <img src="/beian.png" alt="">
-      <a href="https://beian.mps.gov.cn/#/query/webSearch?code=51011402000931" rel="noreferrer" target="_blank">川公网安备51011402000931号</a>
-    </div>
   </div>
 </div>
 </template>
@@ -34,16 +30,10 @@ const handleChangeStage = (map: any) => {
   overflow: auto;
 }
 
-.beian {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  margin-bottom: 10px;
-
-  img {
-    margin-right: 2px;
-    height: 18px;
+/* 窄屏：Game内部已经是「上地图下表格」的整屏分栏，外层不再滚动 */
+@media (max-width: 768px) {
+  .main {
+    overflow: hidden;
   }
 }
 </style>

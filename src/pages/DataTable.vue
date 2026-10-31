@@ -105,7 +105,7 @@
   </el-table>
 </div>
 
-<el-dialog v-model="dialogVisible" width="800">
+<el-dialog v-model="dialogVisible" width="800" class="enemy-dialog">
   <template #header="{ close, titleId, titleClass }">
     <div>
       <span>{{dialogData.name}}</span >
@@ -364,6 +364,44 @@ eventBus.on("showDetail", (data) => {
     font-weight: bolder;
     font-size: 20px;
     color: #d63131;
+  }
+}
+
+// ===== 窄屏：表格横向滚动 + 单元格紧凑 =====
+@media (max-width: 768px){
+  .data-table{
+    padding: 6px;
+    //列总宽远超屏宽，保证横向滚动条出现、页面不被撑宽
+    :deep(.el-table){
+      min-width: 100%;
+      .cell{
+        padding: 0 4px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+    }
+    :deep(.el-table__body-wrapper){
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .icon{
+      height: 36px;
+      width: 36px;
+    }
+  }
+}
+</style>
+
+<!-- el-dialog teleport到body，scoped样式够不到，用非scoped块控制 -->
+<style lang="scss">
+@media (max-width: 768px){
+  .enemy-dialog{
+    //width=800在手机上溢出，用max-width收窄
+    max-width: 92vw !important;
+    margin-top: 6vh !important;
+  }
+  .enemy-dialog .el-dialog__body{
+    padding: 10px;
   }
 }
 </style>

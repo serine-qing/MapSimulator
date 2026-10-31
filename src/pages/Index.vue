@@ -23,6 +23,20 @@ import Header from "@/pages/Header.vue"
   --success: #48bb78;
   --warning: #ed8936;
   --danger: #f56565;
+  /* header高度，Game等区域用它计算可用高度 */
+  --header-h: 60px;
+}
+
+/* 窄屏深色顶栏：第一行40px + 第二行小字号开关条 */
+@media (max-width: 768px) {
+  :root {
+    --header-h: 64px;
+  }
+}
+
+/* 手机端全屏看图模式：隐藏顶部header，地图独占屏幕（全局规则，横屏宽视口下也生效） */
+body.fs-map .header {
+  display: none;
 }
 
 </style>
@@ -30,8 +44,11 @@ import Header from "@/pages/Header.vue"
 <style scoped>
 .index{
   height: 100vh;
+  /* 移动端浏览器地址栏动态伸缩，dvh更准确（不支持的浏览器回退到上一行） */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .content{
   flex: 1;

@@ -124,4 +124,19 @@ AnimationFrame.addAnimationFrame({
     }
   }
 }
+
+//窄屏：卡片横排居中悬浮在画布底部，尺寸缩小适配手指
+@media (max-width: 768px){
+  .tokens{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    .token{
+      height: 64px;
+      width: 64px;
+    }
+  }
+}
 </style>

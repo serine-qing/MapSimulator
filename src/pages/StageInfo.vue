@@ -63,10 +63,33 @@ title
   :deep(.bluename){
     color: #0645ad;
   }
-  
+
   :deep(.challenge){
     color: #d22d2dcc;
     font-weight: bolder;
+  }
+}
+
+// ===== 窄屏：缩小标题字号、收紧边距，链接区可换行 =====
+@media (max-width: 768px){
+  .info{
+    padding: 0 10px;
+    .title-link{
+      margin: 10px 0;
+      margin-right: 0;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      span{
+        font-size: 18px;
+      }
+    }
+    .description{
+      font-size: 13px;
+    }
+    p{
+      font-size: 13px;
+      line-height: 1.6;
+    }
   }
 }
 </style>

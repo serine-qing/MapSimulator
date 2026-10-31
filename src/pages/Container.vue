@@ -547,6 +547,8 @@ watch(() => gameManager, () => {
   top: 0;
   bottom: 0;
   z-index: 600;
+  //覆盖在canvas上方接收触摸，禁用浏览器手势接管（拖动/双击缩放）
+  touch-action: none;
 }
 
 .label{
