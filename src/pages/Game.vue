@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import * as THREE from "three"
-import {setupCanvas, setMapFullscreenMode} from '@/components/game/GameCanvas';
+import {setupCanvas} from '@/components/game/GameCanvas';
 import GameConfig from "@/components/utilities/GameConfig";
 import eventBus from "@/components/utilities/EventBus";
 import { accuracyNum, timeFormat } from "@/components/utilities/utilities";
@@ -182,11 +182,10 @@ const isFs = ref(false);
 //强制旋转横屏（CSS rotate）
 const isRotate = ref(false);
 
-//切换全屏UI：body.fs-map由全局样式隐藏header；GameCanvas标记让缩放走铺满适配
+//切换全屏UI：body.fs-map由全局样式隐藏header
 const applyFsState = (on: boolean, landscapeLocked = false) => {
   isFs.value = on;
   document.body.classList.toggle("fs-map", on);
-  setMapFullscreenMode(on);
   //Android锁横屏成功→真横屏，不用旋转；
   //iOS/微信锁不了→把整个游戏区旋转90°，横着铺满屏幕
   isRotate.value = on && !landscapeLocked;
