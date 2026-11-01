@@ -284,6 +284,7 @@ class SPFA{
 
     switch (tile.tileKey) {
       case "tile_hole":
+      case "tile_trench":     //敌人在行进中，如果存在多条行进路线，会优先规避存在<战壕>的路线。
         distanceWeight = 1000000;
         break;
     

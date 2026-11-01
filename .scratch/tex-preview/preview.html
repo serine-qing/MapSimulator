@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { background: #1a1d21; margin: 20px; font-family: sans-serif; }
+  .row { display: flex; gap: 24px; }
+  .cell { text-align: center; color: #cfd8dc; }
+  canvas { border: 1px solid #444; image-rendering: auto; }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="cell"><canvas id="trench" width="512" height="512"></canvas><div>tile_test_trench</div></div>
+  <div class="cell"><canvas id="plank" width="512" height="512"></canvas><div>tile_test_plank</div></div>
+</div>
+<script>
+// ===== 与 TextureHelper.ts 相同的绘制代码 =====
+const TEST_CANVAS_SIZE = 512;
+
+let tSeed = 20261101;
+const tRand = () => {
+  tSeed = (tSeed * 16807) % 2147483647;
+  return (tSeed - 1) / 2147483646;
+};
+
+const tRoundRect = (ctx, x, y, w, h, r) => {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+};
+
+const tDrawLog = (ctx, cx, cy, length, horizontal) => {
+  const th = 28;
+  ctx.save();
+  ctx.translate(cx, cy);
+  if(!horizontal) ctx.rotate(Math.PI / 2);
+
+  const grad = ctx.createLinearGradient(0, -th / 2, 0, th / 2);
+  grad.addColorStop(0, "#d9a878");
+  grad.addColorStop(0.4, "#a06c3c");
+  grad.addColorStop(1, "#5e3a1c");
+  ctx.fillStyle = grad;
+  tRoundRect(ctx, -length / 2, -th / 2, length, th, th / 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(35, 20, 8, 0.85)";
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  ctx.fillStyle = "rgba(255, 226, 178, 0.38)";
+  tRoundRect(ctx, -length / 2 + 8, -th / 2 + 3, length - 16, 6, 3);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(70, 40, 16, 0.35)";
+  ctx.lineWidth = 1.5;
+  for(let i = -1; i <= 1; i++){
+    ctx.beginPath();
+    ctx.moveTo(-length / 2 + 14, i * 7);
+    ctx.bezierCurveTo(-length / 6, i * 7 + 3, length / 6, i * 7 - 3, length / 2 - 14, i * 7);
+    ctx.stroke();
+  }
+
+  for(const side of [-1, 1]){
+    const ex = side * (length / 2 - th / 2);
+    ctx.beginPath();
+    ctx.arc(ex, 0, th / 2 - 3, 0, Math.PI * 2);
+    ctx.fillStyle = "#c89058";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(60, 34, 12, 0.8)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ex, 0, th / 2 - 10, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(90, 52, 20, 0.6)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+  ctx.restore();
+};
+
+const drawTrenchTexture = (ctx) => {
+  const S = TEST_CANVAS_SIZE;
+  const RIM = 60;
+  const mid = S / 2;
+
+  const floor = ctx.createLinearGradient(0, 0, 0, S);
+  floor.addColorStop(0, "#445565");
+  floor.addColorStop(1, "#31404c");
+  ctx.fillStyle = floor;
+  ctx.fillRect(0, 0, S, S);
+
+  ctx.strokeStyle = "rgba(24, 32, 40, 0.55)";
+  ctx.lineWidth = 2;
+  const cell = (S - 2 * RIM) / 4;
+  for(let i = 0; i <= 4; i++){
+    const p = RIM + cell * i;
+    ctx.beginPath(); ctx.moveTo(RIM, p); ctx.lineTo(S - RIM, p); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p, RIM); ctx.lineTo(p, S - RIM); ctx.stroke();
+  }
+
+  const deep = ctx.createRadialGradient(mid, mid, 20, mid, mid, 160);
+  deep.addColorStop(0, "rgba(16, 24, 30, 0.9)");
+  deep.addColorStop(1, "rgba(16, 24, 30, 0)");
+  ctx.fillStyle = deep;
+  ctx.fillRect(RIM, RIM, S - 2 * RIM, S - 2 * RIM);
+
+  const f = 118, ft = 18;
+  ctx.strokeStyle = "#5a7080";
+  ctx.lineWidth = ft;
+  ctx.strokeRect(mid - f, mid - f, f * 2, f * 2);
+  ctx.strokeStyle = "rgba(180, 210, 220, 0.35)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(mid - f - ft / 2 + 2, mid - f - ft / 2 + 2);
+  ctx.lineTo(mid + f + ft / 2 - 2, mid - f - ft / 2 + 2);
+  ctx.stroke();
+
+  ctx.fillStyle = "#1e2a33";
+  tRoundRect(ctx, mid - 62, mid - 62, 124, 124, 8);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(10, 16, 20, 0.8)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.fillStyle = "#85b4af";
+  ctx.fillRect(0, 0, S, RIM);
+  ctx.fillRect(0, S - RIM, S, RIM);
+  ctx.fillRect(0, 0, RIM, S);
+  ctx.fillRect(S - RIM, 0, RIM, S);
+
+  ctx.strokeStyle = "rgba(40, 70, 70, 0.65)";
+  ctx.lineWidth = 3;
+  const blockLen = 73;
+  for(let i = 1; i < 7; i++){
+    const p = i * blockLen;
+    ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, RIM); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p, S - RIM); ctx.lineTo(p, S); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(RIM, p); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(S - RIM, p); ctx.lineTo(S, p); ctx.stroke();
+  }
+
+  for(let i = 0; i < 14; i++){
+    const side = Math.floor(tRand() * 4);
+    const along = Math.floor(tRand() * 7) * blockLen + 6;
+    const depth = tRand() * (RIM - 22);
+    let bx = 0, by = 0;
+    if(side === 0){ bx = along; by = depth; }
+    else if(side === 1){ bx = along; by = S - RIM + depth; }
+    else if(side === 2){ bx = depth; by = along; }
+    else { bx = S - RIM + depth; by = along; }
+    ctx.fillStyle = `rgba(${30 + tRand() * 40}, ${70 + tRand() * 40}, ${70 + tRand() * 30}, 0.25)`;
+    ctx.fillRect(bx, by, 16 + tRand() * 22, 12 + tRand() * 14);
+  }
+
+  const shadow = 34;
+  let g = ctx.createLinearGradient(0, RIM, 0, RIM + shadow);
+  g.addColorStop(0, "rgba(8, 14, 18, 0.55)"); g.addColorStop(1, "rgba(8, 14, 18, 0)");
+  ctx.fillStyle = g; ctx.fillRect(RIM, RIM, S - 2 * RIM, shadow);
+  g = ctx.createLinearGradient(0, S - RIM, 0, S - RIM - shadow);
+  g.addColorStop(0, "rgba(8, 14, 18, 0.5)"); g.addColorStop(1, "rgba(8, 14, 18, 0)");
+  ctx.fillStyle = g; ctx.fillRect(RIM, S - RIM - shadow, S - 2 * RIM, shadow);
+  g = ctx.createLinearGradient(RIM, 0, RIM + shadow, 0);
+  g.addColorStop(0, "rgba(8, 14, 18, 0.45)"); g.addColorStop(1, "rgba(8, 14, 18, 0)");
+  ctx.fillStyle = g; ctx.fillRect(RIM, RIM, shadow, S - 2 * RIM);
+  g = ctx.createLinearGradient(S - RIM, 0, S - RIM - shadow, 0);
+  g.addColorStop(0, "rgba(8, 14, 18, 0.45)"); g.addColorStop(1, "rgba(8, 14, 18, 0)");
+  ctx.fillStyle = g; ctx.fillRect(S - RIM - shadow, RIM, shadow, S - 2 * RIM);
+
+  ctx.strokeStyle = "rgba(220, 250, 245, 0.4)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(RIM * 0.4, RIM * 0.4, S - RIM * 0.8, S - RIM * 0.8);
+
+  const logLen = 176, off = 100;
+  tDrawLog(ctx, mid - off, RIM * 0.5, logLen, true);
+  tDrawLog(ctx, mid + off, RIM * 0.5, logLen, true);
+  tDrawLog(ctx, mid - off, S - RIM * 0.5, logLen, true);
+  tDrawLog(ctx, mid + off, S - RIM * 0.5, logLen, true);
+  tDrawLog(ctx, RIM * 0.5, mid - off, logLen, false);
+  tDrawLog(ctx, RIM * 0.5, mid + off, logLen, false);
+  tDrawLog(ctx, S - RIM * 0.5, mid - off, logLen, false);
+  tDrawLog(ctx, S - RIM * 0.5, mid + off, logLen, false);
+
+  const corners = [[0, 0], [S, 0], [0, S], [S, S]];
+  corners.forEach(([x, y]) => {
+    ctx.fillStyle = "#2a2e33";
+    tRoundRect(ctx, x - 26, y - 26, 52, 52, 8);
+    ctx.fill();
+    ctx.fillStyle = "#e86830";
+    ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255, 180, 120, 0.7)";
+    ctx.beginPath(); ctx.arc(x - 2, y - 2, 3.5, 0, Math.PI * 2); ctx.fill();
+  });
+};
+
+const drawPlankTexture = (ctx) => {
+  const S = TEST_CANVAS_SIZE;
+
+  ctx.fillStyle = "#0e1216";
+  ctx.fillRect(0, 0, S, S);
+
+  const plankCount = 8;
+  const plankW = 46;
+  const gap = (S - plankCount * plankW) / (plankCount + 1);
+
+  const gapMachines = [2, 4, 6].map(i => gap + i * (plankW + gap) + plankW + gap / 2);
+  gapMachines.forEach((gx, i) => {
+    ctx.fillStyle = "#1d3a3e";
+    tRoundRect(ctx, gx - 20, 50 + i * 50, 40, 180, 10);
+    ctx.fill();
+    ctx.fillStyle = "#275055";
+    tRoundRect(ctx, gx - 14, 70 + i * 50, 28, 70, 8);
+    ctx.fill();
+    ctx.fillStyle = "rgba(232, 168, 72, 0.6)";
+    ctx.beginPath(); ctx.arc(gx, 160 + i * 50, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#e8a848";
+    ctx.beginPath(); ctx.arc(gx, 160 + i * 50, 6.5, 0, Math.PI * 2); ctx.fill();
+  });
+  for(let i = 0; i < plankCount; i++){
+    const x = gap + i * (plankW + gap);
+    const y = -6 + tRand() * 6;
+    const h = S + 12;
+
+    const grad = ctx.createLinearGradient(x, 0, x + plankW, 0);
+    grad.addColorStop(0, "#e7dcc6");
+    grad.addColorStop(0.5, "#d4c6ab");
+    grad.addColorStop(1, "#b3a184");
+    ctx.fillStyle = grad;
+    tRoundRect(ctx, x, y, plankW, h, 6);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255, 248, 228, 0.5)";
+    ctx.fillRect(x + 2, y + 4, 3, h - 8);
+    ctx.fillStyle = "rgba(74, 56, 32, 0.45)";
+    ctx.fillRect(x + plankW - 5, y + 4, 3, h - 8);
+
+    ctx.strokeStyle = "rgba(126, 98, 60, 0.28)";
+    ctx.lineWidth = 1.6;
+    for(let s = 0; s < 3; s++){
+      const sx = x + 10 + s * 13 + tRand() * 4;
+      ctx.beginPath();
+      ctx.moveTo(sx, y + 8);
+      ctx.bezierCurveTo(sx + 5, S * 0.3, sx - 5, S * 0.6, sx + 2, y + h - 8);
+      ctx.stroke();
+    }
+
+    if(tRand() > 0.45){
+      const kx = x + 12 + tRand() * (plankW - 24);
+      const ky = 80 + tRand() * (S - 160);
+      ctx.fillStyle = "rgba(120, 90, 52, 0.5)";
+      ctx.beginPath(); ctx.ellipse(kx, ky, 5, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(96, 70, 38, 0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    const endG = ctx.createLinearGradient(0, y, 0, y + 26);
+    endG.addColorStop(0, "rgba(60, 44, 24, 0.55)");
+    endG.addColorStop(1, "rgba(60, 44, 24, 0)");
+    ctx.fillStyle = endG;
+    ctx.fillRect(x, y + 4, plankW, 24);
+    const endG2 = ctx.createLinearGradient(0, y + h, 0, y + h - 26);
+    endG2.addColorStop(0, "rgba(60, 44, 24, 0.5)");
+    endG2.addColorStop(1, "rgba(60, 44, 24, 0)");
+    ctx.fillStyle = endG2;
+    ctx.fillRect(x, y + h - 28, plankW, 24);
+
+    ctx.fillStyle = "#6a5638";
+    ctx.beginPath(); ctx.arc(x + plankW / 2, y + 22, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + plankW /2, y + h - 22, 3.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(230, 210, 170, 0.6)";
+    ctx.beginPath(); ctx.arc(x + plankW / 2 - 1, y + 21, 1.4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  const vig = ctx.createRadialGradient(S / 2, S / 2, S * 0.35, S / 2, S / 2, S * 0.75);
+  vig.addColorStop(0, "rgba(0, 0, 0, 0)");
+  vig.addColorStop(1, "rgba(0, 0, 0, 0.28)");
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, S, S);
+};
+
+drawTrenchTexture(document.getElementById("trench").getContext("2d"));
+drawPlankTexture(document.getElementById("plank").getContext("2d"));
+</script>
+</body>
+</html>

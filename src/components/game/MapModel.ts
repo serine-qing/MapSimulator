@@ -4,7 +4,7 @@ import TileManager from "./TileManager"
 import {getEnemiesData} from "@/api/stages"
 import AliasHelper from "./AliasHelper";
 import * as spine from "@/spine";
-import { getAnimation } from "@/components/utilities/SpineHelper"
+import { getAnimation, sharedSkelEnemies } from "@/components/utilities/SpineHelper"
 import GameConfig from "../utilities/GameConfig";
 //资源一开始就加载完毕，所以放到这里处理
 import assetsManager from "@/components/assetManager/assetsManager"
@@ -770,9 +770,13 @@ class MapModel{
 
   /**获取敌人资源对应的mesh key，将矢量突破boss的id变为可用id，例如8010_mcnist_3改为8010_mcnist */
   private getEnemyMeshKey(data: EnemyData): string {
-    const name = data.key.replace("enemy_", "");
+    let name = data.key.replace("enemy_", "");
     if(data.levelType === "BOSS"){
-      return name.replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1');
+      name = name.replace(/^(8\d{3}_[a-zA-Z]*)_\d$/, '$1');
+    }
+    //配置内的敌人同样去数字尾缀，共用基础形态的spine目录，例如1602_blksnk2改为1602_blksnk
+    if(sharedSkelEnemies.has(data.key)){
+      name = name.replace(/_?\d+$/, "");
     }
     return name;
   }

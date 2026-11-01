@@ -6,14 +6,25 @@ import type { EnemyData, EnemyRoute, Vec2 } from "@/type";
 
 const specialIdle = {
   enemy_1536_ncrmcr: "Idle_b",       //boss领袖
+  enemy_10258_dsjccs: "Idle_B",           //“胡蜂”
+  enemy_10258_dsjccs_2: "Idle_B"           //“胡蜂”
 }
 
 const specialMove = {
   enemy_10010_sgnja: "Move",        //"市井盗贼"
-  enemy_10010_sgnja_2: "Move", 
+  enemy_10010_sgnja_2: "Move",
   enemy_10072_mpprhd: "Idle",       //侵入式调用
   enemy_1531_bbrain: "Idle",       //“唤醒”
+  enemy_10258_dsjccs: "Move_B",           //“胡蜂”
+  enemy_10258_dsjccs_2: "Move_B"           //“胡蜂”
 }
+
+//这些敌人查找mesh时会去掉key的数字尾缀，共用基础形态的spine目录（矢量突破同款处理）
+//例：enemy_1602_blksnk2 → 1602_blksnk
+export const sharedSkelEnemies = new Set([
+  "enemy_1602_blksnk2",   //不死的黑蛇（act55side）
+  "enemy_1603_hlystp2",
+]);
 
 export const getAnimation = (key: string, animations: any, state: string) => {
   
