@@ -284,8 +284,13 @@ class SPFA{
 
     switch (tile.tileKey) {
       case "tile_hole":
-      case "tile_trench":     //敌人在行进中，如果存在多条行进路线，会优先规避存在<战壕>的路线。
         distanceWeight = 1000000;
+        break;
+
+      case "tile_trench":
+        //敌人在行进中，如果存在多条行进路线，会优先规避存在<战壕>的路线。
+        //但盖着木板的战壕跟平地无异正常走，只有没盖木板的才和坑洞同级规避
+        distanceWeight = (tile.trap && tile.trap.visible) ? 1 : 1000000;
         break;
     
       default:
