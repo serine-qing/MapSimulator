@@ -7,6 +7,7 @@ import GameConfig from "../utilities/GameConfig";
 import Global from "../utilities/Global";
 import { getPixelSize } from "../utilities/utilities";
 import DataObject from "../enemy/DataObject";
+import type Enemy from "../enemy/Enemy";
 import type { TileData, Vec2, BlackBoard } from "@/type";
 
 interface DynamicTexture{
@@ -460,6 +461,16 @@ class Tile extends DataObject{
 
   public removeTrap(){
     this.trap = null;
+  }
+
+  //站在本地块上的敌方单位：按tilePosition格坐标比对，排除已结束/已消失的
+  //用于板垮/装置变化这类"没换块"的时刻——changeTile不会触发，查滞留者用这个
+  public getEnemies(): Enemy[]{
+    return Global.waveManager.enemiesInMap.filter(enemy => {
+      const tp = enemy.tilePosition;
+      if(!tp || tp.x !== this.position.x || tp.y !== this.position.y) return false;
+      return !enemy.isFinished && !enemy.isDisappear;
+    });
   }
 
   //是否可通过。检测不可通行或为障碍物

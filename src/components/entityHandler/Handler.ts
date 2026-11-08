@@ -81,6 +81,13 @@ interface Handler{
 
   afterGameViewInit?();
 
+  /**
+   * handler运行时会动态部署、但地图可能没预置实例的装置key（在parseRunes时已确定）。
+   * MapModel.getTrapDatas会收集这些key一起加载资源并存进trapAssetTemplates，
+   * 部署时用 mapModel.getTrapProto(key) 取模板（预置实例优先）
+   */
+  extraTrapKeys?(): string[];
+
 
   get?(): any;
 

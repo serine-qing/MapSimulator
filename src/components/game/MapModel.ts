@@ -84,6 +84,9 @@ class MapModel{
   public tileManager: TileManager; //地图tiles
   public tokenCards: TokenCardData[] = [];
   public trapDatas: trapData[] = [];
+  //按key预加载的装置资源"裸模板"（无位置/别名）：handler声明extraTrapKeys后，
+  //地图没预置实例的key也会加载资源存到这里，动态部署时 getTrapProto(key) 当proto克隆
+  public trapAssetTemplates: {[key: string]: trapData} = {};
   public bossRushAreaData: { start: number; end: number }[] = [];
 
   public waveDatas: WaveData[] = [];
@@ -209,9 +212,9 @@ class MapModel{
   private async getTrapDatas(){
     const tokenInsts = this.sourceData.predefines?.tokenInsts;
     this.runesHelper.checkPredefines(tokenInsts);
-    if(tokenInsts && Array.isArray(tokenInsts)){
+    const trapKeys:Set<string> = new Set();
 
-      const trapKeys:Set<string> = new Set();
+    if(tokenInsts && Array.isArray(tokenInsts)){
 
       tokenInsts.forEach(data => {
         const {alias, direction, hidden, position, inst, mainSkillLvl, overrideSkillBlackboard} = data;
@@ -274,7 +277,13 @@ class MapModel{
         tokenCard.trapData = trapData;
         trapKeys.add(tokenCard.characterKey);
       })
+    }
 
+    //handler运行时动态部署、地图却没预置的装置key（如act55side翻板）：
+    //不补进trapKeys的话资源不会加载，动态部署时clone不到模型
+    Global.gameHandler.getExtraTrapKeys().forEach(key => trapKeys.add(key));
+
+    if(trapKeys.size){
       const res = await getTrapsKey(Array.from(trapKeys));
 
       const { fbx: fbxs, spine: spines, image: images } = res.data;
@@ -284,6 +293,11 @@ class MapModel{
 
           this.trapDatas.forEach( trapData => {
             trapData.mesh = meshs[trapData.key];
+          })
+
+          //无预置实例可挂的key（extraTrapKeys补进来的）：存裸模板供动态部署克隆
+          Object.keys(meshs).forEach(key => {
+            this.trapAssetTemplates[key] = this.buildTrapAssetTemplate(key, { mesh: meshs[key] });
           })
 
         })
@@ -323,7 +337,7 @@ class MapModel{
             const skelData = skelDatas[spine.name];
 
             this.trapDatas.forEach(trapData => {
-              
+
               if(trapData.key === spine.name){
                 trapData.skeletonData = skelData;
                 const idleAnimate = getAnimation(trapData.key, skelData.animations, "Trap_Idle");
@@ -331,7 +345,12 @@ class MapModel{
               }
             })
 
-          
+            //无预置实例可挂的key（extraTrapKeys补进来的）：存裸模板供动态部署克隆
+            this.trapAssetTemplates[spine.name] = this.buildTrapAssetTemplate(spine.name, {
+              skeletonData: skelData,
+              idleAnimate: getAnimation(spine.name, skelData.animations, "Trap_Idle"),
+            });
+
           })
 
         })
@@ -361,11 +380,30 @@ class MapModel{
           this.trapDatas.forEach(trapData => {
             trapData.textureMat = textureMats[trapData.key];
           })
+
+          //无预置实例可挂的key（extraTrapKeys补进来的）：存裸模板供动态部署克隆
+          Object.keys(textureMats).forEach(key => {
+            this.trapAssetTemplates[key] = this.buildTrapAssetTemplate(key, { textureMat: textureMats[key] });
+          })
         });
 
       }
     }
 
+  }
+
+  //动态部署用的裸模板：没有位置/别名，只有key+已加载的资源
+  private buildTrapAssetTemplate(key: string, res: Partial<trapData>): trapData{
+    return {
+      isTokenCard: false, key, alias: null, direction: "UP",
+      position: null, mainSkillLvl: 1, skills: [], hidden: false, ...res,
+    };
+  }
+
+  //动态部署取模板：本关预置实例优先（带真实朝向/技能），否则用extraTrapKeys预加载的裸模板
+  public getTrapProto(key: string): trapData | undefined{
+    return this.trapDatas.find(data => data.key === key && !data.isTokenCard)
+      || this.trapAssetTemplates[key];
   }
 
   private getBossRushData(){

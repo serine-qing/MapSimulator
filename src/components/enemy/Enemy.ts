@@ -99,6 +99,11 @@ interface ChangeTileEvent{
   callback: Function
 }
 
+//敌人状态机的状态集合：目前只有正常/晕眩两种，以后要加（失衡、冰冻…）：
+//①这里补字面量 ②statusEnter表补进入动作 ③statusExit表补退出动作
+//（两张表是全键的，漏补会编译报错）
+export type EnemyStatus = "normal" | "stunned";
+
 interface AddCheckPointParam{
   position?: Vec2 | THREE.Vector2,
   time?: number,
@@ -290,6 +295,17 @@ class Enemy extends BattleObject{
   protected unBalanceSpeed: number;         //当前失衡移动速度
   protected unBalanceVector: THREE.Vector2; //失衡移动方向
   protected boundCrashed: boolean = false;  //在本次失衡移动中是否撞过墙
+
+  //—— 状态机 ——状态切换统一走setStatus（enableMove下方）；对外入口applyStun
+  public status: EnemyStatus = "normal";
+  //晕眩前的还原基线：进晕眩时捕获、回normal时还原，随get/set序列化跨pass
+  private stunBaseline: {
+    unMoveable: boolean,
+    canAttack: boolean,
+  } | null = null;
+  //动画时钟冻结：由状态的进入/退出动作置位。deltaTrackTime直接返回0，
+  //当前播放中的动画原地定格（不切剪辑、不换姿势），解冻后从定格处继续播
+  private animationFrozen: boolean = false;
 
   constructor(param: EnemyParam, enemyData: EnemyData){
     super();
@@ -853,7 +869,8 @@ class Enemy extends BattleObject{
       if(prevAnimate !== this.animateState){
         this.changeAnimation();
       }
-    }else{
+    }else if(!this.animationFrozen){
+      //动画冻结期间不走idle：晕眩停步不能把当前播放的动画切成待机动画
       this.idle();
     }
 
@@ -1167,6 +1184,10 @@ class Enemy extends BattleObject{
   public render(delta: number){}
 
   protected deltaTrackTime(delta: number): number{
+    //动画冻结（晕眩）：时钟走0，当前姿势原地定格；
+    //update(0)本就是隔帧渲染（delta=0）的常态路径；
+    //simulateTrackTime与渲染同走这里，两pass的动画进度一致
+    if(this.animationFrozen) return 0;
     const animationSpeed = getAnimationSpeed(this.key);
     const speedRate = animationSpeed === 1? 1 : this.speedRate();
     //只有更改了animationSpeed的敌人 需要通过当前移速修改动画速率
@@ -1638,6 +1659,67 @@ class Enemy extends BattleObject{
   //允许移动
   public enableMove(){
     this.unMoveable = false;
+  }
+
+  //—— 敌人状态机 ——状态集合见文件顶部EnemyStatus，目前normal/stunned两态
+  //进各状态的动作；duration仅stunned用（晕眩秒数）
+  private statusEnter: { [S in EnemyStatus]: (duration?: number) => void } = {
+    normal: () => {},
+    stunned: (duration = 0) => {
+      //先捕获还原基线：作为实例字段随get/set序列化，不依赖倒计时闭包
+      this.stunBaseline = {
+        unMoveable: this.unMoveable,
+        canAttack: this.canAttack,
+      };
+      this.unMoveable = true;   //canMove()里挡移动，模拟/回放同一份代码
+      this.canAttack = false;   //攻击入口在canAttack上，停攻击演出
+
+      //不切换动画：只冻结动画时钟，当前播放到哪一帧就定格在哪一帧
+      this.animationFrozen = true;
+
+      this.addStunCountdown(duration);
+    },
+  };
+
+  //退各状态的动作：把进入时捕获的基线原样还原
+  private statusExit: { [S in EnemyStatus]: () => void } = {
+    normal: () => {},
+    stunned: () => {
+      //先解冻时钟（不管基线在不在）：当前动画从定格处继续播
+      this.animationFrozen = false;
+      const base = this.stunBaseline;
+      this.stunBaseline = null;
+      if(!base) return;
+      this.unMoveable = base.unMoveable;
+      this.canAttack = base.canAttack;
+    },
+  };
+
+  //施加晕眩：duration秒后自动回normal；已在晕眩中则只刷新时长（基线保持第一次进入的）
+  public applyStun(duration: number){
+    if(this.status === "stunned"){
+      this.addStunCountdown(duration);
+      return;
+    }
+    this.setStatus("stunned", duration);
+  }
+
+  //状态切换唯一入口：先退出旧状态、再进入新状态
+  private setStatus(next: EnemyStatus, duration?: number){
+    if(this.status === next) return;
+    this.statusExit[this.status]();
+    this.status = next;
+    this.statusEnter[next](duration);
+  }
+
+  //晕眩自动解除的倒计时：模拟/回放两pass同一份代码，倒计时随get/set序列化
+  private addStunCountdown(duration: number){
+    this.countdown.removeCountdown("stun"); //保险
+    this.countdown.addCountdown({
+      name: "stun",
+      initCountdown: duration,
+      callback: () => this.setStatus("normal"),
+    });
   }
 
   protected move(delta: number){
@@ -2134,6 +2216,9 @@ class Enemy extends BattleObject{
       isWaitForBossrush: this.isWaitForBossrush,
       canAttack: this.canAttack,
       attackCountdown: this.attackCountdown,
+      status: this.status,
+      stunBaseline: this.stunBaseline ? { ...this.stunBaseline } : null,
+      animationFrozen: this.animationFrozen,
       currentAttackRange: this.currentAttackRange,
       carriedEnemyKey: this.carriedEnemyKey,
       carryOffset: this.carryOffset,
@@ -2196,6 +2281,9 @@ class Enemy extends BattleObject{
       isWaitForBossrush,
       canAttack,
       attackCountdown,
+      status,
+      stunBaseline,
+      animationFrozen,
       currentAttackRange,
       carriedEnemyKey,
       carryOffset,
@@ -2248,6 +2336,10 @@ class Enemy extends BattleObject{
     this.isWaitForBossrush = isWaitForBossrush;
     this.canAttack = canAttack;
     this.attackCountdown = attackCountdown;
+    //快照整体恢复：状态、基线、动画冻结与倒计时同源，不走setStatus（不重放enter/exit）
+    this.status = status ?? "normal";
+    this.stunBaseline = stunBaseline ?? null;
+    this.animationFrozen = animationFrozen ?? false;
     this.carriedEnemyKey = carriedEnemyKey;
     this.spawnIndex = spawnIndex;
     this.unBalanceSpeed = unBalanceSpeed;

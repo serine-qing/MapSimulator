@@ -45,7 +45,7 @@
           >{{ label.wakeupCountDown > -1 ? label.wakeupCountDown : "" }}
           </div>
 
-          <div  
+          <div
             class="countdown end-countdown"
             v-if="label.endCountDown > -1"
             v-show="label.options.CountDownVisible"
@@ -54,7 +54,7 @@
               'middle': label.endCountDown >= 100 && label.endCountDown < 1000,
               'small': label.endCountDown < 100,
             }"
-            
+
           >{{ label.endCountDown > -1 ? label.endCountDown : "" }}
           </div>
 
@@ -263,6 +263,7 @@ const updateEnemyDatas = () => {
     const endCountDown = enemy.countdown.getCountdownTime("end");
 
     label.unMoveable = unMoveable;
+
     if(countDown > 0){
       label.countDown = Math.floor(countDown);
     }else{

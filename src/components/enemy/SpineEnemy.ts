@@ -117,6 +117,29 @@ class SpineEnemy extends Enemy{
     this.skeletonMesh.renderOrder = -y;
   }
 
+  //读取某动画中某个spine事件的时间点（秒），找不到返回null
+  //事件帧是作者在spine里手放的判定点，常用于同步特效/判定/部署等时机
+  //例：卸石苦力 (enemy as SpineEnemy).getEventTime("Throw_End", "OnAttack") → 0.567
+  public getEventTime(animationName: string, eventName: string): number | null{
+    //实例上的skeletonData在initMesh才挂（gameView.init），而模拟pass跑在initMesh之前，
+    //只读实例字段会在模拟pass读到null并污染缓存，导致回放pass也拿不到事件时间；
+    //两处本就是同一份数据，统一回退到enemyData.skeletonData
+    const animations = (this.skeletonData || this.enemyData?.skeletonData)?.animations;
+    if(!animations) return null;
+
+    const animation = animations.find((a: any) => a.name === animationName);
+    if(!animation) return null;
+
+    for(const timeline of animation.timelines){
+      //EventTimeline：frames[i]是时间、events[i]是事件；其它timeline没有events字段
+      if(!timeline.frames || !timeline.events) continue;
+      const index = timeline.events.findIndex((ev: any) => ev?.data?.name === eventName);
+      if(index > -1) return timeline.frames[index];
+    }
+
+    return null;
+  }
+
   //获取skel的大小，是实时运算出来的
   public getSkelSize(){ 
     this.skeletonMesh.skeleton.updateWorldTransform();

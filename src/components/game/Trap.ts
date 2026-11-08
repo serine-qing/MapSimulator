@@ -269,6 +269,8 @@ class Trap extends BattleObject{
   }
 
   public destroy() {
+    //模拟pass的预置装置没走initMesh，object不存在，无资源可释放
+    if(!this.object) return;
     this.object.children.forEach((mesh: THREE.Mesh) => {
       mesh.geometry?.dispose();
       (mesh.material as THREE.MeshMatcapMaterial)?.dispose();

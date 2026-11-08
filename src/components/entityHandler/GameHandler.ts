@@ -77,6 +77,15 @@ class GameHandler implements Handler{
     }
   }
 
+  //汇总各handler动态部署、地图可能没预置的装置key（MapModel加载资源时用）
+  public getExtraTrapKeys(): string[] {
+    const keys: string[] = [];
+    this.handlers.forEach(handler => {
+      handler.extraTrapKeys && keys.push(...handler.extraTrapKeys());
+    })
+    return keys;
+  }
+
   //初始化全部Actions后执行
   public afterGameInit() {
     this.handlers.forEach(handler => {
@@ -189,31 +198,10 @@ class GameHandler implements Handler{
         break;
     }
 
-    //判断是否是近地悬浮
-    const abilityList = enemy.enemyData.abilityList;
-
-    let roadFly = "近地悬浮"
-    switch (localStorage.currentLang) {
-      case "JP":
-        roadFly = "低空浮揚"
-        break;
-      case "EN":
-        roadFly = "Low-Altitude Hovering";
-        break;
-      case "KR":
-        roadFly = "공중 부양";
-        break;
-    }
-
-    if(abilityList && Array.isArray(abilityList)){
-      //YJ数据里面的空abilityList 有的是数组 有的是对象
-      const find = abilityList.find(ability => {
-        return ability.text?.replace(/<[^>]*>/g, "") === roadFly;
-      });
-
-      if(find){
-        enemy.nearFly = true;
-      }
+    //判断是否是近地悬浮：布尔值由后端按CN手册能力文本正则算好（语言无关），
+    //正则形态与全量验证见 backend routes/enemy.ts 的 DEFAULT_NEAR_FLY_RE
+    if(enemy.enemyData.nearFly){
+      enemy.nearFly = true;
     }
 
     /**

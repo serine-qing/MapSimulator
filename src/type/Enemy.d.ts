@@ -85,6 +85,8 @@ export interface EnemyData {
   lifePointReduce: number;
   immunes: string[];
   abilityList: any;
+  /** 出生即<近地悬浮>，后端按CN能力文本正则判定（语言无关） */
+  nearFly?: boolean;
   animations: any[];
   damageType: DamageType[];
   /** 敌人SP数据（来自关卡JSON的overwrittenData，数据库level数据无此字段） */
