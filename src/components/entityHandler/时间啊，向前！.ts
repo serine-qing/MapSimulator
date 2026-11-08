@@ -20,7 +20,6 @@ class act55side implements Handler{
   //词条 env_050_act55side_boss 里的 fireball_col_ranges = "1-9|36-48"
   //含义是两块战场各占的列范围，"|"分隔多个战场，每段是"起始列-结束列"
   private cameraRanges: { start: number, end: number }[] = [];
-  private currentView: number = 0;   //当前看第几块战场（0起），仅作状态记录
 
   //spine事件时间点缓存：同一敌人的所有个体共用一个骨架，时间点必然相同，读一次即可
   //key = 敌人key:动画名:事件名（_2变体是另一份骨架，分开缓存）
@@ -64,7 +63,6 @@ class act55side implements Handler{
     const range = this.cameraRanges[view];
     if(!range) return;
 
-    this.currentView = view;
     const { start, end } = range;
     Global.gameManager.setMapPosition({ x: (end - start) / 2 + start });
     //广播相机移动事件，通知血条等跟随物重新定位
