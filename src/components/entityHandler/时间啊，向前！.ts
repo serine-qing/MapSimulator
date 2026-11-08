@@ -91,10 +91,56 @@ class act55side implements Handler{
     return false;
   }
 
+  //地钻两个key：不受战壕影响——不注册trenchStun事件、压垮结算也跳过，
+  //只做自己的进出战壕切换动画（见handleEnemyStart）
+  private isDrill(enemy: Enemy): boolean{
+    return enemy.key === "enemy_10260_dsjzds" || enemy.key === "enemy_10260_dsjzds_2";
+  }
+
   //每个敌人入场时注册战壕进入事件；甲虫的压垮翻板也在此注册
   //模拟/回放两pass都会走handleStart，注册逻辑同一份；addChangeTileEvent按名字去重，重复注册无副作用
-  //stun=0即本关无战壕机制（高度覆写同属该词条、甲虫也只出现在带词条的关卡），整段不注册
+  //stun=0即本关无战壕机制（高度覆写同属该词条、甲虫也只出现在带词条的关卡），非地钻整段不注册
+  //地钻不受战壕影响：不注册trenchStun，只注册自己的换格动画后返回（见方法内注释）
   handleEnemyStart(enemy: Enemy){
+    //—— 地钻 enemy_10260_dsjzds / enemy_10260_dsjzds_2 进出战壕切换动画（不注册trenchStun）——
+    //不受战壕影响（图鉴）：不注册战壕晕眩/高度事件、压垮结算也跳过（见crushPlank），
+    //只做自己的换格动画后直接返回；机制是地钻自带的，不依赖env_048词条判断
+    //进入没有木板的战壕（裸战壕）=钻出地面播"Out"，出战壕=钻回地下播"In"，
+    //isWaitTrans=true 切换动画期间停步；
+    //骨架有两套形态：钻地_A（Idle/Move_A，战壕外隐匿，图鉴"隐匿时停止攻击"→没有Attack_A）
+    //与出地_B（Idle/Move_B/Attack_B，裸战壕内显形）——
+    //过渡动画播完apply()恢复的是调用前的idle/move，所以每次都要把目标形态一并传进去，
+    //否则永远停在加载时fuzzy匹配的默认形态，战壕内的出地状态看不见；
+    //按outTile/inTile的裸战壕状态对比，裸战壕↔裸战壕连穿不重播
+    if(this.isDrill(enemy)){
+      enemy.addChangeTileEvent({
+        name: "drillTrench",
+        callback: (outTile: Tile, inTile: Tile) => {
+          if(!inTile) return;
+          const inBare = inTile.tileKey === "tile_trench" && !inTile.trap;
+
+          //出生帧（outTile为空）：按出生格定初始形态，不算进入、不播过渡动画
+          //（出生点都在战壕外=钻地_A；万一刷在裸战壕里直接给_B）
+          if(!outTile){
+            enemy.idleAnimate = inBare ? "Idle_B" : "Idle_A";
+            enemy.moveAnimate = inBare ? "Move_B" : "Move_A";
+            enemy.changeAnimation();
+            return;
+          }
+
+          const outBare = outTile.tileKey === "tile_trench" && !outTile.trap;
+          if(inBare === outBare) return;    //状态没变（含暗阱↔非战壕），不切动画
+          enemy.animationStateTransition({
+            transAnimation: inBare ? "Out" : "In",   //进战壕=钻出地面Out，出战壕=钻回地下In
+            idleAnimate: inBare ? "Idle_B" : "Idle_A",   //进战壕=出地_B，出战壕=钻地_A
+            moveAnimate: inBare ? "Move_B" : "Move_A",
+            isWaitTrans: true,   //切换动画期间 waitAnimationTrans 挡住移动
+          });
+        },
+      });
+      return;
+    }
+
     if(!this.tileStunTime) return;
     enemy.customData.trenchArmed = true;   //出生武装：首次进裸战壕即可触发
     enemy.addChangeTileEvent({
@@ -204,6 +250,7 @@ class act55side implements Handler{
     //板垮瞬间地块变裸战壕：站在上面的敌人不会收到changeTile（没换块，只是trap没了），
     //按"掉进坑"补结算一次——下沉高度 + 直接晕（无0.2秒延迟，含压板的甲虫自己）
     tile.getEnemies().forEach(enemy => {
+      if(this.isDrill(enemy)) return;   //地钻不受战壕影响：压垮掉坑不下沉、不晕，不进结算
       this.applyTrenchHeight(enemy, true);
       this.triggerTrenchStun(enemy, 0);
     });
@@ -227,13 +274,16 @@ class act55side implements Handler{
   //
   //战壕晕眩（env_048_act55side_trench，活动全部关卡自带）：词条tile.stun=5秒，
   //地面单位跨格进入裸战壕，0.2秒后晕眩tile.stun秒
-  //（空中单位、近地悬浮单位不触发）
+  //（空中单位、近地悬浮单位不触发；地钻不受战壕影响，同样不触发）
   //（停步+停攻击；不换动画，当前播放的动画原地定格）；出生帧只初始化tilePosition不算进入
   //重复触发条件：进过<暗阱>或非战壕的其他地块后重新武装，才可再次触发（每轮一发）
   //高度覆写（纯视觉）：裸战壕上强制-0.4格，进<暗阱>或非战壕的其他地块回0（仅地面单位）
   //甲虫压垮翻板的瞬间，滞留板上的敌人也走同一套结算（见crushPlank，没换块不发changeTile；掉坑直接晕无延迟）
   //handler只管触发时机（进格/压垮+0.2秒延迟）和时长数据（tileStunTime），
   //晕眩状态本身是Enemy类上的状态机：enemy.applyStun(duration)
+  //地钻 enemy_10260_dsjzds / _2：进裸战壕=钻出地面播"Out"、出战壕=钻回地下播"In"，
+  //isWaitTrans=true 切换动画期间停步；两套形态 战壕外钻地_A / 裸战壕内出地_B，
+  //切换时要把目标形态的idle/move一并传入animationStateTransition（见handleEnemyStart的drillTrench）
   handleSkill(enemy: Enemy, skill: any){
     //—— 卸石苦力 ThrowSoil ——
     if(
